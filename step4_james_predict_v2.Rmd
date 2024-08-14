@@ -1,0 +1,1673 @@
+---
+title: "James SSN Predictions"
+author: "Michael McManus, Travis Linscome-Hatfield"
+date: "02/26/2024"
+output:
+  html_document:
+    fig_caption: yes
+    number_sections: false
+    toc: yes
+    toc_float:  yes
+    code_folding: hide
+    self_contained: yes
+    theme: lumen
+editor_options: 
+  chunk_output_type: console
+---
+
+Trying again on 08/14/2024 to push this code up to github repository.
+On 08/13/2024, pushed to github. Trying push again as I don't see this code
+on github. 
+
+On 07/12/2024 need to make sure that james_071024.ssn, with PRISM data, gives same prediction output as previous ssn object. It does.
+
+On 07/02/2024 R version 4.4.1 was installed.
+On 07/01/2024 added code to include partition factor assignment to preds.
+
+On 06/28/2024 added code to run a parition factor model.
+
+On 06/17/2024 running code to get predictions for 2019-2020 that I put into a geopackage so I map and plot se vs prediction in QGIS.
+
+On 05/14/2024 running code as updated R, RTools, and RStudio on 05/08/2024.
+
+On 04/19/2024 also specify spatial autocovariance of tail down exponential and Euclidean exponential. Also, run MLR of mixed geography using impervious cover of all 4 geographies (to identify high collinearity), elevation at watershed, DO, tothab, and l_tn, and Lower James subbasin. Does that combination of variables better fit and outperform watershed-only model?
+
+On 04/18/2024 now using vsci as response variable not y2.
+
+On 04/17/2024 now using James041724.ssn as it has climate PRISM data out of StreamCat of precip_mm, Tmean, and Tmax.
+
+On 04/09/2024 Mike Dumelle recommended:  1) use untransformed vsci, 2) include absence/presence binary land cover with percent land cover, and 3) include year.
+
+On 04/04/2024 now using James040424.ssn as Ellen D'Amico from Pegasus updated Preds_2021_2022 points.
+
+On 03/272024, Using code from step1_james_eda_v1.Rmd, but now specifying preds1 to bring in 22 points from 2019-2020 VDEQ monitoring and preds2 to bring in 26 points from 2021-2022 VDEQ monitoring using current SSN from James.ssn_032224.zip.
+# Libraries
+```{r setup,message=FALSE, warning=FALSE, collapse=TRUE}
+# remotes::install_github("USEPA/SSN2", ref = "develop")
+library(SSN2)
+library(tidyverse)
+library(dplyr)
+library(Hmisc)
+library(sf)
+library(moments)
+library(fitdistrplus)
+library(mapview)
+library(leaflet)
+library(leafpop) # for popups in mapview
+library(units)
+library(janitor)
+library(dummy)
+library(GGally)  # parallel coordinate plot
+library(readxl)
+library(bestglm)
+library(car)
+library(performance)
+library(scales) # comma instead of scientific notation
+library(corrr) # tidyverse correlation package
+library(tmap)
+library(gstat) # semivariogram cloud
+
+# remotes::install_github("fsolt/dotwhisker") 
+# library(dotwhisker) #coefficient plot did not install as archived
+# consider https://github.com/ggobi/ggally/issues/372
+# with function in Ggally of GGally::ggcoef() 
+sessionInfo()
+
+knitr::opts_chunk$set(message=FALSE, warning=FALSE,collapse = T)
+```
+
+# SSN Observations and Preds
+```{r ssn_obs_preds}
+# now bringing two predpts
+# current ssn
+j_ssn1a <- SSN2::ssn_import("E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/James_071024.ssn", predpts = c("Preds_2019_2020", "Preds_2021_2022"),
+overwrite = FALSE)
+
+# previous ssn
+# j_ssn1a <- SSN2::ssn_import("E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/James041724.ssn", predpts = c("Preds_2019_2020", "Preds_2021_2022"),
+#overwrite = FALSE)
+
+# j_ssn1a <- SSN2::ssn_import("E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/James.ssn", predpts = c("Preds_2019_2020", "Preds_2021_2022"),
+# overwrite = FALSE)
+names(j_ssn1a)
+summary(j_ssn1a)
+
+DFobs <- SSN2::ssn_get_data(j_ssn1a)
+
+preds1 <- SSN2::ssn_get_data(j_ssn1a, name = "Preds_2019_2020")
+preds2 <- SSN2::ssn_get_data(j_ssn1a, name = "Preds_2021_2022")
+
+# str(preds1)
+# str(preds2)
+
+
+## SFS Torgegram
+# ztg <- SSN2::Torgegram(VSCIVCPMI ~1, j_ssn1a, type = c("flowcon", "flowuncon", "euclid"))
+# plot(ztg, main = "Torgegram VSCI")
+# plot(ztg, type = "flowcon", main = "Torgegram VSCI")
+# plot(ztg, type = "flowuncon", main = "Torgegram VSCI")
+# plot(ztg, type = "euclid", main = "Torgegram VSCI")
+# plot(ztg, separate = TRUE, main = "Torgegram VSCI")
+# 
+# flowcon <- ztg[["flowcon"]]
+# ggplot(flowcon, aes(x=dist, y=gamma)) + geom_point()
+# flowcon$dist_type <- "flow_conn"
+# 
+# flowuncon <- ztg[["flowuncon"]]
+# names(flowuncon)
+# class(flowuncon)
+# ggplot(flowuncon, aes(x=dist, y=gamma)) + geom_point()
+# flowuncon$dist_type <- "flow_unconn"
+# 
+# euclid <- ztg[["euclid"]]
+# names(euclid)
+# class(euclid)
+# ggplot(euclid, aes(x=dist, y=gamma)) + geom_point()
+# euclid$dist_type <- "euclid"
+# 
+# torg <- bind_rows(flowuncon,euclid)
+# ggplot(torg, aes(x=dist, y=gamma, colour = dist_type)) + geom_point()
+
+
+
+```
+
+## SFS Meeting Torgegram
+```{r sfs_torgegram}
+
+torg2 <- ggplot(flowuncon, aes(x=dist, y=gamma)) + geom_point(size =3) + labs(x = "Flow-Unconnected Stream Distance (m)", y = "Semivariance", title = "VSCI Torgegram Stream Network Distance") + scale_x_continuous(labels=comma)
+png(file="figures_sfs/torg2.png",width=6,height=3,units="in",res=150)
+  torg2
+dev.off()
+
+
+esv2 <- ggplot(euclid, aes(x=dist, y=gamma)) + geom_point(size =3) + labs(x = "Euclidean Distance (m)", y = "Semivariance", title = "VSCI Semivariogram Euclidean Distance") + scale_x_continuous(labels=comma)
+png(file="figures_sfs/esv2.png",width=6,height=3,units="in",res=150)
+  esv2
+dev.off()
+```
+
+
+## Steps for working with preds based on obs
+On 03/04/2029, realized I needed to add in imputing of 2 observed sites for total habitat scores. I need tot_hab for catchment and catchment-riparian in the mixed geographies SSN analysis. Saw this when I made scatter plot of covariates.
+
+Note that both obs and preds need to be in the SSN object that is modeled. This results in the SSN model object having all the variables needed for the SSN predict function.
+	1. Use janitor clean_names function.
+	2. Make factors of vahusb and year.
+	3. Log total nitrogen. Do not square vsci as the response variable is not included in the preds data frame.
+	4. Empirical logit transformations for impervious and forest
+	5. Dummy code transformation of factors for vahusb.
+
+## 1.20 Total Habitat (RBP) score
+Bring Total Habitat Score (TotHab) in from Wadeable_ProbMon_2001-2018_Final_Final.xslx spreadsheet so it can be joined to DFobs and then j_ssn1a. These 2 stations:  2-JKS070.97 and 2-DDY000.75_2017 do not have tothab as Emma confirmed in her 11/24/2023 email. Both sites are in Central Appalachian Ridges and Valleys. Both have high VSCI scores of 73.8 and 84.5 (the latter is max VSCI), respectively. I will impute their tothab scores. For trend station 2-DDY000.75_2017, I will average the scores of 172.5, 173.5, and 178 from 2011, 2013, and 2015, respectively. For  2-JKS070.97 on 3rd order, I averaged nearby sites 2-JKS076.16, has tothab of 162.0 on 3rd order, is upstream of 2-JKS070.97, about 16 km apart. Also used Back Creek site, 2-BCC001.90 (has tothab of 189.0 on 2nd order),  that flows parallel to Jackson River, where the 2 sites are, and Back Creek site is near confluence to Jackson River.  2-BCC001.90 is about 9 stream km from 2-JKS070.97. Added new variable tothab.
+
+```{r tothab}
+
+tothab_ds1 <- read_xlsx("E:/R_vdeq_sci/Wadeable_ProbMon_2001-2018_Final_Final.xlsx", range = "Wadeable_ProbMon_2001-2018!D1:BK814")
+                        
+tothab_ds2 <- tothab_ds1 |>
+  filter(SubBasin == "James") |>
+  dplyr::select(StationID_Trend, TotHab) |>
+  mutate_at(c('TotHab'), as.numeric)
+
+summary(tothab_ds2$TotHab)
+
+# 2-DDY000.75_2017 is on Daddy Run headwater of Calfpasture River
+# https://stackoverflow.com/questions/32829358/dplyr-filter-with-sql-like-wildcard
+dr_na <- filter(tothab_ds2, grepl("2-DDY000.75", StationID_Trend, fixed = TRUE))
+summary(dr_na$TotHab)
+
+tothab_ds3 <- tothab_ds2|>
+  mutate(
+    TotHab = case_when(StationID_Trend == "2-DDY000.75_2017" ~ 176.4,
+       TRUE ~ TotHab))
+
+
+# 2-JKS070.97 is on Jackson River
+jr_na <- filter(tothab_ds3, StationID_Trend == "2-JKS076.16"| StationID_Trend == "2-BCC001.90")
+
+summary(jr_na$TotHab)
+
+tothab_ds4 <- tothab_ds3|>
+  mutate(
+    TotHab = case_when(StationID_Trend == "2-JKS070.97" ~ 175.5,
+       TRUE ~ TotHab))
+# no longer any NAs
+summary(tothab_ds4$TotHab)
+
+# ggplot(tothab_ds4, aes(TotHab)) + geom_histogram()
+# 
+# ggplot(tothab_ds4, aes(TotHab)) + geom_boxplot()
+# ggplot(tothab_ds4, aes(x=TotHab)) + geom_density()
+
+tothab_ds4 <- rename(tothab_ds4,c(tothab = TotHab, st_id_tren = StationID_Trend ))
+head(tothab_ds4)
+
+# bizarre bug of having used lowercase in clean from janitor package on sf object
+# https://github.com/r-spatial/sf/issues/1891
+DFobs <- dplyr::rename(DFobs, st_id_tren = StationID_)
+
+# add tothab as new variable
+DFobs <- full_join(DFobs, tothab_ds4, by = join_by(st_id_tren))
+
+# now can put variables into lowercase
+DFobs <- clean_names(DFobs)
+# str(DFobs)
+names(DFobs)
+```
+
+# Transform Obs Covariates
+0n 06/28/20204 added for ju - yes and ju - no to test if partitioning on ju helpful first by looking at separate torgegrams and then in modeling.
+On 04/10/2024 added code for a binary presence covariate for impervious cover at watershed extent.
+```{r transform_obs}
+
+# bizarre bug of having used lowercase in clean from janitor package on sf object
+# https://github.com/r-spatial/sf/issues/1891
+# DFobs <- dplyr::rename(DFobs, st_id_tren = StationID_)
+
+# now can put variables into lowercase
+# DFobs <- clean_names(DFobs)
+
+
+DFobs$year_f <- as.factor(DFobs$year)
+DFobs$vahusb <- factor(DFobs$vahusb, levels = c("JU", "JM", "JR", "JA", "JL"))
+summary(DFobs$vahusb)
+
+DFobs <- DFobs %>%
+  mutate(
+    jl = case_when(
+    vahusb != "JL" ~ 0,
+    vahusb == "JL" ~1
+  )
+)
+
+DFobs <- DFobs %>% 
+  mutate(
+    ju = case_when(
+      vahusb == "JU" ~ "yes",
+      .default = "no"
+    )
+  )
+DFobs$ju <- factor(DFobs$ju, levels = c("yes","no"))
+summary(DFobs$ju)
+
+glimpse(DFobs)
+# In ArcGIS these 2 fields are not numeric so have to mutate
+DFobs2 <- DFobs %>% mutate_at(c('pct_for_c', 'pct_for_w'), as.numeric)
+
+DFobs2$l_tn <- log(DFobs2$tn)
+
+DFobs2$vsci <- round(DFobs2$vscivcpmi,1)
+
+DFobs2$y2 <- round((DFobs2$vscivcpmi^2),1)
+# transformation suggested by Box-Cox
+# improved posterior predictive check and linearity from model_check
+
+
+names(DFobs2)
+
+class(DFobs2)
+# note ssn_put_data requires sf object and SSN2 object
+j_ssn2 <-  SSN2::ssn_put_data(DFobs2,j_ssn1a)
+# just doing this assignment so not have to rename objects
+j_ssn3 <- j_ssn2
+
+# VARIABLE ADJUSTMENT ZONE 4
+### Variables to apply empirical logit transformation
+emplog_vars <- c("pct_for_w","pct_imp_w","pct_crop_w","pct_hay_w","pct_grs_w","pct_shrb_w","pct_for_wr","pct_imp_rp_w","pct_crop_wr","pct_hay_wr","pct_grs_wr","pct_shrb_wr","pct_for_c","pct_imp_c","pct_crop_c","pct_hay_c","pct_grs_c", "pct_shrb_c", "pct_for_cr","pct_imp_rp_c","pct_crop_cr","pct_hay_cr","pct_grs_cr","pct_shrb_cr")
+
+# remove geometry so empirical logit can be applied
+DFobsz <- st_set_geometry(DFobs2, NULL)
+################################################################
+################################################################
+
+
+## transform these variables and put the new values into new columns in DFobs
+for(var in emplog_vars){
+  ### create new tranformed data column to preserve the original
+  new_nm <- paste0(var,"_emplog")
+  dat_vec_obs <- DFobsz[,var]
+  # dat_vec_preds <- DFpreds[,var]
+  
+  #converting to 0-1 range
+  dat_vec_obs <- dat_vec_obs/100
+  # dat_vec_preds <- dat_vec_preds/100
+  
+  # dat_vec[dat_vec == 1] <- .9999
+  # dat_vec[dat_vec == 0] <- .0001
+  
+  if(any(dat_vec_obs > 1 | dat_vec_obs < 0)){
+    cat("ERROR: percentage variables outside logical bounds")
+  }
+  
+  small_dat_vec_obs <- dat_vec_obs[dat_vec_obs <1 & dat_vec_obs >0]
+  # small_dat_vec_preds <- dat_vec_preds[dat_vec_preds <1 & dat_vec_preds >0]
+  op1_obs <- small_dat_vec_obs
+  op2_obs<- 1-small_dat_vec_obs
+  # op1_preds <- small_dat_vec_preds
+  # op2_preds <- 1-small_dat_vec_preds
+  
+  ## minimum of op1 op2
+  delt_obs <- min(c(op1_obs,op2_obs))
+  # delt_preds <- min(c(op1_preds,op2_preds))
+  
+  ## getting set of frequencies
+  freqs_obs <- NULL
+  for(i in 1:length(dat_vec_obs)){
+    if(dat_vec_obs[i] <= delt_obs){
+      freqs_obs[i] <- delt_obs/2
+    }else if(dat_vec_obs[i] >= 1- delt_obs){
+      freqs_obs[i] <- 1-(delt_obs/2)
+    }else{
+      freqs_obs[i] <-dat_vec_obs[i]
+    }
+  }
+  
+ # freqs_preds <- NULL
+ # for(i in 1:length(dat_vec_preds)){
+ #   if(dat_vec_preds[i] <= delt_preds){
+ #     freqs_preds[i] <- delt_preds/2
+ #   }else if(dat_vec_preds[i] >= 1- delt_preds){
+ #     freqs_preds[i] <- 1-(delt_preds/2)
+ #   }else{
+ #     freqs_preds[i] <-dat_vec_preds[i]
+  #  }
+ # }
+  
+  ##getting logits
+  logits_obs <- log(freqs_obs/(1-freqs_obs))
+  DFobsz[,new_nm] <- logits_obs
+  
+  # logits_preds <- log(freqs_preds/(1-freqs_preds))
+  # DFpreds[,new_nm] <- logits_preds
+}
+
+DFobsz <- DFobsz %>%
+  mutate(
+    imp_w_pres = case_when(
+    pct_imp_w_emplog <= -8.111428 ~ 0,
+    pct_imp_w_emplog > -8.111428 ~1
+  )
+)
+
+head(DFobsz$imp_w_pres)
+head(DFobsz$pct_imp_w)
+
+names(DFobsz)
+DFobsz2 <- dplyr::select(DFobsz, c(st_id_tren, pct_for_w_emplog:imp_w_pres))
+# put transformed covariates in an SF object
+DFobs2a <- full_join(DFobs2, DFobsz2, by = join_by(st_id_tren))
+
+# put SF object into SSN
+j_ssn3 <-  SSN2::ssn_put_data(DFobs2a,j_ssn3)
+
+# dummy code 5 vahusb with base being JU, James Upper
+vahusb <- dplyr::select(DFobsz, vahusb)
+summary(vahusb)
+glimpse(vahusb)
+
+vahusb_d <- (data.frame(dummy(vahusb)))
+# 5 levels need only n-1 =4 dummy variables, removed base level of JU by dropping first column
+vahusb_d <- vahusb_d[c(-1)]
+dim(vahusb_d)
+head(DFobsz$vahusb)
+distinct(vahusb_d)
+head(vahusb_d)
+str(vahusb_d)
+class(vahusb_d)
+
+DFobsz <- cbind(DFobsz,vahusb_d)
+names(DFobsz)
+
+X1 <- DFobsz|>
+   dplyr::select(st_id_tren, vahusb_JM, vahusb_JR, vahusb_JA, vahusb_JL) %>%
+  mutate_at(c('vahusb_JM', 'vahusb_JR', 'vahusb_JA', 'vahusb_JL'), as.numeric)
+# X1 can only contain numeric or factor
+
+str(X1)
+
+# put dummy covariates in an SF object
+DFobs3a <- full_join(DFobs2a, X1, by = join_by(st_id_tren))
+names(DFobs3a)
+
+# put SF object into SSN
+j_ssn3 <-  SSN2::ssn_put_data(DFobs3a,j_ssn3)
+```
+
+# Transform Pred Covariates
+Before running code below, make sure that correct preds data frame is specified and that it corresponds to Preds_YYYY_YYYY in SSN object.
+04/19/2024 using James04172024.ssn.
+On 04/042024 now using James040424.ssn.
+On 04/02/2024, discovered that preds2 was missing some variables so Pegasus is checking to the situation.
+On 04/022024 running preds2 from 2021-2022 through transformation so I can get preds2 predictions. Substitute preds2 data frame for preds1.
+Note not putting response variable y2 in preds as I think it gets created when predict SSN is used.
+```{r transform_preds}
+# bizarre bug of having used lowercase in clean from janitor package on sf object
+# https://github.com/r-spatial/sf/issues/1891
+preds3 <- dplyr::rename(preds2, st_id_tren = StationID_)
+
+# now can put variables into lowercase
+preds3 <- clean_names(preds3)
+
+# create same name as in obs models
+preds3$tothab <- preds3$tot_hab
+
+preds3$year_f <- as.factor(preds3$year)
+preds3$vahusb <- factor(preds3$vahusb, levels = c("JU", "JM", "JR", "JA", "JL"))
+summary(preds3$vahusb)
+
+preds3 <- preds3 %>%
+  mutate(
+    jl = case_when(
+    vahusb != "JL" ~ 0,
+    vahusb == "JL" ~1
+  )
+)
+
+preds3 <- preds3 %>% 
+  mutate(
+    ju = case_when(
+      vahusb == "JU" ~ "yes",
+      .default = "no"
+    )
+  )
+preds3$ju <- factor(preds3$ju, levels = c("yes","no"))
+summary(preds3$ju)
+
+
+preds3$l_tn <- log(preds3$tn)
+
+preds3$vsci <- round(preds3$vscivcpmi,1)
+
+preds3$vsci_sq <- round((preds3$vscivcpmi^2),1)
+# transformation suggested by Box-Cox
+# improved posterior predictive check and linearity from model_check
+
+names(preds3)
+
+class(preds3)
+# note ssn_put_data requires sf object and SSN2 object
+j_ssn3 <-  SSN2::ssn_put_data(preds3,j_ssn3, name = "Preds_2021_2022", resize_data = FALSE)
+summary(j_ssn3)
+
+# saveRDS(j_ssn3, file = "j_ssn3.rds")
+
+# VARIABLE ADJUSTMENT ZONE 4
+### Variables to apply empirical logit transformation
+# emplog_vars <- c("pct_for_w","pct_imp_w","pct_crop_w","pct_hay_w","pct_grs_w","pct_shrb_w","pct_for_wr","pct_imp_rp_w","pct_crop_wr","pct_hay_wr","pct_grs_wr","pct_shrb_wr","pct_for_c","pct_imp_c","pct_crop_c","pct_hay_c","pct_grs_c", "pct_shrb_c", "pct_for_cr","pct_imp_rp_c","pct_crop_cr","pct_hay_cr","pct_grs_cr","pct_shrb_cr")
+
+# remove geometry so empirical logit can be applied
+predsz <- st_set_geometry(preds3, NULL)
+################################################################
+################################################################
+
+
+## transform these variables and put the new values into new columns in preds
+for(var in emplog_vars){
+  ### create new tranformed data column to preserve the original
+  new_nm <- paste0(var,"_emplog")
+  dat_vec_obs <- predsz[,var]
+  # dat_vec_preds <- DFpreds[,var]
+  
+  #converting to 0-1 range
+  dat_vec_obs <- dat_vec_obs/100
+  # dat_vec_preds <- dat_vec_preds/100
+  
+  # dat_vec[dat_vec == 1] <- .9999
+  # dat_vec[dat_vec == 0] <- .0001
+  
+  if(any(dat_vec_obs > 1 | dat_vec_obs < 0)){
+    cat("ERROR: percentage variables outside logical bounds")
+  }
+  
+  small_dat_vec_obs <- dat_vec_obs[dat_vec_obs <1 & dat_vec_obs >0]
+  # small_dat_vec_preds <- dat_vec_preds[dat_vec_preds <1 & dat_vec_preds >0]
+  op1_obs <- small_dat_vec_obs
+  op2_obs<- 1-small_dat_vec_obs
+  # op1_preds <- small_dat_vec_preds
+  # op2_preds <- 1-small_dat_vec_preds
+  
+  ## minimum of op1 op2
+  delt_obs <- min(c(op1_obs,op2_obs))
+  # delt_preds <- min(c(op1_preds,op2_preds))
+  
+  ## getting set of frequencies
+  freqs_obs <- NULL
+  for(i in 1:length(dat_vec_obs)){
+    if(dat_vec_obs[i] <= delt_obs){
+      freqs_obs[i] <- delt_obs/2
+    }else if(dat_vec_obs[i] >= 1- delt_obs){
+      freqs_obs[i] <- 1-(delt_obs/2)
+    }else{
+      freqs_obs[i] <-dat_vec_obs[i]
+    }
+  }
+  
+ # freqs_preds <- NULL
+ # for(i in 1:length(dat_vec_preds)){
+ #   if(dat_vec_preds[i] <= delt_preds){
+ #     freqs_preds[i] <- delt_preds/2
+ #   }else if(dat_vec_preds[i] >= 1- delt_preds){
+ #     freqs_preds[i] <- 1-(delt_preds/2)
+ #   }else{
+ #     freqs_preds[i] <-dat_vec_preds[i]
+  #  }
+ # }
+  
+  ##getting logits
+  logits_obs <- log(freqs_obs/(1-freqs_obs))
+  predsz[,new_nm] <- logits_obs
+  
+  # logits_preds <- log(freqs_preds/(1-freqs_preds))
+  # DFpreds[,new_nm] <- logits_preds
+}
+
+predsz <- predsz %>%
+  mutate(
+    imp_w_pres = case_when(
+    pct_imp_w_emplog <= -8.111428 ~ 0,
+    pct_imp_w_emplog > -8.111428 ~1
+  )
+)
+
+head(predsz$imp_w_pres)
+head(predsz$pct_imp_w)
+names(predsz)
+predsz2 <- dplyr::select(predsz, c(st_id_tren, pct_for_w_emplog:imp_w_pres))
+# put transformed covariates in an SF object
+preds3a <- full_join(preds3, predsz2, by = join_by(st_id_tren))
+summary(preds3a$pct_imp_w_emplog)
+class(preds3a)
+
+# saveRDS(preds3a, file = "preds3a.rds")
+
+# put SF object into SSN
+j_ssn3 <-  SSN2::ssn_put_data(preds3a,j_ssn3, name = "Preds_2021_2022", resize_data = FALSE)
+summary(j_ssn3$preds$Preds_2021_2022$pct_imp_w_emplog)
+
+
+# dummy code 5 vahusb with base being JU, James Upper
+vahusb <- dplyr::select(predsz, vahusb)
+summary(vahusb)
+glimpse(vahusb)
+
+vahusb_d <- (data.frame(dummy(vahusb)))
+# 5 levels need only n-1 =4 dummy variables, removed base level of JU by dropping first column
+vahusb_d <- vahusb_d[c(-1)]
+dim(vahusb_d)
+head(predsz$vahusb)
+distinct(vahusb_d)
+head(vahusb_d)
+str(vahusb_d)
+class(vahusb_d)
+
+predsz <- cbind(predsz,vahusb_d)
+names(predsz)
+
+P1 <- predsz|>
+   dplyr::select(st_id_tren, vahusb_JM, vahusb_JR, vahusb_JA, vahusb_JL) %>%
+  mutate_at(c('vahusb_JM', 'vahusb_JR', 'vahusb_JA', 'vahusb_JL'), as.numeric)
+str(P1)
+
+# P1 can only contain numeric or factor for 22 preds
+
+# put dummy covariates in an SF object
+preds3b <- full_join(preds3a, P1, by = join_by(st_id_tren))
+names(preds3b)
+
+# put SF object into SSN
+j_ssn3 <-  SSN2::ssn_put_data(preds3b,j_ssn3, "Preds_2021_2022", resize_data = FALSE)
+
+summary(j_ssn3)
+
+# Check that afv_area is in SSN object
+str(j_ssn3$preds$Preds_2021_2022$afv_area)
+```
+
+# Create Distance Matrix
+When using a new SSN object, such as James_071024.ssn have to create distance matrices. Ran first set of code and now see a distance matrix folder in where the SSN object is stored at:
+E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/James_071224.ssn and see sub folders for obs and Preds_2019_2020. Ran second set of code and now see Preds_2021_2022 subfolder.
+
+```{r distance_matrix}
+
+# Distance matrix for obs and first set of prediction points from 2019 and 2020
+SSN2::ssn_create_distmat(j_ssn3, predpts = "Preds_2019_2020", overwrite = TRUE)
+
+# Distance matrix for second set of prediction points
+SSN2::ssn_create_distmat(j_ssn3, predpts = "Preds_2021_2022", overwrite = TRUE, among_predpt = TRUE, only_predpts = TRUE)
+```
+
+
+## Torgegrams DO, TN and Partitioning
+In the coefficent plot, the flip-flop in instream stressor, being dissolved oxygen at Watershed and Watershed-Riparian, and then total nitrogen for Catchment and Catchment-Riparian suggests that different stressors have their effects on stream condition index at different spatial extents. I thought of following that up in two ways. First, see if semivariograms and Torgegrams of dissolved oxygen and total nitrogen show different ranges, the distance at which observations are independent. My hypothesis is that dissolved oxygen will have a larger range than total nitrogen. Second, I want to see if I update the watershed model to include all 3 instream stressors does that beat the current watershed model having only dissolved oxygen.
+
+On 05/03/2024, not seeing that much spatial structure in DO or Log(TN). On 07/12/2024 still need to test if 3 instream stressors in a model outperforms just DO in the model. Try subsetting ssn objectby ju factor and then making separate Torgegrams.
+```{r do_tn_toregrams}
+
+class(j_ssn3)
+ztg <- SSN2::Torgegram(vscivcpmi ~ 1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
+# SSN2::plot.Torgegram(ztg)
+torg <- ztg[["euclid"]]
+names(torg)
+class(torg)
+ggplot(torg, aes(x=dist, y=gamma,size=np)) + geom_point()
+
+summary(j_ssn3$obs$ju)
+glimpse(j_ssn3$obs$ju)
+
+#ju yes has 71 obs and no has 128 obs
+esv_separate <- map(c(yes, no), ~ SSN2::Torgegram(vscivcpmi ~ 1, j_ssn3 |> filter(ju == .x)))
+
+esv_separate
+
+# plot(esv_separate[[1]]) not helpful
+
+esv_ju_yes <- esv_separate[[1]] 
+esv_ju_no <- esv_separate[[2]]
+
+names(esv_ju_yes)
+
+esv1 <- ggplot(esv_ju_yes, aes(x=dist, y=gamma, size=np)) + geom_point() + labs(x = "Euclidean Distance (m)", y = "Semivariance", title = "JU yes") + scale_x_continuous(labels=comma)
+
+esv2 <- ggplot(esv_ju_no, aes(x=dist, y=gamma, size=np)) + geom_point() + labs(x = "Euclidean Distance (m)", y = "Semivariance", title = "JU no") + scale_x_continuous(labels=comma)
+
+
+
+
+ztg <- SSN2::Torgegram(l_tn ~1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
+plot(ztg, main = "Torgegram Log(TN)")
+plot(ztg, type = "flowcon", main = "Torgegram Log(TN)")
+plot(ztg, type = "flowuncon", main = "Torgegram Log(TN)")
+plot(ztg, type = "euclid", main = "Torgegram Log(TN)")
+plot(ztg, separate = TRUE, main = "Torgegram Log(TN)")
+
+flowcon <- ztg[["flowcon"]]
+ggplot(flowcon, aes(x=dist, y=gamma)) + geom_point()
+flowcon$dist_type <- "flow_conn"
+
+flowuncon <- ztg[["flowuncon"]]
+names(flowuncon)
+class(flowuncon)
+ggplot(flowuncon, aes(x=dist, y=gamma)) + geom_point()
+flowuncon$dist_type <- "flow_unconn"
+
+euclid <- ztg[["euclid"]]
+names(euclid)
+class(euclid)
+ggplot(euclid, aes(x=dist, y=gamma)) + geom_point()
+euclid$dist_type <- "euclid"
+
+torg <- bind_rows(flowuncon,euclid)
+ggplot(torg, aes(x=dist, y=gamma, colour = dist_type)) + geom_point()
+
+# test if Torgegram would work using similar code below
+esv_separate <- map(c(2001, 2006), ~ esv(log_Zn ~ log_dist2road, moss |> filter(year == .x)))
+
+
+```
+
+
+# SSN Watershed WQ Model
+On 04/19/2024 kept tail down exponential and changed Euclidean to exponential based on models_yintercept.csv table.
+On 04/10/2023 evaluated model using vsci, untransformed, and added imp_w_pres, a binary presence indicator of impervious cover. This was approach was used by Dumelle et al. 2024 in their spatial modeling of NLA conductivity.
+```{r wswq_ssn_obs_preds}
+ssn_wswq_reml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area"
+)
+summary(ssn_wswq_reml1)
+varcomp(ssn_wswq_reml1)
+loocv(ssn_wswq_reml1)
+
+plot(ssn_wswq_reml1, which = c(1:6))
+
+tidy(ssn_wswq_reml1)
+
+aug_ssn_wswq_reml1 <- augment(ssn_wswq_reml1, drop = FALSE)
+class(aug_ssn_wswq_reml1)
+names(aug_ssn_wswq_reml1)
+
+mapview(aug_ssn_wswq_reml1)
+
+mapview(aug_ssn_wswq_reml1, zcol = ".std.resid", cex = ".std.resid", alpha.regions = .8, legend = TRUE, popup = popupTable(aug_ssn_wswq_reml1, zcol = c(".std.resid"))) + mapview(stream)
+
+# Semivariogram Cloud
+ssn_cloud =  variogram(.std.resid ~ 1, aug_ssn_wswq_reml1, cloud = TRUE)
+class(ssn_cloud)
+plot(ssn_cloud)
+
+plot(plot(ssn_cloud, identify = TRUE), aug_ssn_wswq_reml1)
+
+#parallel coordinate plot
+pcpobs <- ggparcoord(data = aug_ssn_wswq_reml1, columns = c(136,155,38,159,163,160,191), groupColumn = "vahusb", scale = "std", showPoint = TRUE, title = "Observed Sites", alphaLines = 0.6, boxplot = TRUE)
+
+ggplot(aug_ssn_wswq_reml1, aes(x = pct_imp_w_emplog, y = .fitted, colour = vahusb)) + geom_point() + geom_smooth(method = "lm")
+
+ggplot(aug_ssn_wswq_reml1, aes(x = vahusb, y = .fitted)) + geom_boxplot()
+
+names(aug_ssn_wswq_reml1)
+
+resid_ssn1 <- as.data.frame(aug_ssn_wswq_reml1)|>
+   dplyr::select(st_id_tren, .fitted, .resid, .std.resid)
+
+class(resid_ssn1)
+names(resid_ssn1)
+
+ssn_wswq_fit_reml1 <- dplyr::select(aug_ssn_wswq_reml1, c(station_id, st_id_tren, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, pct_imp_w, elev_ws, pct_imp_w_emplog, vsci, .fitted, .std.resid))
+
+saveRDS(ssn_wswq_fit_reml1, file = "ssn_wswq_fit_reml1.rds")
+
+st_write(ssn_wswq_fit_reml1, dsn = file.path(getwd(), "ssn_wswq_fit_reml1.gpkg"), layer = "ssn_wswq_fit_reml1", driver = "GPKG", quiet = FALSE)
+
+
+
+# put dummy covariates in an SF object
+DFobs4 <- full_join(DFobs3a, resid_ssn1, by = join_by(st_id_tren))
+names(DFobs4)
+
+# put SF object into SSN
+j_ssn4 <-  SSN2::ssn_put_data(DFobs4,j_ssn3)
+
+res_tg1 <- SSN2::Torgegram(.resid ~ 1, j_ssn4, type = c("flowuncon", "euclid"))
+plot(res_tg1, main = "Torgegram of Residuals from Watershed SSN")
+```
+
+# SSN Model Partitioned
+On 07/03/2024 need to look at diagnostic plots of partition model. Diagnostic plots are saved as Word files at E:\R_vdeq_sci\Working\Data\neptune_analysis\scripts_by_basin.
+On 06/28/2024, I coded for a partition factor base on JU subbasin versus non-JU subasins , partly because parallel coordinate plot showed JU to differ in covariates and vsci from rest of subbasins. Results from dummy coded model above match factor coded model below. Also, on 06/20/2024 compared the Watershed ssn model to a model with a random effect of year. The Watershed ssn model had a much lower AICc than the model with a random effect of year.
+```{r wswq_ssn_factor}
+# z1 model shows that jl as factor gives same results at dummy coded vahusb_JL
+z1ssn_wswq_reml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + jl,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area"
+)
+summary(zssn_wswq_reml1)
+
+# random effect of year
+z2ssn_wswq_reml1 <- ssn_lm(
+   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
+   ssn.object = j_ssn3,
+   tailup_type = "none",
+   taildown_type = "exponential",
+   euclid_type = "exponential",
+   nugget_type = "nugget",
+   estmethod = "reml",
+   additive = "afv_area",
+   random = ~ year_f
+)
+
+summary(z2ssn_wswq_reml1)
+varcomp(z2ssn_wswq_reml1)
+loocv(z2ssn_wswq_reml1)
+
+plot(z2ssn_wswq_reml1, which = c(1:6))
+# 
+glances(ssn_wswq_reml1,z2ssn_wswq_reml1)
+# AICc ssn_ws_reml1 1415 vs. AICc z2ssn_wswq_reml1 1424
+
+# fixed effect of year
+z3ssn_wswq_reml1 <- ssn_lm(
+   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + year_f,
+   ssn.object = j_ssn3,
+   tailup_type = "none",
+   taildown_type = "exponential",
+   euclid_type = "exponential",
+   nugget_type = "nugget",
+   estmethod = "reml",
+   additive = "afv_area"
+ )
+
+summary(z3ssn_wswq_reml1)
+varcomp(z3ssn_wswq_reml1)
+loocv(z3ssn_wswq_reml1)
+
+plot(z3ssn_wswq_reml1, which = c(1:6))
+
+
+glances(ssn_wswq_reml1,z2ssn_wswq_reml1,z3ssn_wswq_reml1)
+# AICc ssn_ws_reml1 1415 vs. AICc z2ssn_wswq_reml1 1423 vs AICc z3ssn 1327
+# RMSPE/cor2 ssn_ws_reml1 8/38/0.41 vs. RMSPE/cor2 z2ssn_wswq_reml1 8.46/0.40 vs RMSPE/cor2 z3ssn 8.70/0.378
+
+# On 06/28/2024 partition factor on ju motivated by parallel coordinate plots of obs and preds.  Partition factor, from help, affects covariance matrix so I think I can compare 2 models based on AICc derived from reml. 
+
+z4ssn_wswq_reml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area",
+  partition_factor = ~ ju
+)
+summary(z4ssn_wswq_reml1)
+varcomp(z4ssn_wswq_reml1)
+loocv(z4ssn_wswq_reml1) %>% print(n = Inf)
+
+glances(ssn_wswq_reml1,z4ssn_wswq_reml1)
+
+plot(z4ssn_wswq_reml1, which = c(1:6))
+
+tidy(z4ssn_wswq_reml1)
+
+
+z4rssn_wswq_reml1 <- augment(z4ssn_wswq_reml1, drop = FALSE)
+summary(z4rssn_wswq_reml1$.std.resid)
+mapview(z4rssn_wswq_reml1, zcol = ".std.resid", cex = ".std.resid", alpha.regions = .8, legend = TRUE, popup = popupTable(aug_ssn_wswq_reml1, zcol = c(".std.resid"))) 
+
+z4rssn_wswq_reml1 <- dplyr::select(z4rssn_wswq_reml1, c(station_id, st_id_tren, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, pct_imp_w, elev_ws, pct_imp_w_emplog, vsci, .fitted, .std.resid))
+
+saveRDS(z4rssn_wswq_reml1, file = "z4rssn_wswq_reml1.rds")
+
+st_write(z4rssn_wswq_reml1, dsn = file.path(getwd(), "z4rssn_wswq_reml1.gpkg"), layer = "z4rssn_wswq_reml1", driver = "GPKG", quiet = FALSE)
+
+```
+
+# Compare SSN Models with ML
+This to compare different SSN models having different covariates and slopes from these models are used in coefficient plot.
+```{r ssn_ml}
+ssn_wswq_ml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "ml",
+  additive = "afv_area"
+)
+
+ssn_wsrpwq_ml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_rp_w_emplog + elev_ws + do + tothab,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "ml",
+  additive = "afv_area"
+)
+
+ssn_catwq_ml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_c_emplog + elev_cat + tothab + l_tn,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "ml",
+  additive = "afv_area"
+)
+
+ssn_catrpwq_ml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_rp_c_emplog + elev_cat + tothab + l_tn,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "ml",
+  additive = "afv_area"
+)
+
+models_ml_ssn <- glances(ssn_wswq_ml1, ssn_wsrpwq_ml1, ssn_catwq_ml1, ssn_catrpwq_ml1)
+
+loocv(ssn_wswq_ml1)
+loocv(ssn_wsrpwq_ml1)
+loocv(ssn_catwq_ml1)
+loocv(ssn_catrpwq_ml1)
+
+write.csv(models_ml_ssn, file="E:/R_vdeq_sci/Working/Data/neptune_analysis/scripts_by_basin/tables_sfs/four_models_ml_ssn.csv",sep=",",row.names=F)
+```
+
+## SFS Meeting Coefficient Plot
+Create groupings of predictors:  geophysical (elevation, Lower James), landscape(impervious cover), and instream (DO, total habitat, total nitrogen) for coefficient plot.
+```{r coefficent_plot}
+tidy_wswq <- tidy(ssn_wswq_ml1)
+tidy_wsrpwq <- tidy(ssn_wsrpwq_ml1)
+tidy_catwq <- tidy(ssn_catwq_ml1)
+tidy_catrpwq <- tidy(ssn_catrpwq_ml1)
+
+dwplot(tidy_wswq)
+dwplot(tidy_wsrpwq)
+dwplot(tidy_catwq)
+dwplot(tidy_catrpwq)
+
+# has to be lowercase, Please add a variable named 'model' to distinguish different models
+tidy_wswq <- tidy_wswq |>
+  mutate(model = "Watershed")
+
+tidy_wsrpwq <- tidy_wsrpwq |>
+  mutate(model = "Watershed-Riparian")
+
+tidy_catwq <- tidy_catwq |>
+  mutate(model = "Catchment")
+
+tidy_catrpwq <- tidy_catrpwq |>
+  mutate(model = "Catchment-Riparian")
+
+dwplot(tidy_wswq, vline = geom_vline(
+  xintercept = 0,
+  colour = "grey60",
+  linetype = 2)
+)
+
+four_models <- rbind(tidy_wswq, tidy_wsrpwq, tidy_catwq, tidy_catrpwq)
+
+four_models <- four_models |>
+  relabel_predictors("pct_imp_w_emplog" = "Impervious Cover-Ws",
+       "pct_imp_rp_w_emplog" = "Impervious Cover WsRp",
+       "pct_imp_c_emplog" = "Impervious Cover-Cat",
+       "pct_imp_rp_c_emplog" = "Impervious Cover-CatRp",
+       "elev_ws" = "Elevation-Ws",
+       "elev_cat" = "Elevation-Cat",
+       "do" = "Dissolved Oxygen",
+       "l_tn"= "Total Nitrogen",
+       "tothab" = "Total Habitat Score",
+       "vahusb_JL" = "Lower James")
+
+dwplot(four_models)
+# https://stackoverflow.com/questions/63088039/changing-the-legend-in-dwplot-in-r
+# Defaults give small fonts for slides to code further down
+ssn_4models_dwplot_v1_20240430 <- dwplot(four_models, 
+       by_2sd = TRUE,
+       dot_args = list(size = 2),
+       vars_order = c("Impervious Cover-Ws", "Impervious Cover WsRp","Impervious Cover-Cat", "Impervious Cover-CatRp", "Dissolved Oxygen","Total Habitat Score", "Total Nitrogen","Elevation-Ws", "Elevation-Cat","Lower James"),
+       model_order = c("Watershed", "Watershed-Riparian", "Catchment", "Catchment-Riparian"),
+       whisker_args = list(size = 1),
+       vline = geom_vline(
+  xintercept = 0,
+  colour = "grey60",
+  linetype = 2)) +
+  xlab("Coefficient Estimate") +
+  scale_color_discrete(name = "SSN Models")
+
+ggsave("E:/R_vdeq_sci/Working/Data/neptune_analysis/scripts_by_basin/figures_sfs/ssn_4models_dwplot_v1_20240430.png", width = 12, height = 8, units = "in")
+
+# see stackoverflow comment by using by_2sd
+# https://stackoverflow.com/questions/54053463/plot-coefficients-of-a-model-in-r
+# check that labels assigned in correct order
+# group variables
+# https://fsolt.org/dotwhisker/articles/dotwhisker-vignette.html#grouping-predictors
+# 
+ssn_4models_dwplot_v2_20240423 <-
+three_brackets <- list(
+    c("Geophysical", "Elevation-Ws", "Elevation-Cat", "Lower James"),
+    c("Landscape", "Impervious Cover-Ws", "Impervious Cover-WsRp", 
+      "Impervious Cover-Cat", "Impervious Cover-CatRp"),
+    c("Instream", "Dissolved Oxygen", "Total Habitat", "Total Nitrogen")
+)
+
+# shows use of legend.position, which works, but get warning about it being deprecated in ggplot2 3.5.0
+ssn_4models_dwplot_v1_20240501 <-dwplot(four_models, 
+       by_2sd = TRUE,
+       dot_args = list(size = 3),
+       vars_order = c("Impervious Cover-Ws", "Impervious Cover WsRp","Impervious Cover-Cat", "Impervious Cover-CatRp", "Dissolved Oxygen","Total Habitat Score", "Total Nitrogen","Elevation-Ws", "Elevation-Cat","Lower James"),
+       model_order = c("Watershed", "Watershed-Riparian", "Catchment", "Catchment-Riparian"),
+       whisker_args = list(size = 2),
+       vline = geom_vline(
+  xintercept = 0,
+  colour = "grey60",
+  linetype = 2)) +
+  xlab("Coefficient Estimate")+ 
+  scale_color_discrete(name = "SSN Models") + theme(axis.title.x = element_text(size = 16, face = "bold"), axis.text.x = element_text(size =12), axis.text.y = element_text(size = 16, face = "bold"), legend.title = element_text(size = 16, face ="bold"),
+legend.text = element_text(size = 16),
+legend.position = c(0.65, 0.9))
+
+ 
+#legend.justification = "top"
+ } %>% 
+  add_brackets(three_brackets, fontSize = 1)
+
+
+ggsave("E:/R_vdeq_sci/Working/Data/neptune_analysis/scripts_by_basin/figures_sfs/ssn_4models_dwplot_v1_20240501.png", width = 10, height = 8, units = "in")
+```
+
+# Correlations Among Selected Covariates
+Looking at correlations to try and understand why varcomp is 51% Euclidean Exponential and 2% Tail Down Exponential for Watershed-Riparian model, but for the other 3 geographies that varcomp is reversed. Nothing pops-out at me from correlations. I think added variable plots might be more helpful.
+```{r correlation_covariates}
+corr_cov1 <- dplyr::select(DFobsz,vsci, pct_imp_w_emplog, pct_imp_rp_w_emplog, pct_imp_c_emplog, pct_imp_rp_c_emplog, elev_ws, do, tothab, l_tn)|>
+  correlate()
+# continuous covariates from 4 geographies below
+# pct_imp_w_emplog + elev_ws + do
+# pct_imp_rp_w_emplog + elev_ws + do + tothab
+# pct_imp_c_emplog + elev_cat + tothab + l_tn
+# pct_imp_rp_c_emplog + elev_cat + tothab + l_tn
+
+
+ggpairs(corr_cov1, columns = c(1:9))
+```
+
+
+# Watershed Predictions 2019-20 and 2021-22
+Have to ensure that all transformations done on obs have been done on preds. On 06/17/2024 I wrote out a geopackage for Preds 2019-2020 that I can map and graph in QGIS. On 05/23/2024 I wrote out a geopackage for Preds 2021-2022 that I can map and graph in QGIS.
+```{r predictions}
+# check stats on pred covariates to make sure corrects preds ssn data frame being used
+summary(j_ssn3$preds$Preds_2019_2020$pct_imp_w_emplog)
+summary(j_ssn3$preds$Preds_2019_2020$elev_ws)
+summary(j_ssn3$preds$Preds_2019_2020$do)
+summary(j_ssn3$Preds_2019_2020$vahusb_JL)
+
+summary(j_ssn3)
+str(j_ssn3$obs$pct_imp_w_emplog)
+
+# pred_vsci <- predict(ssn_wswq_reml1, "Wadeable_PredictionPts_snapped", interval = "prediction")
+# # predict returns a matrix, not that helpful
+# class(pred_vsci)
+# head(pred_vsci)
+# 
+# pred_vsci <- as.data.frame(pred_vsci)
+# 
+# pred_vsci$vsci_bktr <- sqrt(pred_vsci$fit)
+# pred_vsci$vsci_lwr <- sqrt(pred_vsci$lwr)
+# pred_vsci$vsci_upr <- sqrt(pred_vsci$upr)
+
+# augment returns an sf object
+z4predict1ws_vsci <- augment(z4ssn_wswq_reml1, newdata = "Preds_2021_2022", se_fit = TRUE, interval = c("prediction"))
+class(predict1ws_vsci)
+names(predict1ws_vsci)
+z4predict1ws_vsci$vsci_pred <- round(z4predict1ws_vsci$.fitted,1)
+z4predict1ws_vsci$vsci_lwr <- round(z4predict1ws_vsci$.lower,1)
+z4predict1ws_vsci$vsci_upr <- round(z4predict1ws_vsci$.upper,1)
+
+# Pineiro 2008 put observed on y and predict on x
+# label specific points
+# https://stackoverflow.com/questions/15624656/label-points-in-geom-point
+
+# plotting without 1:1 abline shows how weak correlation is.
+ggplot(predict1ws_vsci, aes(x = vsci_pred, y = vsci)) + geom_point() + geom_abline()
+
+preds2021_2022_v1 <- ggplot(predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = st_id_tren)) + geom_point() + geom_abline() + geom_text(aes(label =ifelse(vsci<40, as.character(st_id_tren), '')), hjust = -0.1, vjust = 0)+ labs(x = "Predicted VSCI", y = "Observed VSCI, 2021-2022", title = "Watershed SSN") + xlim(35,80) + ylim(35,80)
+
+png(file="figures_sfs/preds2021_2022_v1.png",width=6,height=3,units="in",res=150)
+  preds2021_2022_v1
+dev.off()
+
+cor(predict1ws_vsci$vsci_pred,predict1ws_vsci$vsci, method = "pearson")
+
+# 2019-2020 correlation is 0.58
+# with partition factor 2019-2020 correlation 0.599
+# 2021-2022 correlation is 0.55
+# with partition factor 2021-2022 correlation 0.573
+as.data.frame(predict1ws_vsci)|>
+  dplyr::select(vsci_pred,vsci)|>
+  correlate()
+
+#check as outlier differs in 2019-20, 2-BSC001.58, vs 2021-22, 2-WPK002.93
+as.data.frame(predict1ws_vsci)|>
+  dplyr::filter(st_id_tren != "2-WPK002.93") |>
+  dplyr::select(vsci_pred,vsci)|>
+  correlate()
+
+# removed outlier & 2019-2020 corr is 0.597
+# with partition, removed outlier get 2019-2020 corr 0.61
+# removed outlier & 2021-2022 corr is 0.429
+# with partition, removed outlier get 2021-2022 corr 0.47
+# added error bars
+ggplot(predict1ws_vsci, aes(x = vsci_pred, y = vsci)) + geom_point() + geom_abline() + geom_errorbar(aes(xmax = vsci_upr, xmin = vsci_lwr)) + labs(x = "Predicted VSCI", y = "Observed VSCI, 2019-2020")
+
+mapview(predict1ws_vsci)
+
+# gather covariates, preds, write out geopackage for 2 prediction datasets
+z4preds_cov_19_20 <- dplyr::select(z4predict1ws_vsci, c(station_id, st_id_tren, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, elev_ws, pct_imp_w_emplog, vsci, vsci_pred, .se.fit, vsci_lwr,vsci_upr))
+
+saveRDS(z4preds_cov_19_20, file = "z4preds_cov_19_20.rds")
+
+z4preds_cov_21_22 <- dplyr::select(z4predict1ws_vsci, c(station_id, st_id_tren, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, elev_ws, pct_imp_w_emplog, vsci, vsci_pred, .se.fit, vsci_lwr,vsci_upr))
+
+saveRDS(z4preds_cov_21_22, file = "z4preds_cov_21_22.rds")
+
+st_write(preds_cov_1920, dsn = file.path(getwd(), "preds_cov_1920.gpkg"), layer = "preds_cov_1920", driver = "GPKG", quiet = FALSE)
+```
+
+# Status vs Trend Predictions
+On 06/20/2024 combine prediction data frame and assign type as status or trend to indicated type of station.
+```{r preds_status_trend}
+preds_cov_19_20 <- readRDS("preds_cov_19_20.rds")
+preds_cov_21_22 <- readRDS("preds_cov_21_22.rds")
+
+preds_bind1 <- bind_rows(preds_cov_19_20,preds_cov_21_22)
+
+preds_bind1 <- preds_bind1 %>%
+  mutate(
+    st_type = case_when(
+      st_id_tren != station_id  ~ "trend",
+      st_id_tren == station_id ~ "status",
+    )
+  )
+summary(as.factor(preds_bind1$st_type))
+
+preds_bind1$resid <- (preds_bind1$vsci - preds_bind1$vsci_pred)
+# mean square prediction error MSPE
+mean(preds_bind1$resid^2)
+# 64.68979
+# RMSPE is 8.04
+# both smaller than LOOCV stats for fitted model
+
+# standardized residuals
+preds_bind1$stdres <- (preds_bind1$vsci - preds_bind1$vsci_pred)/preds_bind1$.se.fit
+summary(preds_bind1$stdres)
+mapview(preds_bind1, zcol = "stdres", cex = "stdres", alpha.regions = .8, legend = TRUE, popup = popupTable(preds_bind1, zcol = c("stdres"))) + mapview(stream)
+
+
+ggplot(preds_bind1, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = as.factor(st_type))) + geom_point() + geom_abline() + facet_wrap(vars(year))
+
+ggplot(preds_bind1, aes(x = as.factor(st_type), y = .se.fit)) + geom_boxplot()
+
+as.data.frame(preds_bind1)|>
+  dplyr::filter(year == 2022)|>
+  dplyr::select(vsci_pred,vsci)|>
+  correlate()
+
+
+as.data.frame(preds_bind1) %>%
+  group_by(year) %>%
+  summarise(min = fivenum(vsci)[1],
+            low = fivenum(vsci)[2],
+            median = fivenum(vsci)[3],
+            mean = mean(vsci, na.rm = TRUE),
+            upper = fivenum(vsci)[4],
+            max = fivenum(vsci)[5],
+            count = dplyr::n()
+            ) %>% 
+  print(n = Inf)
+
+
+as.data.frame(preds_bind1) %>% 
+  group_by(year) %>% 
+  summarise(
+  mspe = mean(resid^2), 
+  count = dplyr::n()
+  ) %>% 
+  print(n = Inf)
+
+as.data.frame(preds_bind1) %>%
+  group_by(year) %>%
+  summarise(min = fivenum(resid)[1],
+            low = fivenum(resid)[2],
+            median = fivenum(resid)[3],
+            mean = mean(resid, na.rm = TRUE),
+            upper = fivenum(resid)[4],
+            max = fivenum(resid)[5],
+            count = dplyr::n()
+            ) %>% 
+  print(n = Inf)
+  
+as.data.frame(preds_bind1) %>%
+  filter(vahusb != "JU") %>%
+  summarise(min = fivenum(.se.fit)[1],
+            low = fivenum(.se.fit)[2],
+            median = fivenum(.se.fit)[3],
+            mean = mean(.se.fit, na.rm = TRUE),
+            upper = fivenum(.se.fit)[4],
+            max = fivenum(.se.fit)[5],
+            count = dplyr::n()
+            ) %>% 
+  print(n = Inf)
+```
+
+# Partitioned Predictions
+```{r partitioned_preds}
+z4preds_cov_19_20 <- readRDS("z4preds_cov_19_20.rds")
+z4preds_cov_21_22 <- readRDS("z4preds_cov_21_22.rds")
+
+z4preds_bind1 <- bind_rows(z4preds_cov_19_20,z4preds_cov_21_22)
+
+z4preds_bind1 <- z4preds_bind1 %>%
+  mutate(
+    st_type = case_when(
+      st_id_tren != station_id  ~ "trend",
+      st_id_tren == station_id ~ "status",
+    )
+  )
+summary(as.factor(z4preds_bind1$st_type))
+
+as.data.frame(z4preds_bind1) %>%
+  filter(vahusb != "JU") %>%
+  summarise(min = fivenum(.se.fit)[1],
+            low = fivenum(.se.fit)[2],
+            median = fivenum(.se.fit)[3],
+            mean = mean(.se.fit, na.rm = TRUE),
+            upper = fivenum(.se.fit)[4],
+            max = fivenum(.se.fit)[5],
+            count = dplyr::n()
+            )
+
+z4preds_bind1$resid <- (z4preds_bind1$vsci - z4preds_bind1$vsci_pred)
+# mean square prediction error MSPE
+mean(z4preds_bind1$resid^2)
+# 62.71542
+# RMSPE is 7.92
+# both smaller than LOOCV stats for fitted model
+
+# standardized residuals
+z4preds_bind1$stdres <- (z4preds_bind1$vsci - z4preds_bind1$vsci_pred)/z4preds_bind1$.se.fit
+summary(z4preds_bind1$stdres)
+mapview(z4preds_bind1, zcol = "stdres", cex = "stdres", alpha.regions = .8, legend = TRUE, popup = popupTable(z4preds_bind1, zcol = c("stdres"))) + mapview(stream)
+```
+
+
+# Prediction Maps
+This code came from vdeq.RMD under James ProbMon Sites NMC/SFS. I want to modify to show observed vsci for prediction sites and then predictions and prediction standard error.
+```{r jprobmon}
+edges <- st_read("E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/James041724.ssn/edges.shp")
+# Viewer will work if rollback from R version 4.4 to earlier versions
+mapview(preds_cov_19_20, zcol = "vscivcpmi", at = seq(0, 90, 15), legend = TRUE)
+
+mapview(preds_bind1, zcol = "resid", at = seq(-20, 20, 5), legend = TRUE, cex = "resid", alpha.regions = .8, layer.name = "resid")
+
+
+# do lines first then sites to see if it looks better probably need to put down largest extent first. I think if I make the bounding box larger then text on legend and scale bar will become larger.
+
+tm_shape(edges) + tm_lines(
+  col = "blue") + tm_shape(preds_bind1) + tm_bubbles(
+  col = ("resid"))
+
+
+j_map_obs_19_20 <- tm_shape(edges) + tm_lines(
+  col = "blue") + tm_shape(preds_cov_19_20) + tm_bubbles(
+  size = "vsci",
+  legend.size.show = FALSE,
+  col = "vsci",
+  legend.col.is.portrait = FALSE,
+  style = "fixed",
+  palette = "viridis",
+  title.col = "Observed VSCI 2019-2020 (n = 22)",
+  breaks = seq(0, 90, by = 15),
+  sizes.legend=seq(0, 90, by=15),
+  legend.hist = FALSE,
+) + tm_layout(asp=0,
+  legend.width = 2, legend.text.size = 1.5, legend.title.size = 3.0,
+  frame = FALSE,
+  legend.position = c("center", "TOP"),
+  title.position = c('center', 'TOP')
+) + tm_scale_bar(position = c("center", "BOTTOM", text.size = 1.0)) + tm_compass(position = c("left", "top")) +
+  tm_legend(legend.outside=T, legend.outside.position="top",legend.hist.height = 1.0, legend.hist.width = 1.0, legend.hist.size = 1.5)
+
+tmap_save(j_map_obs_19_20, "E:/R_vdeq_sci/Working/Data/neptune_analysis/scripts_by_basin/figures_sfs/j_map_obs_19_20.jpeg", width = 7, height = 3.5, dpi = 150)
+
+# original width =10, height =6
+# https://stackoverflow.com/questions/60892033/how-do-you-position-the-title-and-legend-in-tmap
+
+j_map_preds_19_20 <- tm_shape(edges) + tm_lines(
+  col = "blue") + tm_shape(preds_cov_19_20) + tm_bubbles(
+  size = ".se.fit",
+  legend.size.show = FALSE,
+  col = "vsci_pred",
+  legend.col.is.portrait = FALSE,
+  style = "fixed",
+  palette = "viridis",
+  title.col = "Predicted VSCI 2019-2020 (n = 22)",
+  breaks = seq(0, 90, by = 15),
+  sizes.legend=seq(0, 90, by=15),
+  legend.hist = FALSE,
+) + tm_layout(asp=0,
+  legend.width = 2, legend.text.size = 1.5, legend.title.size = 3.0,
+  frame = FALSE,
+  legend.position = c("center", "TOP"),
+  title.position = c('center', 'TOP')
+) + tm_scale_bar(position = c("center", "BOTTOM", text.size = 1.0)) + tm_compass(position = c("left", "top")) +
+  tm_legend(legend.outside=T, legend.outside.position="top",legend.hist.height = 1.0, legend.hist.width = 1.0, legend.hist.size = 1.5)
+
+tmap_save(j_map_preds_19_20, "E:/R_vdeq_sci/Working/Data/neptune_analysis/scripts_by_basin/figures_sfs/j_map_preds_19_20.jpeg", width = 7, height = 3.5, dpi = 150)
+
+```
+
+# Parallel Coordinate Plot
+```{r pcp}
+pcppreds <- ggparcoord(data = preds_bind1, columns = c(11,7,5,8,12,13,14), groupColumn = "vahusb", scale = "std", showPoint = TRUE, title = "Predicted Sites", alphaLines = 0.6, boxplot = TRUE)
+pcp1
+png(file="figures/pcp1_skew.png",width=7,height=9,units="in",res=150)
+  pcp1
+dev.off()
+```
+
+# Compare 2 SSN Models
+Use maximum likelihood as have different covariates.
+```{r ssn_comparison}
+ssn_wswq_ml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "ml",
+  additive = "afv_area"
+)
+
+
+# ssn_mix_ml1 <- ssn_lm(
+#   formula = y2 ~ pct_imp_w_emplog + do + tothab + elev_cat,
+#   ssn.object = j_ssn3,
+#   tailup_type = "none",
+#   taildown_type = "exponential",
+#   euclid_type = "gaussian",
+#   nugget_type = "nugget",
+#   estmethod = "ml",
+#   additive = "afv_area"
+# )
+
+ssn_mix2_ml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + pct_for_wr_emplog + pct_imp_rp_c_emplog + do + l_tn + tothab + elev_ws + vahusb_JL,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "ml",
+  additive = "afv_area"
+)
+models_ssn <- glances(ssn_wswq_ml1, ssn_mix2_ml1)
+
+write.csv(models_ssn, file="E:/R_vdeq_sci/Working/Data/neptune_analysis/scripts_by_basin/tables_sf/models_ssn.csv",sep=",",row.names=F)
+
+
+```
+
+
+# Random Effects
+Model random effects of repeated measurements at 8 of the stations. 38 of 199 observations, or 19% of obs, from trend stations. 
+```{r random_effects}
+ssn_wswq_rand1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area",
+  random = ~ (1 | station_id)
+)
+
+summary(ssn_wswq_rand1)
+varcomp(ssn_wswq_rand1)
+loocv(ssn_wswq_rand1)
+
+
+ssn_mix2_rand1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + pct_for_wr_emplog + pct_imp_rp_c_emplog + do + l_tn + tothab + elev_ws + vahusb_JL,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area",
+  random = ~ (1 | station_id)
+)
+
+summary(ssn_mix2_rand1)
+varcomp(ssn_mix2_rand1)
+loocv(ssn_mix2_rand1)
+
+models_rand1 <- glances(ssn_wswq_reml1, ssn_wswq_rand1, ssn_mix2_reml1, ssn_mix2_rand1)
+```
+
+# Predictions with Random Effects
+```{r preds_random}
+pred1_rand_vsci <- augment(ssn_mix2_rand1, newdata = "Preds_2019_2020", se_fit = TRUE, interval = c("prediction"))
+class(pred1_rand_vsci)
+names(pred1_rand_vsci)
+pred1_rand_vsci$vsci_bktr <- round(sqrt(pred1_rand_vsci$.fitted),1)
+pred1_rand_vsci$vsci_lwr <- sqrt(pred1_rand_vsci$.lower)
+pred1_rand_vsci$vsci_upr <- sqrt(pred1_rand_vsci$.upper)
+
+# Pineiro 2008 put observed on y and predict on x
+ggplot(pred1_rand_vsci, aes(x = vsci_bktr, y = vsci)) + geom_point() + geom_abline() + geom_text(aes(label =ifelse(vsci<40, as.character(st_id_tren), '')), hjust = -0.1, vjust = 0)+ labs(x = "Predicted VSCI, backtransformed", y = "Observed VSCI, 2019-2020", title = "Mixed Geography SSN: repeated measures")
+
+cor(pred1_rand_vsci$vsci_bktr,pred1_rand_vsci$vsci, method = "pearson")
+# added error bars
+ggplot(pred1_rand_vsci, aes(x = vsci_bktr, y = vsci)) + geom_point() + geom_abline() + geom_errorbar(aes(xmax = vsci_upr, xmin = vsci_lwr)) + labs(x = "Predicted VSCI, backtransformed", y = "Observed VSCI, 2019-2020", title = "Mixed Geography SSN:  repeated measures")
+
+mapview(pred1_rand_vsci)
+
+```
+
+## Combine Prediction Data Frames
+Not able to open geopackages in ArcGIS PRO, perhaps b/c of too many variables.
+On 04/09/2024 I wrote the 2019-2020 predictions to a geopackage.
+On 04/08/2024 I wrote the 2021-2022 predictions to a geopackage, which I can open in ESRI software as well.
+```{r combine_preds_dfs}
+aug_pred_vsci$model <- "Watershed"
+mix_pred1_vsci$model <- "Mixed"
+pred1_rand_vsci$model <- "Mixed_Trend"
+
+preds_2019_2020_comb1 <- bind_rows(aug_pred_vsci, mix_pred1_vsci)
+
+preds_2019_2020_comb2 <- bind_rows(preds_2019_2020_comb1, pred1_rand_vsci)
+
+saveRDS(preds_2019_2020_comb2, file = "preds_2019_2020_comb2.rds")
+
+st_write(preds_2019_2020_comb2, dsn = file.path(getwd(), "preds_2019_2020_comb2.gpkg"), layer = "preds2019_2020_models", driver = "GPKG", quiet = FALSE)
+
+
+# Pineiro 2008 put observed on y and predict on x
+ggplot(preds_2019_2020_comb2, aes(x = vsci_bktr, y = vsci, colour = model)) + geom_point() + geom_abline() + geom_text(aes(label =ifelse(vsci<45, as.character(st_id_tren), '')), hjust = -0.1, vjust = 0)+ labs(x = "Predicted VSCI, backtransformed", y = "Observed VSCI, 2019-2020", title = "Three SSN Models")
+
+ggplot(preds_2019_2020_comb2, aes(x = vsci_bktr, y = vsci)) + geom_point() + geom_abline() + facet_wrap(vars(model)) + geom_text(aes(label =ifelse(vsci<45, as.character(st_id_tren), '')), hjust = -0.1, vjust = 0)+ labs(x = "Predicted VSCI, backtransformed", y = "Observed VSCI, 2019-2020", title = "Three SSN Models")
+
+
+st_layers("preds_2019_2020_comb2.gpkg") 
+
+preds_2019_2020_models <- st_read("E:/R_vdeq_sci/Working/Data/neptune_analysis/scripts_by_basin/preds_2019_2020_comb2.gpkg", layer = "preds2019_2020_models")
+
+mapview(preds_2019_2020_models)
+
+filter(preds_2019_2020_models, station_id == "2-LIJ003.06")|>
+  dplyr::select(c(vsci_bktr, vsci_lwr, vsci_upr, model))
+```
+
+## Mixed Geography SSN
+First, examine correlations for landscape continuous:  watershed imperviousness, watershed-riparian forest cover, catchment imperviousness, and catchment-riparian imperviousness; Geophysical:  elevation; and
+Onsite: dissolved oxygen, total nitrogen, and total habitat scores. For elevation, used catchment elevation.
+
+Second, run bestglm on mixed geography covariates, then do model check on MLR and especially examine collinearity. Re-run bestglm on reduced number of candidate covariates if collinearity detected. Third, run SSN analysis, and compare model fit and performance of SSN to MLR. Fourth, do diagnostics on SSN (I assume it will beat MLR). Fifth, make SSN model predictions. Sixth, compare SSN watershed-only predictions to SSN mixed-geographies predictions.
+
+3 outcomes
+SSN watershed-only better predictions (higher correlation to observed) than SSN mixed-geographies.
+SSN watershed-only equal to SSN mixed geographies.
+SSN mixed-geographies better predictions (higher correlation to observed) than SSN watershed-only.
+
+Ecologically, why should I care about any of those outcomes? From initial 4 geography analysis, SSN watershed-only is better spatial explanatory model, with covariates, Euclidean, and tail down variance components accounting for 84% of the variation leaving 16% with independent random error. Whereas, SSN watershed-riparian, catchment, and catchment-riparian models are leaving ~67% of variance with independent random error.
+If SSN watershed-only model is the better model, then supports impervious cover (IC) as potential impairment as Connecticut and Maine have started to do.
+If SSN mixed-geographies is better model, then original hypothesis is supported need landcover expressed over differ extents and configurations to understand and predict VSCI.
+
+
+```{r mixed_geography_correlation}
+names(DFobs2a)
+ggpairs(DFobs2a, columns = c(159,164,171,177,155,38,152,135))
+```
+
+In this bestglm now have candidate covariates that come from a mixture of the 4 geographies. Previously, covariates from the StreamCat metrics were restricted to being only watershed, watershed-riparian, catchment or catchment-riparian.
+Giving the candidate pool of covariates resulted in same model as I got with Ws-only.
+On 04/19/2024 use all 4 geographies of impervious cover, knowing that I will drop some because of collinearity, plus include 3 WQ covariates, DO, tothab, and l_tn, plus 5 subbasins.
+On 03/25/2024, I think my mix_mlry2 model is wrong as it does not have a mix of extents, but rather what was chosen by bestglm. I think I should hard code of MLR model that has pct_imp_w_emplog, pct_imp_wr_emplog, pct_imp_c_emplog, pct_imp_rp_c_emplog, l_tn, do, tothab, elev_ws, and vahusb_JL. Run that model and use diagnostics to cut it so collinearity is low. Then, run it as SSN model to compare to WsWq SSN model.
+
+```{r bestglm_mixed_covariates}
+names(DFobsz) # only a df works with bestglm
+
+mix_df1 <- DFobsz|>
+  dplyr::select(pct_imp_w_emplog, pct_imp_rp_w_emplog, pct_imp_c_emplog, pct_imp_rp_c_emplog, l_tn, do, tothab, elev_ws, vahusb_JM, vahusb_JR, vahusb_JA, vahusb_JL)
+
+# mix_df1 can only contain numeric or factor
+mix_df1<- mix_df1 %>% mutate_at(c('vahusb_JM', 'vahusb_JR', 'vahusb_JA', 'vahusb_JL'), as.numeric)
+
+mix_y<-cbind.data.frame(mix_df1,y=DFobsz$vsci)
+ASRcum_mix_y1.best<-bestglm(mix_y,IC = "AIC",nvmax =4, TopModels=15)
+
+# See what terms are in best models
+ASRcum_mix_y1.best$BestModels
+ASRcum_mix_y1.best$Subsets
+summary(ASRcum_mix_y1.best$BestModel)
+
+mix_mlry2 <- lm(vsci ~ pct_imp_w_emplog + do + elev_ws + vahusb_JL, data = DFobsz)
+summary(mix_mlry2)
+check_model(mix_mlry2)
+avPlots(mix_mlry2)
+
+# Mixed nugget
+ssn0_mix_mlr <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + do + tothab + elev_cat,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "none",
+  euclid_type = "none",
+  nugget_type = "nugget",
+  estmethod = "reml" #default
+)
+summary(ssn0_mix_mlr)
+varcomp(ssn0_mix_mlr)
+loocv(ssn0_mix_mlr)
+
+# Mixed ssn
+ssn_mix_reml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + do + tothab + elev_cat,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area"
+)
+summary(ssn_mix_reml1)
+varcomp(ssn_mix_reml1)
+loocv(ssn_mix_reml1)
+
+models_ssn0_ssn1 <- glances(ssn0_mix_mlr, ssn_mix_reml1)
+
+plot(ssn_mix_reml1, which = c(1:6))
+
+```
+
+Pct_imp_w_emplog highly correlated with pct_imp_c_emplog so will drop pct_imp_c_emplog. The ssn_mix2_reml1 model had the smallest AICc compared to the other models in this code chunk. Mix 3 and 4 models were where I attempted backward selection dropping covariates with largest p-values but did not get improvement in AIC.
+```{r hardcode_mixed}
+mix2_mlry2 <- lm(vsci ~ pct_imp_w_emplog + pct_for_wr_emplog + pct_imp_rp_c_emplog + do + l_tn + tothab + elev_ws + vahusb_JL, data = DFobsz)
+
+summary(mix2_mlry2)
+tidy(mix_mlry2)
+check_model(mix2_mlry2)
+plot(check_collinearity(mix2_mlry2))
+avPlots(mix2_mlry2)
+
+# Mix2 nugget
+ssn0_mix2_mlr <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + pct_for_wr_emplog + pct_imp_rp_c_emplog + do + l_tn + tothab + elev_ws + vahusb_JL,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "none",
+  euclid_type = "none",
+  nugget_type = "nugget",
+  estmethod = "reml" #default
+)
+summary(ssn0_mix2_mlr)
+tidy(ssn0_mix2_mlr)
+varcomp(ssn0_mix2_mlr)
+loocv(ssn0_mix2_mlr)
+
+# Mix2 ssn
+ssn_mix2_reml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + pct_for_wr_emplog + pct_imp_rp_c_emplog + do + l_tn + tothab + elev_ws + vahusb_JL + year,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area"
+)
+summary(ssn_mix2_reml1)
+varcomp(ssn_mix2_reml1)
+loocv(ssn_mix2_reml1)
+
+plot(ssn_mix2_reml1, which = c(1:6))
+
+# Mix 3 ssn
+# drop pct_imp_rp_c_emplog as had largest p-value
+ssn_mix3_reml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + pct_for_wr_emplog + do + l_tn + tothab + elev_ws + vahusb_JL,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area"
+)
+
+summary(ssn_mix3_reml1)
+varcomp(ssn_mix3_reml1)
+loocv(ssn_mix3_reml1)
+
+# Mix 4 ssn
+# drop l_tn as had second largest p-value
+ssn_mix4_reml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + pct_for_wr_emplog + do + tothab + elev_ws + vahusb_JL,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area"
+)
+
+summary(ssn_mix4_reml1)
+varcomp(ssn_mix4_reml1)
+loocv(ssn_mix4_reml1)
+
+models_mix_ssn <- glances(ssn0_mix_mlr, ssn_mix_reml1, ssn0_mix2_mlr, ssn_mix2_reml1, ssn_mix3_reml1,ssn_mix4_reml1)
+
+
+write.csv(models_mix_ssn, file="E:/R_vdeq_sci/Working/Data/neptune_analysis/scripts_by_basin/tables_sf/models_mix_ssn.csv",sep=",",row.names=F)
+
+tidy(ssn_mix2_reml1)
+```
+
+
+# Mixed Geography Predictions
+On April 2, 2024, running preds2, from 2021-2022, through predictions so I can compare mixed geography predictions to watershed-only predictions.
+
+On March 28, 2024, re-doing predictions using ssn_mix2_reml1 model, where I hard coded covariates selected from the Watershed, Watershed-Riparian, Catchment, and Catchment-Riparian models, and I dropped variables causing collinearity.
+```{r ws_imp_do_tothab_elevcat}
+
+predict1mix_vsci <- augment(ssn_mix2_reml1, newdata = "Preds_2019_2020", se_fit = TRUE, interval = c("prediction"))
+class(predict1mix_vsci)
+names(predict1mix_vsci)
+predict1mix_vsci$vsci_pred <- round(predict1mix_vsci$.fitted,1)
+predict1mix_vsci$vsci_lwr <- round(predict1mix_vsci$.lower,1)
+predict1mix_vsci$vsci_upr <- round(predict1mix_vsci$.upper,1)
+
+# Pineiro 2008 put observed on y and predict on x
+# Plotting without 1:1 abline shows how weak correlation is
+ggplot(predict1mix_vsci, aes(x = vsci_pred, y = vsci)) + geom_point() + geom_abline() + geom_text(aes(label =ifelse(vsci<45, as.character(st_id_tren), '')), hjust = -0.1, vjust = 0)+ labs(x = "Predicted VSCI", y = "Observed VSCI, 2019-2020", title = "Mixed Geography SSN")
+
+cor(predict1mix_vsci$vsci_pred,predict1mix_vsci$vsci, method = "pearson")
+
+as.data.frame(predict1mix_vsci)|>
+  dplyr::select(vsci_pred,vsci)|>
+  correlate()
+
+as.data.frame(predict1mix_vsci)|>
+  dplyr::filter(st_id_tren != "2-BSC001.58") |>
+  dplyr::select(vsci_pred,vsci)|>
+  correlate()
+
+
+# added error bars
+ggplot(predict1mix_vsci, aes(x = vsci_pred, y = vsci)) + geom_point() + geom_abline() + geom_errorbar(aes(xmax = vsci_upr, xmin = vsci_lwr)) + labs(x = "Predicted VSCI", y = "Observed VSCI, 2019-2020", title = "Mixed Geography SSN")
+
+mapview(mix_pred1_vsci)
+```
+
+##################################################
+
+```{r output_shapes}
+# ArcGIS shapefiles
+st_write(stream, "prediction_out/final_ssn_dfs/stream.shp",delete_layer = T)
+# Note writing out to shapefile results in very truncated variable names
+
+# obs prediction
+# read in sites shapefile from ssn object
+sites <- sf::st_read(paste0(ssn_object_path,"/sites.shp"))
+
+# note had to specify dplyr::select because MASS package loaded in chunk 1 masks the select function of dplyr and rename variables so not get truncated when convert to shapefile
+predicted_obs <- half_dl_obs_out %>% dplyr::select(pid, original_scale_mean, original_scale_SE, original_scale_median) %>% dplyr::rename(. , p_mean = original_scale_mean, p_se = original_scale_SE, p_med = original_scale_median)
+
+sites_predicted <- left_join(sites, predicted_obs, by = "pid")
+
+st_write(sites_predicted, "prediction_out/final_ssn_dfs/sites_predicted.shp",delete_layer = T)
+
+## preds prediction
+preds <- sf::st_read(paste0(ssn_object_path,"/preds.shp"))
+
+predicted_preds <- half_dl_preds_out %>% dplyr::select(pid, original_scale_mean, original_scale_SE, original_scale_median) %>% dplyr::rename(. , p_mean = original_scale_mean, p_se = original_scale_SE, p_med = original_scale_median)
+
+preds_predicted <- left_join(preds, predicted_preds, by = "pid")
+
+st_write(preds_predicted, "prediction_out/final_ssn_dfs/preds_predicted.shp",delete_layer = T)
+
+
+
+
+
+
+```
+
+
+
