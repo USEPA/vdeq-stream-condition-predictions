@@ -43,7 +43,7 @@ On 04/04/2024 now using James040424.ssn as Ellen D'Amico from Pegasus updated Pr
 On 03/272024, Using code from step1_james_eda_v1.Rmd, but now specifying preds1 to bring in 22 points from 2019-2020 VDEQ monitoring and preds2 to bring in 26 points from 2021-2022 VDEQ monitoring using current SSN from James.ssn_032224.zip.
 # Libraries
 ```{r setup,message=FALSE, warning=FALSE, collapse=TRUE}
-# remotes::install_github("USEPA/SSN2", ref = "develop")
+
 library(SSN2)
 library(tidyverse)
 library(dplyr)
@@ -80,7 +80,7 @@ knitr::opts_chunk$set(message=FALSE, warning=FALSE,collapse = T)
 ```{r ssn_obs_preds}
 # now bringing two predpts
 # current ssn
-j_ssn1a <- SSN2::ssn_import("E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/James_071024.ssn", predpts = c("Preds_2019_2020", "Preds_2021_2022"),
+j_ssn1a <- SSN2::ssn_import("ssn_object/James_071024.ssn", predpts = c("Preds_2019_2020", "Preds_2021_2022"),
 overwrite = FALSE)
 
 # previous ssn
@@ -163,7 +163,7 @@ Bring Total Habitat Score (TotHab) in from Wadeable_ProbMon_2001-2018_Final_Fina
 
 ```{r tothab}
 
-tothab_ds1 <- read_xlsx("E:/R_vdeq_sci/Wadeable_ProbMon_2001-2018_Final_Final.xlsx", range = "Wadeable_ProbMon_2001-2018!D1:BK814")
+tothab_ds1 <- read_xlsx("data/Wadeable_ProbMon_2001-2018_Final_Final.xlsx", range = "Wadeable_ProbMon_2001-2018!D1:BK814")
                         
 tothab_ds2 <- tothab_ds1 |>
   filter(SubBasin == "James") |>
