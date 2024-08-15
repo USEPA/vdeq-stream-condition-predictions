@@ -14,6 +14,7 @@ output:
 editor_options: 
   chunk_output_type: console
 ---
+On 08/15/2024 added data, figures_sfs, and ssn_object folders and trying to run code pointing to those folders.
 
 On 08/14/2024 pushing to github repository.
 
@@ -56,7 +57,7 @@ Can I use SSN2 package for some of ESDA of James River? Yes.
 # Library and Functions Load
 ```{r setup, collapse=TRUE}
 
-# library(SSN) # not needed, use SSN2::ssn_import
+
 library(ggplot2)
 library(gridExtra)
 library(car)
@@ -83,12 +84,6 @@ library(readxl)
 library(tidyr)
 library(spmodel)
 library(purrr)
-# library(SSN2) bug in Torgegram cutoff argument
-# load development version as cutoff is fixed
-# library(remotes)
-# install the most recent version from GitHub
-# remotes::install_github("USEPA/SSN2", ref = "develop")
-# load the most recent development version from GitHub
 library(SSN2)
 library(dummy)
 library(performance)
@@ -108,7 +103,7 @@ knitr::opts_chunk$set(message=FALSE, warning=FALSE,collapse = T)
 Bring in the SSN object and modify covariates.
 
 ```{r load data}
-j_ssn1a <- SSN2::ssn_import("E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/James_071024.ssn", predpts = "sites")
+j_ssn1a <- SSN2::ssn_import("ssn_object/James_071024.ssn", predpts = "sites")
 
 
 names(j_ssn1a)
@@ -151,7 +146,7 @@ summary(DFobs$rd_dens_cat)
 ## 0.00 Explore WWTP Data
 Evaluating if wastewater treatment plant (wwtp) data from StreamCat should be considered as a predictor.
 ```{r wwtp}
-wwtp_ds1 <- read.csv("E:/R_vdeq_nhdplus/WWTP_VA.csv")
+wwtp_ds1 <- read.csv("data/WWTP_VA.csv")
 
 zDFobs <- left_join(DFobs, wwtp_ds1, by = join_by(FeatureID == COMID))
 
@@ -247,7 +242,7 @@ VAHUSB_SO <- as.data.frame(DFobs) %>%
 I emailed Emma Jones, VDEQ, on September 28, 2023 regarding two stations, 2AMLC000.84 and 2-WLS023.10, in the James in 2011 that had missing water chemistry. She replied the next day saying the NA entries may have occurred because the internal data querying system, called Logi,may not have pulled the data for those sites. Emma attached a spreadsheet, FinalFieldAnalyteMetals_MissingJamesSites.csv, that contained numeric entries for those two stations. I entered those values in ArcMap so that the data would come in with the James SSN object. Also, that way when I look at the James SSN object in ArcMap all the fields have the correct entries and not zeroes. That csv file is pulled in below so it can be checked against the SSN object.
 
 ```{r missing_waterchem}
-nachem_ds1 <- read.csv("E:/R_vdeq_sci/FinalFieldAnalyteMetals_MissingJamesSites.csv")
+nachem_ds1 <- read.csv("data/FinalFieldAnalyteMetals_MissingJamesSites.csv")
 ```
 
 ## 1.20 Total Habitat (RBP) score
@@ -255,7 +250,7 @@ Bring Total Habitat Score (TotHab) in from Wadeable_ProbMon_2001-2018_Final_Fina
 
 ```{r tothab}
 
-tothab_ds1 <- read_xlsx("E:/R_vdeq_sci/Wadeable_ProbMon_2001-2018_Final_Final.xlsx", range = "Wadeable_ProbMon_2001-2018!D1:BK814")
+tothab_ds1 <- read_xlsx("data/Wadeable_ProbMon_2001-2018_Final_Final.xlsx", range = "Wadeable_ProbMon_2001-2018!D1:BK814")
                         
 tothab_ds2 <- tothab_ds1 |>
   filter(SubBasin == "James") |>
