@@ -1,0 +1,231 @@
+---
+title: "ssn_vdeq_tutdeu_comparison"
+author: "mcmanus"
+date: "2024-01-26"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(SSN2)
+
+j_ssn1a <- SSN2::ssn_import("E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/James040424.ssn", predpts = "sites")
+# pull set of observation data out from ssn
+DFobs <- SSN2::ssn_get_data(j_ssn1a)
+summary(DFobs$VSCIVCPMIVCPMI)
+```
+
+The purpose of this script is to compare 15 spatial autocovariances for a y-intercept only model. The model with the smallest AICc, RMSPE, and highest cor2 will be used in the VDEQ SSN models with covariates. The table of the 15 model comparisons was saved on 04/16/2024.
+
+# 15.0 One Way:  SSN Y-Intercept
+All these models have the same fixed effects structure so REML estimation can be used.
+```{r oneway_ssn_yintercept}
+tu_exp <- ssn_lm(
+  formula = VSCIVCPMI ~ 1,
+  ssn.object = j_ssn1a,
+  tailup_type = "exponential",
+  taildown_type = "none",
+  euclid_type = "none",
+  additive = "afvArea"
+)
+summary(tu_exp)
+varcomp(tu_exp)
+
+# plot(tu_exp, which = c(1:6))
+
+tu_exp_res <- as.data.frame(tu_exp$residuals)
+
+ggplot(tu_exp_res, aes(x=standardized)) + geom_histogram()
+ggplot(tu_exp_res, aes(x=standardized)) + geom_boxplot()
+ggplot(tu_exp_res, aes(x=standardized)) + geom_density()
+# maximum stream and Euclidean distances
+tu_exp$euclid_max # this matches my Euclid max
+tu_exp$tail_max # this is much larger than my stream max
+
+
+
+
+tu_lin <- ssn_lm(
+  formula = VSCIVCPMI ~ 1,
+  ssn.object = j_ssn1a,
+  tailup_type = "linear",
+  taildown_type = "none",
+  euclid_type = "none",
+  additive = "afvArea"
+)
+
+td_exp <- ssn_lm(
+  formula = VSCIVCPMI ~ 1,
+  ssn.object = j_ssn1a,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "none",
+  additive = "afvArea"
+)
+
+td_lin <- ssn_lm(
+  formula = VSCIVCPMI ~ 1,
+  ssn.object = j_ssn1a,
+  tailup_type = "none",
+  taildown_type = "linear",
+  euclid_type = "none",
+  additive = "afvArea"
+)
+
+eu_exp <- ssn_lm(
+  formula = VSCIVCPMI ~ 1,
+  ssn.object = j_ssn1a,
+  tailup_type = "none",
+  taildown_type = "none",
+  euclid_type = "exponential",
+  additive = "afvArea"
+)
+
+eu_gau <- ssn_lm(
+  formula = VSCIVCPMI ~ 1,
+  ssn.object = j_ssn1a,
+  tailup_type = "none",
+  taildown_type = "none",
+  euclid_type = "gaussian",
+  additive = "afvArea"
+)
+
+models_yintercept <- glances(tu_exp, tu_lin, td_exp, td_lin, eu_exp, eu_gau)
+loocv(tu_exp)
+loocv(tu_lin)
+loocv(td_exp)
+loocv(td_lin)
+loocv(eu_exp)
+loocv(eu_gau)
+```
+
+# 15.1 Two Way:  SSN Y-Intercept
+```{r twoway_ssn_yintercept}
+tu_exp_td_exp <- ssn_lm(
+  formula = VSCIVCPMI ~ 1,
+  ssn.object = j_ssn1a,
+  tailup_type = "exponential",
+  taildown_type = "exponential",
+  euclid_type = "none",
+  additive = "afvArea"
+)
+summary(tu_exp_td_exp)
+varcomp(tu_exp_td_exp)
+tu_exp_td_exp_res <- as.data.frame(tu_exp_td_exp$residuals)
+
+ggplot(tu_exp_td_exp_res, aes(x=standardized)) + geom_histogram()
+ggplot(tu_exp_td_exp_res, aes(x=standardized)) + geom_boxplot()
+ggplot(tu_exp_td_exp_res, aes(x=standardized)) + geom_density()
+# maximum stream and Euclidean distances
+tu_exp_td_exp$euclid_max # this matches my Euclid max
+tu_exp_td_exp$tail_max # this is much larger than my stream max
+
+tu_exp_td_lin <- ssn_lm(
+  formula = VSCIVCPMI ~ 1,
+  ssn.object = j_ssn1a,
+  tailup_type = "exponential",
+  taildown_type = "linear",
+  euclid_type = "none",
+  additive = "afvArea"
+)
+
+tu_lin_td_exp <- ssn_lm(
+  formula = VSCIVCPMI ~ 1,
+  ssn.object = j_ssn1a,
+  tailup_type = "linear",
+  taildown_type = "exponential",
+  euclid_type = "none",
+  additive = "afvArea"
+)
+
+tu_lin_td_lin <- ssn_lm(
+  formula = VSCIVCPMI ~ 1,
+  ssn.object = j_ssn1a,
+  tailup_type = "linear",
+  taildown_type = "linear",
+  euclid_type = "none",
+  additive = "afvArea"
+)
+
+td_exp_eu_exp <- ssn_lm(
+  formula = VSCIVCPMI ~ 1,
+  ssn.object = j_ssn1a,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  additive = "afvArea"
+)
+
+summary(td_exp_eu_exp)
+varcomp(td_exp_eu_exp)
+
+td_exp_eu_gau <- ssn_lm(
+  formula = VSCIVCPMI ~ 1,
+  ssn.object = j_ssn1a,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "gaussian",
+  additive = "afvArea"
+)
+
+
+td_lin_eu_exp <- ssn_lm(
+  formula = VSCIVCPMI ~ 1,
+  ssn.object = j_ssn1a,
+  tailup_type = "none",
+  taildown_type = "linear",
+  euclid_type = "exponential",
+  additive = "afvArea"
+)
+
+td_lin_eu_gau <- ssn_lm(
+  formula = VSCIVCPMI ~ 1,
+  ssn.object = j_ssn1a,
+  tailup_type = "none",
+  taildown_type = "linear",
+  euclid_type = "gaussian",
+  additive = "afvArea"
+)
+
+models_yintercept <- glances(tu_exp, tu_lin, td_exp, td_lin, eu_exp, eu_gau, tu_exp_td_exp, tu_exp_td_lin, tu_lin_td_exp, tu_lin_td_lin, td_exp_eu_exp, td_exp_eu_gau, td_lin_eu_exp, td_lin_eu_gau)
+
+loocv(tu_exp_td_exp)
+loocv(tu_exp_td_lin)
+loocv(tu_lin_td_exp)
+loocv(tu_lin_td_lin)
+loocv(td_exp_eu_exp)
+loocv(td_exp_eu_gau)
+loocv(td_lin_eu_exp)
+loocv(td_lin_eu_gau)
+
+```
+
+# 15.2 Threeway:  SSN Y-Intercept
+```{r threeway_ssn_yintercept}
+tu_td_eu_exp <- ssn_lm(
+  formula = VSCIVCPMI ~ 1,
+  ssn.object = j_ssn1a,
+  tailup_type = "exponential",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  additive = "afvArea"
+)
+summary(tu_td_eu_exp)
+varcomp(tu_td_eu_exp)
+tu_td_eu_exp_res <- as.data.frame(tu_exp_td_exp$residuals)
+
+ggplot(tu_td_eu_exp_res, aes(x=standardized)) + geom_histogram()
+ggplot(tu_td_eu_exp_res, aes(x=standardized)) + geom_boxplot()
+ggplot(tu_td_eu_exp_res, aes(x=standardized)) + geom_density()
+# maximum stream and Euclidean distances
+tu_td_eu_exp$euclid_max # this matches my Euclid max
+tu_td_eu_exp$tail_max # this is much larger than my stream max
+
+models_yintercept <- glances(tu_exp, tu_lin, td_exp, td_lin, eu_exp, eu_gau, tu_exp_td_exp, tu_exp_td_lin, tu_lin_td_exp, tu_lin_td_lin, td_exp_eu_exp, td_exp_eu_gau, td_lin_eu_exp, td_lin_eu_gau, tu_td_eu_exp)
+
+loocv(tu_td_eu_exp)
+
+write.csv(models_yintercept, file="E:/R_vdeq_sci/Working/Data/neptune_analysis/scripts_by_basin/tables_sf/models_yintercept.csv",sep=",",row.names=F)
+```
