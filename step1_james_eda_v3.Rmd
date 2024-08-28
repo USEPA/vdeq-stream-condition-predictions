@@ -109,9 +109,14 @@ j_ssn1a <- SSN2::ssn_import("ssn_object/James_071024.ssn", predpts = "sites")
 names(j_ssn1a)
 summary(j_ssn1a)
 
-ztg <- SSN2::Torgegram(VSCIVCPMI ~ 1, j_ssn1a, type = c("flowcon", "flowuncon", "euclid"))
-SSN2::plot.Torgegram(ztg)
-torg <- ztg[["euclid"]]
+# now Torgegram function gives all 3 distances & plots them
+# perhaps I had typo somewhere
+ztg1 <- SSN2::Torgegram(VSCIVCPMI ~ 1, j_ssn1a, type = c("flowcon", "flowuncon", "euclid"))
+
+names(ztg1)
+plot(ztg1, main = "VSCI")
+torg <- ztg1[["flowcon"]] # returns flowcon & see small np
+torg
 names(torg)
 class(torg)
 ggplot(torg, aes(x=dist, y=gamma,size=np)) + geom_point()
@@ -121,16 +126,8 @@ DFobs <- SSN2::ssn_get_data(j_ssn1a)
 
 # preds <- SSN2::ssn_get_data(zj_ssn1a, name = "Wadeable_PredictionPts_snapped")
 
-glimpse(DFobs)
-
-
-DFobs %>% 
-  glimpse(across(c(pctimp_cat:pctcrop_wr)))
-
-summary(DFobs$rd_dens_cat)
-
 # Randomly selected row numbers 84, 121, 157, and 195 based on row order of imported SSN to check on StreamCat covariates. Those row numbers correspond to st_id_tren:  2-SLT003.00, 2-JOB013.77, 2BBUF000.25 and 2BBUF006.39, respectively.
-DFobs %>% filter(st_id_2 == "2-SLT003.00")
+# DFobs %>% filter(st_id_2 == "2-SLT003.00")
 
 # summarise below worked, returning NA for mean of HUC8, which is character
 # DFobs %>% 
@@ -139,7 +136,6 @@ DFobs %>% filter(st_id_2 == "2-SLT003.00")
 # stats_sc <- DFobs %>% 
 #   summarise(across(c(63:94), list(mean = mean, median = median, sd = sd, min = min, max = max)))
 
-summary(DFobs$rd_dens_cat)
 
 ```
 
@@ -206,7 +202,7 @@ ggplot(zDFobs, aes( x = PctImp_W, y = VSCIVCPMI, color = as.factor(wwtp))) + geo
 
 ## 1.05 Observations, unique stations
 Steps are 1) select StationID_ from DFobs, 2) assign st_geometry, 3) use unique.data.frame to get unique stations, and then 4) use st_nn
-```{r}
+```{r dist_knn1}
 # See binding distances to join result from
 # https://michaeldorman.github.io/nngeo/articles/intro.html
 
@@ -229,7 +225,7 @@ summary(dists_knn1)
 # Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
 # 0.161  2014.809  4765.854  5034.192  7320.395 16006.036 
 
-# based on VDEQ entries, compare to SSN sites and edges
+# based on VDEQ stream order (SO) entries, compare to SSN sites and edges
 VAHUSB_SO <- as.data.frame(DFobs) %>%
   group_by(VAHUSB, Order_) %>%
   summarize(
@@ -303,7 +299,7 @@ DFobs <- clean_names(DFobs)
 ```
 
 ## 1.25 PRISM data
-Put PRISM data into DFobs.
+Correlations of PRISM climate data.
 ```{r prism}
 # p_df1 <- SSN2::ssn_get_data(prism)
 # p_df1 <- dplyr::select(p_df1, c(StationID_, precip_mm, Tmean, Tmax)) %>% 
@@ -321,11 +317,11 @@ ggcorr(., method=c("pairwise", "spearman"), label = TRUE)
 ```
 
 
-## 1.30 Factors:  HUC8s, Ecoregion,  Bioregion, VAHUSB, Year, Status and Trend Stations
+## 1.30 Factors:  Ecoregion,  Bioregion, VAHUSB, Year, Status and Trend Stations
 Based on parallel coordinate plots I made in step4_james_predict_v1.Rmd I made ju as yes/no factor to use in SSN partition factor argument.
 Emma Jones on 02/05/2024 sent shapefiles for VAHUSB polygons, Virginia hydrologic unit subbasins. These 5 polygons from West to East are: JU James River Upper, (Mountain) n = 71; JM James River Middle, (Piedmont) n = 79; JR James River - Rivanna River n = 12; JA James River - Appomattox River n = 29; and JL James River Lower, (Tidal) n = 8.
 I created a station type (st_type) factor to indicate a status or trend station. Trend stations have repeated visits. Jason Hill's email of 01/03/2024 mentioned station 2-JKS028.69_2004 began as trend, wadeable station, but was difficult to sample. It is now a trend, boatable station. Because I am only working with wadeable stations I assigned the one observation of 2-JKS028.69_2004 as a status station. The factors station type and year (year_f) are considered random effects in the analysis.
-```{r huc8s_ecoregions}
+```{r ecoregions_vahusb}
 # DFobs$HUC8 <- as.factor(DFobs$HUC8)
 DFobs$station_id <- as.factor(DFobs$station_id)
 DFobs$eco_region <- as.factor(DFobs$eco_region)
@@ -385,7 +381,7 @@ dev.off()
 
 
 ##1.3.2 Factors: Wetlands, Impervious Surface, Grass & TP
-On January 26, 2024, Jason Hill at VDEQ sent an email describing total phosphorus (tp) concentrations that impacted VSCI based on a relative risk analysis. At 0.02 mg/L tp and less see little impact, at 0.05 mg/L and above start seeing some impacts, and at 0.1 mg/L and above more likely to have impacts. I believe this is from a statewide relative risk analysis. I will use these levels, instead of the ones I had made based on quarterlies.
+On January 26, 2024, Jason Hill at VDEQ sent an email describing total phosphorus (tp) concentrations that impacted VSCI based on a relative risk analysis. At 0.02 mg/L tp and less see little impact, at 0.05 mg/L and above start seeing some impacts, and at 0.1 mg/L and above more likely to have impacts. I believe this is from a statewide relative risk analysis. I will use these levels, instead of the ones I had made based on quartertiles.
 ```{r wetlands_impervious_grass_tp}
 
 # Watershed
@@ -741,7 +737,7 @@ j_ssn3 <- j_ssn2
 
 glimpse(j_ssn3)
 
-
+# only need to run ssn_create_distmat one time as it is stored
 # SSN2 creates distance folder where distance R object stored
 ## Create distance matrices for observed sites
 SSN2::ssn_create_distmat(j_ssn2, overwrite = TRUE)
@@ -942,20 +938,13 @@ ggplot(DFobs2a, aes(x=pct_for_cr_emplog, y = vsci, colour = pct_wet_cr_f)) + geo
 
 ggplot(DFobs2a, aes(x=tothab, y = vsci, colour = pct_wet_cr_f)) + geom_point() + geom_smooth(method = lm, se = TRUE)
 
-
-
 # perhaps interaction between shrubs and ecoregions, but recall southeastern plains has n =7, but this line is similar to Piedmont line
 ggplot(DFobs2a, aes(x=pct_shrb_cr_emplog, y = vsci, colour = eco_region)) + geom_point() +geom_smooth(method =lm, se = TRUE)
 
 ggplot(DFobs2a, aes(x=pct_shrb_cr_emplog, y = vsci, colour = eco_region)) + geom_point() +geom_smooth(method =lm, se = TRUE)
 
 # Golden et al. 2016 JAWRA mentioned interaction of urban areas and TP. Slopes and intercepts overlap in plots with impervious surface area and forest.
-scat_cat2 <- ggplot(DFobs2a, aes(x = pct_imp_c_emplog, y = vsci, colour = vahusb)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + labs(x="Catchment Impervious (empirical logit)", y = "VSCI") + expand_limits(x=-10) + scale_colour_discrete(name="Subbasin")
-
-scat_cat2
-png(file="figures_sfs/scat_cat2.png",width=4,height=3,units="in",res=150)
-  scat_cat2
-dev.off()
+ggplot(DFobs2a, aes(x = pct_imp_c_emplog, y = vsci, colour = vahusb)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + labs(x="Catchment Impervious (empirical logit)", y = "VSCI") + expand_limits(x=-10) + scale_colour_discrete(name="Subbasin")
 
 ggplot(DFobs2a, aes(x = pct_for_w_emplog, y = vsci, colour = tp_f)) + geom_point() + geom_smooth(method = "lm", se = TRUE)
 
@@ -988,34 +977,31 @@ dev.off()
 ```
 
 ## 1.60 ESDA Across Different Polygons
-Need to bring in HUC8 polygons. VSCICPMI scores quite high in Blue Ridge.
+Need to bring in HUC8 polygons. VSCICPMI scores quite high in Blue Ridge. Using vahusb as those 5 polygons are comprised of huc8s.
 ```{r esda_polygons}
 
 #by regions
-ggplot(DFobs, aes(x=factor(HUC8), y=vscivcpmi)) + geom_boxplot(varwidth = TRUE)
+ggplot(DFobs, aes(x=factor(vahusb), y=vscivcpmi)) + geom_boxplot(varwidth = TRUE)
 
 ggplot(DFobs, aes(x=factor(eco_region), y=vscivcpmi)) + geom_boxplot(varwidth = TRUE)
 
 ggplot(DFobs, aes(x=factor(bio_region), y=vscivcpmi)) + geom_boxplot(varwidth = TRUE)
 
-ggplot(DFobsz, aes(x=pct_imp_rp_w_emplog, y = y2, colour = eco_region)) + geom_point() + geom_smooth(se = TRUE, method = lm)
+ggplot(DFobsz, aes(x=pct_imp_rp_w_emplog, y = vscivcpmi, colour = eco_region)) + geom_point() + geom_smooth(se = TRUE, method = lm)
 
 ggplot(DFobsz, aes(x = pct_imp_rp_w_emplog, y = l_tn)) + geom_point() + geom_smooth()
 
 ggplot(DFobsz, aes(x = pct_imp_w_emplog, y = l_tn)) + geom_point() + geom_smooth()
 
-ggplot(DFobsz, aes(x=tothab, y = y2, colour = eco_region)) + geom_point() + geom_smooth(se = TRUE, method = lm)
+ggplot(DFobsz, aes(x=tothab, y = vscivcpmi, colour = eco_region)) + geom_point() + geom_smooth(se = TRUE, method = lm)
 
-ggplot(DFobsz, aes(x = l_tn, y = y2, colour = eco_region)) + geom_point() + geom_smooth()
+ggplot(DFobsz, aes(x = l_tn, y = vscivcpmi, colour = eco_region)) + geom_point() + geom_smooth()
 
 ggplot(DFobsz, aes(x = pct_imp_rp_w_emplog, y = l_tn)) + geom_point()
 
 ggplot(DFobsz, aes(x = PctImp_Ws_emplog, y = l_tn)) + geom_point() + geom_smooth(se = TRUE, method = lm)
 
-#hydrologically ordered HUC8s
-ggplot(DFobsz, aes(x=HUC8, y=vscivcpmi)) + geom_boxplot(varwidth = TRUE)
-
-ggplot(DFobs2, aes(x=as.factor(HUC8), y=vsci)) + geom_boxplot(varwidth = TRUE)
+ggplot(DFobsz, aes(x=vahusb, y=vscivcpmi)) + geom_boxplot(varwidth = TRUE)
 
 mapview(DFobs2)
 ```
@@ -1079,8 +1065,6 @@ ggplot() +
   geom_sf(data = j_ssn3$obs, color = "blue") +
   theme_bw()
 
-summary(DFobs2$l_trb)
-
 # see scale_color_viridis_c option = "H" is one of eight color options
 ggplot() +
   geom_sf(data = j_ssn3$edges) +
@@ -1089,18 +1073,19 @@ ggplot() +
   theme_bw()
 
 
-
-ztg <- SSN2::Torgegram(tothab ~ 1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
-names(ztg)
-summary(ztg$flowcon)
-summary(ztg$flowuncon)
-summary(ztg$euclid)
-plot(ztg)
-plot(ztg, type = "flowcon", main="TotHab")
-plot(ztg, type = "flowuncon", main = "TotHab")
-plot(ztg, type = "euclid", main = "TotHab")
-class(ztg)
-plot(ztg, separate = TRUE, main = "TotHab")
+# have to hard code type to get all 3 distances otherwise only
+# get flowcon and flowuncon if drop type argument
+ztg2 <- SSN2::Torgegram(tothab ~ 1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
+names(ztg2)
+summary(ztg2$flowcon)
+summary(ztg2$flowuncon)
+summary(ztg2$euclid)
+plot(ztg2)
+plot(ztg2, type = "flowcon", main="TotHab")
+plot(ztg2, type = "flowuncon", main = "TotHab")
+plot(ztg2, type = "euclid", main = "TotHab")
+class(ztg2)
+plot(ztg2, separate = TRUE, main = "TotHab")
 
 head(ztg$flowcon)
 print(ztg$flowcon)
@@ -1108,25 +1093,28 @@ print(ztg$flowuncon)
 print(ztg$euclid)
 
 # getting error message with cutoff
-ytg <- SSN2::Torgegram(l_tn ~ 1, j_ssn3)
-plot(ytg)
+ytg <- SSN2::Torgegram(l_tn ~ 1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
+plot(ytg, main = "Log(TN)")
 
-ztg2 <- Torgegram(vsci ~ 1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
-# plot not working
-plot(ztg2, separate = TRUE, main = "VSCI")
-plot(ztg2, main ="VSCI")
-plot(ztg2, type = "flowcon", main="VSCI")
-plot(ztg2, type = "flowuncon", main = "VSCI")
-plot(ztg2, type = "euclid", main = "VSCI")
+ztg3 <- Torgegram(vsci ~ 1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
+# , type = c("flowcon", "flowuncon", "euclid"))
+plot(ztg3, main = "VSCI")
+# plot now working getting all 3 distances
+plot(ztg3, separate = TRUE, main = "VSCI")
+plot(ztg3, main ="VSCI")
+plot(ztg3, type = "flowcon", main="VSCI")
+plot(ztg3, type = "flowuncon", main = "VSCI")
+plot(ztg3, type = "euclid", main = "VSCI")
 
-ztg3 <- Torgegram(l_tn ~ 1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
-# plot not working
-plot(ztg3, separate = TRUE, main = "Log(TN)")
-plot(ztg3, main ="Log(TN)")
+ztg4 <- Torgegram(l_tn ~ 1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
+# , type = c("flowcon", "flowuncon", "euclid"))
+# plot working Torgegram object has all 3 distances
+plot(ztg4, main = "Log(TN)")
+plot(ztg4, separate = TRUE, main = "Log(TN)")
 
-print(ztg3$flowcon)
-print(ztg3$flowuncon)
-print(ztg3$euclid)
+print(ztg4$flowcon)
+print(ztg4$flowuncon)
+print(ztg4$euclid) # get output just like other distances
 
 
 ```
