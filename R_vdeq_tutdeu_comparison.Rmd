@@ -7,14 +7,18 @@ editor_options:
   chunk_output_type: console
 ---
 
+Note that using initial SSN so variables are uppercase or mixed upper and lower case.
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(SSN2)
+library(tidyverse)
 
-j_ssn1a <- SSN2::ssn_import("E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/James040424.ssn", predpts = "sites")
+j_ssn1a <- SSN2::ssn_import("ssn_object/James_071024.ssn", predpts = "sites")
+
+
 # pull set of observation data out from ssn
 DFobs <- SSN2::ssn_get_data(j_ssn1a)
-summary(DFobs$VSCIVCPMIVCPMI)
+summary(DFobs$VSCIVCPMI)
 ```
 
 The purpose of this script is to compare 15 spatial autocovariances for a y-intercept only model. The model with the smallest AICc, RMSPE, and highest cor2 will be used in the VDEQ SSN models with covariates. The table of the 15 model comparisons was saved on 04/16/2024.
@@ -227,5 +231,5 @@ models_yintercept <- glances(tu_exp, tu_lin, td_exp, td_lin, eu_exp, eu_gau, tu_
 
 loocv(tu_td_eu_exp)
 
-write.csv(models_yintercept, file="E:/R_vdeq_sci/Working/Data/neptune_analysis/scripts_by_basin/tables_sf/models_yintercept.csv",sep=",",row.names=F)
+write.csv(models_yintercept, file="outputs/models_yintercept.csv",sep=",",row.names=F)
 ```
