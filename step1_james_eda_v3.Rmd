@@ -1122,7 +1122,7 @@ print(ztg4$euclid) # get output just like other distances
 # 2.0 Simulations
 ## 2.10 SSN2 Simulated Data
 This is code I want Neptune to evaluate, chunks 18-21.
-Simulate VSCI data for SSN to work out code on simulated response variables. Have sim1 simulated parameters based from y-intercept SSN model, ssn_mod_y. Have sim2 be  strong flow unconnected spatial structure and sim3 based on strong Euclidean spatial structure. Use j_ssn3 as that has variables in lowercase. Putting the simulated data into j_ssn4.
+Simulate VSCI data for SSN to work out code on simulated response variables. Have sim1 simulated parameters based from y-intercept SSN model, ssn_mod_y. Have sim2 be  strong flow unconnected spatial structure and sim3 based on strong Euclidean spatial structure. Use j_ssn3 as that has variables in lowercase. Putting the simulated data into j_ssn4. My use of the term function refers to SSN tailup, taildown, or Euclidean, and shape refers distribution of residuals in the semivariogram/Torgegram as Gaussian, exponential, linear sill, etc.
 
 ```{r ssn2_sim1}
 ?ssn_params
@@ -1241,7 +1241,7 @@ taildown <- taildown_params("linear", de = 120, range = 20000)
 euclid <- euclid_params("gaussian", de = 10, range = 5000, rotate = 0, scale = 1)
 nugget <- nugget_params("nugget", nugget = 40)
 
-z4 <- ssn_simulate("gaussian", j_ssn3, "obs", tailup, taildown, euclid, nugget, additive = "afvArea", mean = 65)
+z4 <- ssn_simulate("gaussian", j_ssn3, "obs", tailup, taildown, euclid, nugget, additive = "afv_area", mean = 65)
 
 # put simulated vector into sticky df then df into ssn
 zdf$sim4 <- z4
@@ -1273,7 +1273,7 @@ ssn_mod_ya <- ssn_lm(
   tailup_type = "linear",
   taildown_type = "linear",
   euclid_type = "gaussian",
-  additive = "afvArea"
+  additive = "afv_area"
 )
 summary(ssn_mod_ya)
 varcomp(ssn_mod_ya) 
@@ -1285,7 +1285,7 @@ ssn_mod_yb <- ssn_lm(
   tailup_type = "exponential",
   taildown_type = "exponential",
   euclid_type = "exponential",
-  additive = "afvArea"
+  additive = "afv_area"
 )
 summary(ssn_mod_yb)
 varcomp(ssn_mod_yb)
@@ -1298,7 +1298,7 @@ ssn_mod_yc <- ssn_lm(
   tailup_type = "none",
   taildown_type = "linear",
   euclid_type = "gaussian",
-  additive = "afvArea"
+  additive = "afv_area"
 )
 summary(ssn_mod_yc)
 varcomp(ssn_mod_yc)
@@ -1309,7 +1309,7 @@ ssn_mod_yd <- ssn_lm(
   tailup_type = "linear",
   taildown_type = "linear",
   euclid_type = "none",
-  additive = "afvArea"
+  additive = "afv_area"
 )
 summary(ssn_mod_yd)
 varcomp(ssn_mod_yd)
@@ -1321,7 +1321,7 @@ ssn_mod_ye <- ssn_lm(
   taildown_type = "none",
   euclid_type = "exponential",
   nugget_type = "nugget",
-  additive = "afvArea"
+  additive = "afv_area"
 )
 summary(ssn_mod_ye)
 varcomp(ssn_mod_ye)
@@ -1335,7 +1335,7 @@ ssn_mod_yf <- ssn_lm(
   taildown_type = "linear",
   euclid_type = "none",
   nugget_type = "nugget",
-  additive = "afvArea"
+  additive = "afv_area"
 )
 summary(ssn_mod_yf)
 varcomp(ssn_mod_yf)
@@ -1348,7 +1348,7 @@ ssn_mod_yg <- ssn_lm(
   taildown_type = "none",
   euclid_type = "none",
   nugget_type = "nugget",
-  additive = "afvArea"
+  additive = "afv_area"
 )
 summary(ssn_mod_yg)
 varcomp(ssn_mod_yg)
@@ -1361,7 +1361,7 @@ ssn_mod_yh <- ssn_lm(
   taildown_type = "none",
   euclid_type = "gaussian",
   nugget_type = "nugget",
-  additive = "afvArea"
+  additive = "afv_area"
 )
 summary(ssn_mod_yh)
 varcomp(ssn_mod_yh)
@@ -1396,7 +1396,7 @@ taildown <- taildown_params("none", de = 0, range = 0)
 euclid <- euclid_params("gaussian", de = 10, range = 5000, rotate = 0, scale = 1)
 nugget <- nugget_params("nugget", nugget = 40)
 
-z5 <- ssn_simulate("gaussian", j_ssn3, "obs", tailup, taildown, euclid, nugget, additive = "afvArea", mean = 65)
+z5 <- ssn_simulate("gaussian", j_ssn3, "obs", tailup, taildown, euclid, nugget, additive = "afv_area", mean = 65)
 
 # put simulated vector into sticky df then df into ssn
 zdf$sim5 <- z5
@@ -1430,7 +1430,7 @@ ssn_mod_ya <- ssn_lm(
   tailup_type = "linear",
   taildown_type = "linear",
   euclid_type = "gaussian",
-  additive = "afvArea"
+  additive = "afv_area"
 )
 summary(ssn_mod_ya)
 varcomp(ssn_mod_ya) 
@@ -1442,7 +1442,7 @@ ssn_mod_yb <- ssn_lm(
   tailup_type = "exponential",
   taildown_type = "exponential",
   euclid_type = "exponential",
-  additive = "afvArea"
+  additive = "afv_area"
 )
 summary(ssn_mod_yb)
 varcomp(ssn_mod_yb)
@@ -1455,7 +1455,7 @@ ssn_mod_yc <- ssn_lm(
   tailup_type = "linear",
   taildown_type = "none",
   euclid_type = "gaussian",
-  additive = "afvArea"
+  additive = "afv_area"
 )
 summary(ssn_mod_yc)
 varcomp(ssn_mod_yc)
@@ -1466,7 +1466,7 @@ ssn_mod_yd <- ssn_lm(
   tailup_type = "linear",
   taildown_type = "linear",
   euclid_type = "none",
-  additive = "afvArea"
+  additive = "afv_area"
 )
 summary(ssn_mod_yd)
 varcomp(ssn_mod_yd)
@@ -1478,7 +1478,7 @@ ssn_mod_ye <- ssn_lm(
   taildown_type = "none",
   euclid_type = "exponential",
   nugget_type = "nugget",
-  additive = "afvArea"
+  additive = "afv_area"
 )
 summary(ssn_mod_ye)
 varcomp(ssn_mod_ye)
@@ -1492,7 +1492,7 @@ ssn_mod_yf <- ssn_lm(
   taildown_type = "none",
   euclid_type = "none",
   nugget_type = "nugget",
-  additive = "afvArea"
+  additive = "afv_area"
 )
 summary(ssn_mod_yf)
 varcomp(ssn_mod_yf)
@@ -1505,7 +1505,7 @@ ssn_mod_yg <- ssn_lm(
   taildown_type = "none",
   euclid_type = "none",
   nugget_type = "nugget",
-  additive = "afvArea"
+  additive = "afv_area"
 )
 summary(ssn_mod_yg)
 varcomp(ssn_mod_yg)
@@ -1518,7 +1518,7 @@ ssn_mod_yh <- ssn_lm(
   taildown_type = "none",
   euclid_type = "gaussian",
   nugget_type = "nugget",
-  additive = "afvArea"
+  additive = "afv_area"
 )
 summary(ssn_mod_yh)
 varcomp(ssn_mod_yh)
