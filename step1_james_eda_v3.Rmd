@@ -1121,7 +1121,7 @@ print(ztg4$euclid) # get output just like other distances
 
 # 2.0 Simulations
 ## 2.10 SSN2 Simulated Data
-This is code I want Neptune to evaluate, chunks 18-21.
+This is code I want Neptune to evaluate, chunks 21-24.
 Simulate VSCI data for SSN to work out code on simulated response variables. Have sim1 simulated parameters based from y-intercept SSN model, ssn_mod_y. Have sim2 be  strong flow unconnected spatial structure and sim3 based on strong Euclidean spatial structure. Use j_ssn3 as that has variables in lowercase. Putting the simulated data into j_ssn4. My use of the term function refers to SSN tailup, taildown, or Euclidean, and shape refers distribution of residuals in the semivariogram/Torgegram as Gaussian, exponential, linear sill, etc.
 
 ```{r ssn2_sim1}
