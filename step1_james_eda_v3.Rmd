@@ -623,7 +623,7 @@ DFobs2$l_ws_area <- log(DFobs2$ws_area)
 DFobs2$l_ws_area_r <- log(DFobs2$ws_area_r)
 DFobs2$l_cat_area <- log(DFobs2$cat_area)
 DFobs2$l_cat_area_r <- log(DFobs2$cat_area_r)
-DFobs2$y2 <- round((DFobs2$vscivcpmi^2),1)
+# DFobs2$y2 <- round((DFobs2$vscivcpmi^2),1)
 # transformation suggested by Box-Cox
 # improved posterior predictive check and linearity from model_check
 
