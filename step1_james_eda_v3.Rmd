@@ -14,6 +14,15 @@ output:
 editor_options: 
   chunk_output_type: console
 ---
+On 10/15/2024 added waterbody data for Travis to evaluate on github.
+
+On 09/19/2024 Ellen provided update waterbody datasets as csv files.
+
+09/11/2024 Ellen and I worked out how to get NHD waterbody associated with 199 monitoring observations. 
+
+08/28/2024 explored STATSGO_Set1 and STATSGO_Set2 variables from StreamCat. Also, brought in waterbodies data created by Ellen D'Amico from Pegasus. Ellen used comid from edges, but I am not sure they all match to the featureid of the points.
+
+
 On 08/15/2024 added data, figures_sfs, and ssn_object folders and trying to run code pointing to those folders.
 
 On 08/14/2024 pushing to github repository.
@@ -199,6 +208,103 @@ ggplot(zDFobs, aes( x = PctImp_W, y = VSCIVCPMI, color = as.factor(wwtp))) + geo
 
 ```
 
+## 0.04 Explore Waterbodies Data
+Ellen D'Amico calculated waterbody variables. Have Travis evaluate coding to evaluate an interaction between presence/absence of waterbody and distance (km) to nearest upstream waterbody.
+```{r waterbodies}
+wb_ds1 <- read.csv("data/ObservationPoints_DistancesUpstream_100424.csv")
+class(wb_ds1)
+names(wb_ds1)
+head(wb_ds1)
+str(wb_ds1)
+
+## Table of Variables from OBI Query
+| R Variable Name | Description |
+|:----------------- |:---------------------|
+| inclNHDWB | Is there a waterbody upstream of site |
+| NumWaterbodyUp | How many waterbodies are upstream |
+| DistNearestUpWb_km | Distance to nearest upstream waterbody |
+| wbArea_up_SqKM | Cumulative area of upstream waterbodies |
+| NumWb_1km | Number of waterbodies within 1km |
+| NumWb_5km | Number of waterbodies within 5km |
+| NumWb_10km | Number of waterbodies within 10km |
+| Number Installed | number_installed |
+| COMID | Unique identifier |
+| clanl | Cumulative watebody area per number per stream distance |
+
+
+summary(wb_ds1$NumWaterbodyUp, na.rm = TRUE)
+summary(wb_ds1$DistNearestUpWb_km, na.rm = TRUE)
+wb_ds1$DistNearestUpWb_km <- round(wb_ds1$DistNearestUpWb_km, 1)
+
+summary(wb_ds1$DistNearestUpWb_km, na.rm = TRUE)
+# file below provides a link to waterbody, and subsequently to DFobs data.
+StationIDs_UniqLocIDs <- read.csv("data/StationIDs_UniqLocIDs.csv")
+
+names(StationIDs_UniqLocIDs)
+
+wb_ds2 <- left_join(StationIDs_UniqLocIDs, wb_ds1, by=join_by(UniqLocID))
+# produces wb_ds2 with 199 obs
+
+DFobs_wb <- left_join(DFobs, wb_ds2, by = join_by(StationID_))
+
+DFobs_wb2 <- DFobs_wb %>% 
+  mutate(
+    wbc = case_when(
+      inclNHDWB == "yes" ~ "present",
+      inclNHDWB != "yes" ~ "absent"
+    )
+  )
+
+class(DFobs_wb2$wbc)
+
+DFobs_wb2$wbc <- factor(DFobs_wb2$wbc, levels = c("present", "absent"))
+summary(DFobs_wb2$wbc)
+
+DFobs_wb2$DistNearestUpWb_km[is.na(DFobs_wb2$DistNearestUpWb_km)] <- 0
+
+DFobs_wb2$wbc_nrstupwb <- (DFobs_wb2$wbc*DFobs_wb2$DistNearestUpWb_km)
+
+DFobs_wb2$wbc_nrstupwb == DFobs_wb2$DistNearestUpWb_km
+# Does the equality above mean I could skip having to test main effect A (wbc), main effect B (DistNearestUpWb_km) and the A x B interaction (wbc_nrstupwb)? Could I just test a single covariate of DistNearestUpWb_km where 0 is absence of upstream waterbodies and values > 0 are km to nearest upstream waterbody?
+
+as.data.frame(DFobs_wb2) %>%
+  group_by(wbc) %>%
+  summarize(min = fivenum(VSCIVCPMI)[1],
+            q1 = fivenum(VSCIVCPMI)[2],
+            median = fivenum(VSCIVCPMI)[3],
+            mean = mean(VSCIVCPMI, na.rm = TRUE),
+            q3 = fivenum(VSCIVCPMI)[4],
+            max = fivenum(VSCIVCPMI)[5],
+            count = dplyr::n()) %>% 
+  print(n = Inf)
+
+ggplot(DFobs_wb2, aes(x = wbc, y = VSCIVCPMI)) + geom_boxplot()
+
+ggplot(DFobs_wb2, aes(x = DistNearestUpWb_km, y = VSCIVCPMI)) + geom_point() + geom_smooth(method = "lm", se = TRUE)
+
+ggplot(DFobs_wb2, aes(x = DistNearestUpWb_km, y = VSCIVCPMI)) + geom_point() + facet_wrap(vars(wbc))  + geom_smooth(method = "lm", se =TRUE)
+
+summary(DFobs_wb$NumWaterbodyUp, na.rm = TRUE)
+summary(DFobs_wb$DistNearestUpWb_km, na.rm = TRUE)
+
+ggplot(DFobs_wb |> filter(inclNHDWB == "yes"), aes(x = NumWaterbodyUp, y = VSCIVCPMI)) + geom_point() 
+
+ggplot(DFobs_wb |> filter(inclNHDWB == "yes"), aes(x = DistNearestUpWb_km, y = VSCIVCPMI)) + geom_point() + facet_wrap(vars(as.factor(VAHUSB)))  + geom_smooth(method = "lm", se =TRUE)
+
+ggplot(DFobs_wb |> filter(inclNHDWB == "yes"), aes(x = wbArea_up_SqKM, y = VSCIVCPMI)) + geom_point()  + geom_smooth(method = "lm", se =TRUE)
+
+ggplot(DFobs_wb |> filter(inclNHDWB == "yes"), aes(x = clanl, y = VSCIVCPMI)) + geom_point()  + geom_smooth(method = "lm", se =TRUE)
+
+filter(DFobs_wb, inclNHDWB == "yes") %>% 
+  select(., StationID_,VSCIVCPMI, inclNHDWB, DistNearestUpWb_km, NumWaterbodyUp, wbArea_up_SqKM, clanl) %>% arrange(VSCIVCPMI) %>% 
+  print(n = Inf)
+
+filter(DFobs_wb, inclNHDWB == "yes") %>% 
+  select(., StationID_,VSCIVCPMI, inclNHDWB, DistNearestUpWb_km, NumWaterbodyUp, wbArea_up_SqKM, clanl) %>% arrange(StationID_) %>% 
+  print(n = Inf)
+
+st_write(DFobs_wb, "outputs/DFobs_wb_100424.shp")
+```
 
 ## 1.05 Observations, unique stations
 Steps are 1) select StationID_ from DFobs, 2) assign st_geometry, 3) use unique.data.frame to get unique stations, and then 4) use st_nn
