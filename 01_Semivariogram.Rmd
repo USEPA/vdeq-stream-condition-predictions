@@ -126,7 +126,7 @@ st_layers("bbsg_v1_2024_05_06.gpkg")
 We will now start using the James SSN. Getting a summary of distances is important because we are going to be looking at how spatial variance, the semivariance of the VSCI/VCPMI (vsci), is a function of distance. From this code chunk, plots will appear in the Plots tab, a bubble map will appear in the Viewer tab, and a five-number summary of distances appears in the R console.
 ```{r distance}
 
-j_ssn1a <- SSN2::ssn_import("E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/James_071024.ssn", predpts = "sites")
+j_ssn1a <- SSN2::ssn_import("ssn_object/James_071024.ssn", predpts = "sites")
 
 DFobs <- SSN2::ssn_get_data(j_ssn1a)
 class(DFobs)
