@@ -67,7 +67,7 @@ library(janitor) # clean_names function
 This chunk takes a data frame with geographic coordinates and converts it to a simple features (sf) object that uses the project coordinate reference system (crs) of Albers Equal Area, which has the units of meters. The output from this code chunk is a map in the Viewer tab of monitoring stations, points, and seagrass polygons.
 ```{r reading_data, echo=FALSE}
 
-hab_1 <- read_csv("BBSG_2009-2010_habitat_and_trawl-tow_data.csv")
+hab_1 <- read_csv("data/BBSG_2009-2010_habitat_and_trawl-tow_data.csv")
 spec(hab_1)
 names(hab_1)
 
@@ -85,7 +85,7 @@ hab_sf1 <- st_as_sf(hab_1, coords = c("Long", "Lat"), crs =4269) %>% st_transfor
 
 class(hab_sf1)
 # read in shapefile
-bigbend_seagrass <- st_read("bigbend_grass.shp")
+bigbend_seagrass <- st_read("data/bigbend_grass.shp")
 class(bigbend_seagrass)
 # asking do the two sf objects have the same CRS
 st_crs(hab_sf1) == st_crs(bigbend_seagrass)
