@@ -15,6 +15,9 @@ editor_options:
   chunk_output_type: console
 ---
 
+
+On 10/24/2024, went through the code with Travis and now runs without errors all chunks above Status vs Trend Predictions chunk. Pushed to repository.
+
 Trying again on 08/14/2024 to push this code up to github repository.
 On 08/13/2024, pushed to github. Trying push again as I don't see this code
 on github. 
@@ -66,7 +69,7 @@ library(scales) # comma instead of scientific notation
 library(corrr) # tidyverse correlation package
 library(tmap)
 library(gstat) # semivariogram cloud
-
+library(dotwhisker)
 # remotes::install_github("fsolt/dotwhisker") 
 # library(dotwhisker) #coefficient plot did not install as archived
 # consider https://github.com/ggobi/ggally/issues/372
@@ -135,16 +138,16 @@ preds2 <- SSN2::ssn_get_data(j_ssn1a, name = "Preds_2021_2022")
 ## SFS Meeting Torgegram
 ```{r sfs_torgegram}
 
-torg2 <- ggplot(flowuncon, aes(x=dist, y=gamma)) + geom_point(size =3) + labs(x = "Flow-Unconnected Stream Distance (m)", y = "Semivariance", title = "VSCI Torgegram Stream Network Distance") + scale_x_continuous(labels=comma)
-png(file="figures_sfs/torg2.png",width=6,height=3,units="in",res=150)
-  torg2
-dev.off()
+# torg2 <- ggplot(flowuncon, aes(x=dist, y=gamma)) + geom_point(size =3) + labs(x = "Flow-Unconnected Stream Distance (m)", y = "Semivariance", title = "VSCI Torgegram Stream Network Distance") + scale_x_continuous(labels=comma)
+# png(file="figures_sfs/torg2.png",width=6,height=3,units="in",res=150)
+#   torg2
+# dev.off()
 
 
-esv2 <- ggplot(euclid, aes(x=dist, y=gamma)) + geom_point(size =3) + labs(x = "Euclidean Distance (m)", y = "Semivariance", title = "VSCI Semivariogram Euclidean Distance") + scale_x_continuous(labels=comma)
-png(file="figures_sfs/esv2.png",width=6,height=3,units="in",res=150)
-  esv2
-dev.off()
+# esv2 <- ggplot(euclid, aes(x=dist, y=gamma)) + geom_point(size =3) + labs(x = "Euclidean Distance (m)", y = "Semivariance", title = "VSCI Semivariogram Euclidean Distance") + scale_x_continuous(labels=comma)
+# png(file="figures_sfs/esv2.png",width=6,height=3,units="in",res=150)
+#   esv2
+# dev.off()
 ```
 
 
@@ -603,66 +606,66 @@ In the coefficent plot, the flip-flop in instream stressor, being dissolved oxyg
 
 On 05/03/2024, not seeing that much spatial structure in DO or Log(TN). On 07/12/2024 still need to test if 3 instream stressors in a model outperforms just DO in the model. Try subsetting ssn objectby ju factor and then making separate Torgegrams.
 ```{r do_tn_toregrams}
-
-class(j_ssn3)
-ztg <- SSN2::Torgegram(vscivcpmi ~ 1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
-# SSN2::plot.Torgegram(ztg)
-torg <- ztg[["euclid"]]
-names(torg)
-class(torg)
-ggplot(torg, aes(x=dist, y=gamma,size=np)) + geom_point()
-
-summary(j_ssn3$obs$ju)
-glimpse(j_ssn3$obs$ju)
-
-#ju yes has 71 obs and no has 128 obs
-esv_separate <- map(c(yes, no), ~ SSN2::Torgegram(vscivcpmi ~ 1, j_ssn3 |> filter(ju == .x)))
-
-esv_separate
-
-# plot(esv_separate[[1]]) not helpful
-
-esv_ju_yes <- esv_separate[[1]] 
-esv_ju_no <- esv_separate[[2]]
-
-names(esv_ju_yes)
-
-esv1 <- ggplot(esv_ju_yes, aes(x=dist, y=gamma, size=np)) + geom_point() + labs(x = "Euclidean Distance (m)", y = "Semivariance", title = "JU yes") + scale_x_continuous(labels=comma)
-
-esv2 <- ggplot(esv_ju_no, aes(x=dist, y=gamma, size=np)) + geom_point() + labs(x = "Euclidean Distance (m)", y = "Semivariance", title = "JU no") + scale_x_continuous(labels=comma)
-
-
-
-
-ztg <- SSN2::Torgegram(l_tn ~1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
-plot(ztg, main = "Torgegram Log(TN)")
-plot(ztg, type = "flowcon", main = "Torgegram Log(TN)")
-plot(ztg, type = "flowuncon", main = "Torgegram Log(TN)")
-plot(ztg, type = "euclid", main = "Torgegram Log(TN)")
-plot(ztg, separate = TRUE, main = "Torgegram Log(TN)")
-
-flowcon <- ztg[["flowcon"]]
-ggplot(flowcon, aes(x=dist, y=gamma)) + geom_point()
-flowcon$dist_type <- "flow_conn"
-
-flowuncon <- ztg[["flowuncon"]]
-names(flowuncon)
-class(flowuncon)
-ggplot(flowuncon, aes(x=dist, y=gamma)) + geom_point()
-flowuncon$dist_type <- "flow_unconn"
-
-euclid <- ztg[["euclid"]]
-names(euclid)
-class(euclid)
-ggplot(euclid, aes(x=dist, y=gamma)) + geom_point()
-euclid$dist_type <- "euclid"
-
-torg <- bind_rows(flowuncon,euclid)
-ggplot(torg, aes(x=dist, y=gamma, colour = dist_type)) + geom_point()
-
-# test if Torgegram would work using similar code below
-esv_separate <- map(c(2001, 2006), ~ esv(log_Zn ~ log_dist2road, moss |> filter(year == .x)))
-
+# 
+# class(j_ssn3)
+# ztg <- SSN2::Torgegram(vscivcpmi ~ 1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
+# # SSN2::plot.Torgegram(ztg)
+# torg <- ztg[["euclid"]]
+# names(torg)
+# class(torg)
+# ggplot(torg, aes(x=dist, y=gamma,size=np)) + geom_point()
+# 
+# summary(j_ssn3$obs$ju)
+# glimpse(j_ssn3$obs$ju)
+# 
+# #ju yes has 71 obs and no has 128 obs
+# # esv_separate <- map(c(yes, no), ~ SSN2::Torgegram(vscivcpmi ~ 1, j_ssn3 |> filter(ju == .x)))
+# # 
+# # esv_separate
+# # 
+# # # plot(esv_separate[[1]]) not helpful
+# # 
+# # esv_ju_yes <- esv_separate[[1]] 
+# # esv_ju_no <- esv_separate[[2]]
+# # 
+# # names(esv_ju_yes)
+# # 
+# # esv1 <- ggplot(esv_ju_yes, aes(x=dist, y=gamma, size=np)) + geom_point() + labs(x = "Euclidean Distance (m)", y = "Semivariance", title = "JU yes") + scale_x_continuous(labels=comma)
+# # 
+# # esv2 <- ggplot(esv_ju_no, aes(x=dist, y=gamma, size=np)) + geom_point() + labs(x = "Euclidean Distance (m)", y = "Semivariance", title = "JU no") + scale_x_continuous(labels=comma)
+# # 
+# 
+# 
+# 
+# ztg <- SSN2::Torgegram(l_tn ~1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
+# plot(ztg, main = "Torgegram Log(TN)")
+# plot(ztg, type = "flowcon", main = "Torgegram Log(TN)")
+# plot(ztg, type = "flowuncon", main = "Torgegram Log(TN)")
+# plot(ztg, type = "euclid", main = "Torgegram Log(TN)")
+# plot(ztg, separate = TRUE, main = "Torgegram Log(TN)")
+# 
+# flowcon <- ztg[["flowcon"]]
+# ggplot(flowcon, aes(x=dist, y=gamma)) + geom_point()
+# flowcon$dist_type <- "flow_conn"
+# 
+# flowuncon <- ztg[["flowuncon"]]
+# names(flowuncon)
+# class(flowuncon)
+# ggplot(flowuncon, aes(x=dist, y=gamma)) + geom_point()
+# flowuncon$dist_type <- "flow_unconn"
+# 
+# euclid <- ztg[["euclid"]]
+# names(euclid)
+# class(euclid)
+# ggplot(euclid, aes(x=dist, y=gamma)) + geom_point()
+# euclid$dist_type <- "euclid"
+# 
+# torg <- bind_rows(flowuncon,euclid)
+# ggplot(torg, aes(x=dist, y=gamma, colour = dist_type)) + geom_point()
+# 
+# # test if Torgegram would work using similar code below
+# # esv_separate <- map(c(2001, 2006), ~ esv(log_Zn ~ log_dist2road, moss |> filter(year == .x)))
+# 
 
 ```
 
@@ -685,7 +688,7 @@ summary(ssn_wswq_reml1)
 varcomp(ssn_wswq_reml1)
 loocv(ssn_wswq_reml1)
 
-plot(ssn_wswq_reml1, which = c(1:6))
+#plot(ssn_wswq_reml1, which = c(1:6))
 
 tidy(ssn_wswq_reml1)
 
@@ -695,14 +698,15 @@ names(aug_ssn_wswq_reml1)
 
 mapview(aug_ssn_wswq_reml1)
 
-mapview(aug_ssn_wswq_reml1, zcol = ".std.resid", cex = ".std.resid", alpha.regions = .8, legend = TRUE, popup = popupTable(aug_ssn_wswq_reml1, zcol = c(".std.resid"))) + mapview(stream)
+mapview(aug_ssn_wswq_reml1, zcol = ".std.resid", cex = ".std.resid", alpha.regions = .8, legend = TRUE, popup = popupTable(aug_ssn_wswq_reml1, zcol = c(".std.resid")))# + mapview(stream)
 
 # Semivariogram Cloud
 ssn_cloud =  variogram(.std.resid ~ 1, aug_ssn_wswq_reml1, cloud = TRUE)
 class(ssn_cloud)
 plot(ssn_cloud)
 
-plot(plot(ssn_cloud, identify = TRUE), aug_ssn_wswq_reml1)
+# commented out b/c identify not work in RStudio
+# plot(plot(ssn_cloud, identify = TRUE), aug_ssn_wswq_reml1)
 
 #parallel coordinate plot
 pcpobs <- ggparcoord(data = aug_ssn_wswq_reml1, columns = c(136,155,38,159,163,160,191), groupColumn = "vahusb", scale = "std", showPoint = TRUE, title = "Observed Sites", alphaLines = 0.6, boxplot = TRUE)
@@ -723,7 +727,7 @@ ssn_wswq_fit_reml1 <- dplyr::select(aug_ssn_wswq_reml1, c(station_id, st_id_tren
 
 saveRDS(ssn_wswq_fit_reml1, file = "ssn_wswq_fit_reml1.rds")
 
-st_write(ssn_wswq_fit_reml1, dsn = file.path(getwd(), "ssn_wswq_fit_reml1.gpkg"), layer = "ssn_wswq_fit_reml1", driver = "GPKG", quiet = FALSE)
+st_write(ssn_wswq_fit_reml1, dsn = file.path(getwd(), "ssn_wswq_fit_reml1.gpkg"), layer = "ssn_wswq_fit_reml1", driver = "GPKG", quiet = FALSE, append = FALSE)
 
 
 
@@ -753,7 +757,7 @@ z1ssn_wswq_reml1 <- ssn_lm(
   estmethod = "reml",
   additive = "afv_area"
 )
-summary(zssn_wswq_reml1)
+summary(z1ssn_wswq_reml1)
 
 # random effect of year
 z2ssn_wswq_reml1 <- ssn_lm(
@@ -772,7 +776,7 @@ summary(z2ssn_wswq_reml1)
 varcomp(z2ssn_wswq_reml1)
 loocv(z2ssn_wswq_reml1)
 
-plot(z2ssn_wswq_reml1, which = c(1:6))
+#plot(z2ssn_wswq_reml1, which = c(1:6))
 # 
 glances(ssn_wswq_reml1,z2ssn_wswq_reml1)
 # AICc ssn_ws_reml1 1415 vs. AICc z2ssn_wswq_reml1 1424
@@ -793,7 +797,7 @@ summary(z3ssn_wswq_reml1)
 varcomp(z3ssn_wswq_reml1)
 loocv(z3ssn_wswq_reml1)
 
-plot(z3ssn_wswq_reml1, which = c(1:6))
+#plot(z3ssn_wswq_reml1, which = c(1:6))
 
 
 glances(ssn_wswq_reml1,z2ssn_wswq_reml1,z3ssn_wswq_reml1)
@@ -819,7 +823,7 @@ loocv(z4ssn_wswq_reml1) %>% print(n = Inf)
 
 glances(ssn_wswq_reml1,z4ssn_wswq_reml1)
 
-plot(z4ssn_wswq_reml1, which = c(1:6))
+#plot(z4ssn_wswq_reml1, which = c(1:6))
 
 tidy(z4ssn_wswq_reml1)
 
@@ -832,7 +836,7 @@ z4rssn_wswq_reml1 <- dplyr::select(z4rssn_wswq_reml1, c(station_id, st_id_tren, 
 
 saveRDS(z4rssn_wswq_reml1, file = "z4rssn_wswq_reml1.rds")
 
-st_write(z4rssn_wswq_reml1, dsn = file.path(getwd(), "z4rssn_wswq_reml1.gpkg"), layer = "z4rssn_wswq_reml1", driver = "GPKG", quiet = FALSE)
+st_write(z4rssn_wswq_reml1, dsn = file.path(getwd(), "z4rssn_wswq_reml1.gpkg"), layer = "z4rssn_wswq_reml1", driver = "GPKG", quiet = FALSE, append=FALSE)
 
 ```
 
@@ -890,7 +894,7 @@ loocv(ssn_wsrpwq_ml1)
 loocv(ssn_catwq_ml1)
 loocv(ssn_catrpwq_ml1)
 
-write.csv(models_ml_ssn, file="E:/R_vdeq_sci/Working/Data/neptune_analysis/scripts_by_basin/tables_sfs/four_models_ml_ssn.csv",sep=",",row.names=F)
+write.csv(models_ml_ssn, file="outputs/four_models_ml_ssn.csv",sep=",",row.names=F)
 ```
 
 ## SFS Meeting Coefficient Plot
@@ -955,7 +959,7 @@ ssn_4models_dwplot_v1_20240430 <- dwplot(four_models,
   xlab("Coefficient Estimate") +
   scale_color_discrete(name = "SSN Models")
 
-ggsave("E:/R_vdeq_sci/Working/Data/neptune_analysis/scripts_by_basin/figures_sfs/ssn_4models_dwplot_v1_20240430.png", width = 12, height = 8, units = "in")
+ggsave("figures_sfs/ssn_4models_dwplot_v1_20240430.png", width = 12, height = 8, units = "in")
 
 # see stackoverflow comment by using by_2sd
 # https://stackoverflow.com/questions/54053463/plot-coefficients-of-a-model-in-r
@@ -989,11 +993,11 @@ legend.position = c(0.65, 0.9))
 
  
 #legend.justification = "top"
- } %>% 
-  add_brackets(three_brackets, fontSize = 1)
+# } %>% 
+#  add_brackets(three_brackets, fontSize = 1)
 
 
-ggsave("E:/R_vdeq_sci/Working/Data/neptune_analysis/scripts_by_basin/figures_sfs/ssn_4models_dwplot_v1_20240501.png", width = 10, height = 8, units = "in")
+ggsave("figures_sfs/ssn_4models_dwplot_v1_20240501.png", width = 10, height = 8, units = "in")
 ```
 
 # Correlations Among Selected Covariates
@@ -1016,10 +1020,10 @@ ggpairs(corr_cov1, columns = c(1:9))
 Have to ensure that all transformations done on obs have been done on preds. On 06/17/2024 I wrote out a geopackage for Preds 2019-2020 that I can map and graph in QGIS. On 05/23/2024 I wrote out a geopackage for Preds 2021-2022 that I can map and graph in QGIS.
 ```{r predictions}
 # check stats on pred covariates to make sure corrects preds ssn data frame being used
-summary(j_ssn3$preds$Preds_2019_2020$pct_imp_w_emplog)
-summary(j_ssn3$preds$Preds_2019_2020$elev_ws)
-summary(j_ssn3$preds$Preds_2019_2020$do)
-summary(j_ssn3$Preds_2019_2020$vahusb_JL)
+summary(j_ssn3$preds$Preds_2021_2022$pct_imp_w_emplog)
+summary(j_ssn3$preds$Preds_2021_2022$elev_ws)
+summary(j_ssn3$preds$Preds_2021_2022$do)
+summary(j_ssn3$Preds_2021_2022$vahusb_JL)
 
 summary(j_ssn3)
 str(j_ssn3$obs$pct_imp_w_emplog)
@@ -1037,8 +1041,8 @@ str(j_ssn3$obs$pct_imp_w_emplog)
 
 # augment returns an sf object
 z4predict1ws_vsci <- augment(z4ssn_wswq_reml1, newdata = "Preds_2021_2022", se_fit = TRUE, interval = c("prediction"))
-class(predict1ws_vsci)
-names(predict1ws_vsci)
+class(z4predict1ws_vsci)
+names(z4predict1ws_vsci)
 z4predict1ws_vsci$vsci_pred <- round(z4predict1ws_vsci$.fitted,1)
 z4predict1ws_vsci$vsci_lwr <- round(z4predict1ws_vsci$.lower,1)
 z4predict1ws_vsci$vsci_upr <- round(z4predict1ws_vsci$.upper,1)
@@ -1048,26 +1052,26 @@ z4predict1ws_vsci$vsci_upr <- round(z4predict1ws_vsci$.upper,1)
 # https://stackoverflow.com/questions/15624656/label-points-in-geom-point
 
 # plotting without 1:1 abline shows how weak correlation is.
-ggplot(predict1ws_vsci, aes(x = vsci_pred, y = vsci)) + geom_point() + geom_abline()
+ggplot(z4predict1ws_vsci, aes(x = vsci_pred, y = vsci)) + geom_point() + geom_abline()
 
-preds2021_2022_v1 <- ggplot(predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = st_id_tren)) + geom_point() + geom_abline() + geom_text(aes(label =ifelse(vsci<40, as.character(st_id_tren), '')), hjust = -0.1, vjust = 0)+ labs(x = "Predicted VSCI", y = "Observed VSCI, 2021-2022", title = "Watershed SSN") + xlim(35,80) + ylim(35,80)
+preds2021_2022_v1 <- ggplot(z4predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = st_id_tren)) + geom_point() + geom_abline() + geom_text(aes(label =ifelse(vsci<40, as.character(st_id_tren), '')), hjust = -0.1, vjust = 0)+ labs(x = "Predicted VSCI", y = "Observed VSCI, 2021-2022", title = "Watershed SSN") + xlim(35,80) + ylim(35,80)
 
 png(file="figures_sfs/preds2021_2022_v1.png",width=6,height=3,units="in",res=150)
   preds2021_2022_v1
 dev.off()
 
-cor(predict1ws_vsci$vsci_pred,predict1ws_vsci$vsci, method = "pearson")
+cor(z4predict1ws_vsci$vsci_pred,z4predict1ws_vsci$vsci, method = "pearson")
 
 # 2019-2020 correlation is 0.58
 # with partition factor 2019-2020 correlation 0.599
 # 2021-2022 correlation is 0.55
 # with partition factor 2021-2022 correlation 0.573
-as.data.frame(predict1ws_vsci)|>
+as.data.frame(z4predict1ws_vsci)|>
   dplyr::select(vsci_pred,vsci)|>
   correlate()
 
 #check as outlier differs in 2019-20, 2-BSC001.58, vs 2021-22, 2-WPK002.93
-as.data.frame(predict1ws_vsci)|>
+as.data.frame(z4predict1ws_vsci)|>
   dplyr::filter(st_id_tren != "2-WPK002.93") |>
   dplyr::select(vsci_pred,vsci)|>
   correlate()
@@ -1077,20 +1081,22 @@ as.data.frame(predict1ws_vsci)|>
 # removed outlier & 2021-2022 corr is 0.429
 # with partition, removed outlier get 2021-2022 corr 0.47
 # added error bars
-ggplot(predict1ws_vsci, aes(x = vsci_pred, y = vsci)) + geom_point() + geom_abline() + geom_errorbar(aes(xmax = vsci_upr, xmin = vsci_lwr)) + labs(x = "Predicted VSCI", y = "Observed VSCI, 2019-2020")
+ggplot(z4predict1ws_vsci, aes(x = vsci_pred, y = vsci)) + geom_point() + geom_abline() + geom_errorbar(aes(xmax = vsci_upr, xmin = vsci_lwr)) + labs(x = "Predicted VSCI", y = "Observed VSCI, 2021-2022")
 
-mapview(predict1ws_vsci)
+mapview(z4predict1ws_vsci)
 
 # gather covariates, preds, write out geopackage for 2 prediction datasets
-z4preds_cov_19_20 <- dplyr::select(z4predict1ws_vsci, c(station_id, st_id_tren, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, elev_ws, pct_imp_w_emplog, vsci, vsci_pred, .se.fit, vsci_lwr,vsci_upr))
-
-saveRDS(z4preds_cov_19_20, file = "z4preds_cov_19_20.rds")
+# commented out below b/c those assignments are for preds1, 2019-2020 points
+# z4preds_cov_19_20 <- dplyr::select(z4predict1ws_vsci, c(station_id, st_id_tren, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, elev_ws, pct_imp_w_emplog, vsci, vsci_pred, .se.fit, vsci_lwr,vsci_upr))
+# 
+# saveRDS(z4preds_cov_19_20, file = "z4preds_cov_19_20.rds")
 
 z4preds_cov_21_22 <- dplyr::select(z4predict1ws_vsci, c(station_id, st_id_tren, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, elev_ws, pct_imp_w_emplog, vsci, vsci_pred, .se.fit, vsci_lwr,vsci_upr))
 
 saveRDS(z4preds_cov_21_22, file = "z4preds_cov_21_22.rds")
 
-st_write(preds_cov_1920, dsn = file.path(getwd(), "preds_cov_1920.gpkg"), layer = "preds_cov_1920", driver = "GPKG", quiet = FALSE)
+# commented out below b/c those assignments are for preds1, 2019-2020 points
+#st_write(preds_cov_1920, dsn = file.path(getwd(), "preds_cov_1920.gpkg"), layer = "preds_cov_1920", driver = "GPKG", quiet = FALSE, append = FALSE)
 ```
 
 # Status vs Trend Predictions
@@ -1120,7 +1126,9 @@ mean(preds_bind1$resid^2)
 # standardized residuals
 preds_bind1$stdres <- (preds_bind1$vsci - preds_bind1$vsci_pred)/preds_bind1$.se.fit
 summary(preds_bind1$stdres)
-mapview(preds_bind1, zcol = "stdres", cex = "stdres", alpha.regions = .8, legend = TRUE, popup = popupTable(preds_bind1, zcol = c("stdres"))) + mapview(stream)
+mapview(preds_bind1, zcol = "stdres", cex = "stdres", alpha.regions = .8, legend = TRUE, popup = popupTable(preds_bind1, zcol = c("stdres")))
+
+#  + mapview(stream)
 
 
 ggplot(preds_bind1, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = as.factor(st_type))) + geom_point() + geom_abline() + facet_wrap(vars(year))
@@ -1216,7 +1224,7 @@ mean(z4preds_bind1$resid^2)
 # standardized residuals
 z4preds_bind1$stdres <- (z4preds_bind1$vsci - z4preds_bind1$vsci_pred)/z4preds_bind1$.se.fit
 summary(z4preds_bind1$stdres)
-mapview(z4preds_bind1, zcol = "stdres", cex = "stdres", alpha.regions = .8, legend = TRUE, popup = popupTable(z4preds_bind1, zcol = c("stdres"))) + mapview(stream)
+mapview(z4preds_bind1, zcol = "stdres", cex = "stdres", alpha.regions = .8, legend = TRUE, popup = popupTable(z4preds_bind1, zcol = c("stdres"))) #+ mapview(stream)
 ```
 
 
@@ -1511,7 +1519,7 @@ loocv(ssn_mix_reml1)
 
 models_ssn0_ssn1 <- glances(ssn0_mix_mlr, ssn_mix_reml1)
 
-plot(ssn_mix_reml1, which = c(1:6))
+#plot(ssn_mix_reml1, which = c(1:6))
 
 ```
 
@@ -1555,7 +1563,7 @@ summary(ssn_mix2_reml1)
 varcomp(ssn_mix2_reml1)
 loocv(ssn_mix2_reml1)
 
-plot(ssn_mix2_reml1, which = c(1:6))
+#plot(ssn_mix2_reml1, which = c(1:6))
 
 # Mix 3 ssn
 # drop pct_imp_rp_c_emplog as had largest p-value
