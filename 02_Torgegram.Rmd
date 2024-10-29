@@ -1,0 +1,111 @@
+---
+title: "R_vdeq_toregram"
+author: "Michael McManus, US EPA/ORD"
+date: "10/23/2024"
+output:
+  html_document: default
+  pdf_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Outline
+
+Our exploratory spatial data analysis continues by examining spatial variation now over stream network distances, instead of only Euclidean distance. 
+
+## Libraries and Refernces
+```{r libraries}
+library(tidyverse)
+library(lubridate)
+library(sf)
+library(mapview)
+library(leaflet)
+library(leafpop) # for popups in mapview
+library(gstat) # for semivariograms
+library(lattice) # for random semivariogram plots
+library(spmodel) # for spatial modeling
+library(scales) # comma instead of scientific notation
+library(plotly) # interactive plots
+library(spmodel) # has empirical semivariogram (esv) function
+library(SSN2) # for spatial stream network (SSN) objects
+library(janitor) # clean_names function
+
+```
+
+## SSN Import
+
+A spatial stream network object is needed to evaluate semivariance in the response variable as a function of Euclidean and stream network distances, flow-connected and flow-unconnected. 
+
+Ideally for an SSN analysis, the data set has these 3 characteristics:
+* Sample size:  minimum of 50, maximum of 2,000
+* Spatial Configuration:  headwaters to outlet
+* Spatial Clustering:  around confluences.
+
+```{r ssn_import}
+j_ssn1a <- SSN2::ssn_import("E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/James_071024.ssn", predpts = "sites")
+
+class(j_ssn1a)
+
+names(j_ssn1a)
+names(j_ssn1a$obs)
+
+# for consistency I am going to pull the obs from the ssn and apply clean_names so all variable names are in lower case
+
+DFobs <- SSN2::ssn_get_data(j_ssn1a)
+DFobs <- clean_names(DFobs)
+names(DFobs)
+
+# this shows that DFobs is both an sf and data.frame
+class(DFobs)
+# note ssn_put_data requires sf object and SSN2 object
+j_ssn1a <-  SSN2::ssn_put_data(DFobs,j_ssn1a)
+
+```
+
+## Create Distance Matrix
+SSN2 creates a distance folder where distance R object stored. Look where the SSN object is located in File Explorer. In our case we are looking for the James_071024.ssn folder and within that is the distance folder. The creation of the distance matrix to calculate all three distant types only needs to be done once as long as the geography of points (observation or sites, and prediction points) and flowlines (edges) have not been altered. The function has already been run so it is commented out. Note that this distance matrix only contains distances for obs. When we go to make predictions with an SSN model we need to make sure and run the distance matrix and specify that is also to include distances for preds.
+```{r distance_matrix}
+## Create distance matrices for observed sites
+# SSN2::ssn_create_distmat(j_ssn2, overwrite = TRUE)
+```
+
+## Torgegram
+When semivariance is plotted as a function of stream network distances the plot is called a Torgegram. Why might the flow-connected Toregram look so wonky? If you examine the flow-connected data frame created below you will see the incredibly small sample size for the 15 plotted points. One typically wants the number of pairs of points (np) to be at least 30 for each semivariance point. The wonky pattern associated with the small sample size of the flow-connected Torgeram is why that distance, and its associated tail-up covariance component, was not considered in the SSN modeling.
+```{r torgegram}
+names(j_ssn1a)
+summary(j_ssn1a)
+
+ztg <- SSN2::Torgegram(vscivcpmi ~ 1, j_ssn1a, type = c("flowcon", "flowuncon", "euclid"))
+plot(ztg, main = "VSCI")
+names(ztg)
+
+View(ztg$euclid)
+
+torg_eu <- ztg[["euclid"]]
+names(torg_eu)
+class(torg_eu)
+ggplot(torg_eu, aes(x=dist, y=gamma,size=np)) + geom_point() + ggtitle("VSCI Euclidean Semivariogram")
+
+torg_fc <- ztg[["flowcon"]]
+names(torg_fc)
+class(torg_fc)
+ggplot(torg_fc, aes(x=dist, y=gamma,size=np)) + geom_point() + ggtitle("VSCI Flow-Connected Torgegram")
+
+torg_fu <- ztg[["flowuncon"]]
+names(torg_fu)
+class(torg_fu)
+ggplot(torg_fu, aes(x=dist, y=gamma,size=np)) + geom_point() + ggtitle("VSCI Flow-Unconnected Torgegram")
+
+# specifying separate = TRUE requires hitting the return bar to see each Torgegram. If trying to run all the code chunks from top to bottom at once, then comment this line out otherwise it will error.
+
+# plot(ztg, separate = TRUE, main = "VSCI")
+
+```
+
+The Euclidean semivariogram suggest some spatial structure at distances up to 75 km apart. As noted, teh flow-connected Torgegram does not look spatially interpretable. How did the manner in which the sites were selected likely affect the wonky flow-connected pattern? The flow-unconnected Torgegram suggests some spatial structure as well.
+
+
