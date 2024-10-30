@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Outline
 
-Our exploratory spatial data analysis continues by examining spatial variation now over stream network distances, instead of only Euclidean distance. 
+Our exploratory spatial data analysis (ESDA) continues by examining spatial variation now over stream network distances, instead of only Euclidean distance. 
 
 ## Libraries and Refernces
 ```{r libraries}
