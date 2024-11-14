@@ -1,0 +1,2606 @@
+---
+title:  "James EDA"
+author: "Michael McManus & Travis Linscome-Hatfield"
+date: "12/20/2023"
+output:
+  html_document:
+    fig_caption: yes
+    number_sections: false
+    toc: yes
+    toc_float:  yes
+    code_folding: hide
+    self_contained: yes
+    theme: lumen
+editor_options: 
+  chunk_output_type: console
+---
+On 10/15/2024 added waterbody data for Travis to evaluate on github.
+
+On 09/19/2024 Ellen provided update waterbody datasets as csv files.
+
+09/11/2024 Ellen and I worked out how to get NHD waterbody associated with 199 monitoring observations. 
+
+08/28/2024 explored STATSGO_Set1 and STATSGO_Set2 variables from StreamCat. Also, brought in waterbodies data created by Ellen D'Amico from Pegasus. Ellen used comid from edges, but I am not sure they all match to the featureid of the points.
+
+
+On 08/15/2024 added data, figures_sfs, and ssn_object folders and trying to run code pointing to those folders.
+
+On 08/14/2024 pushing to github repository.
+
+On 07/31/2024 bringing in WWTP_VA.vcs to do a left merge with DFobs so I can compare stations with WWTPs to stations without WWTPs in the VSCI response.
+
+On 07/11/2024 bring the new ssn into R.
+On 07/10/2024 downloaded James_071024.ssn that had PRISM climate data, including normals and deviations from normals.
+
+On 05/14/2024 running code to get SSN output for SSN models for the 4 geographies and because 05/08/2024 updated R, RTools, and RStudio.
+
+I am going to bring in two SSNs, the 040424 version and the latest 041924 version. I will take the PRISM climate variables out of 041924 and put into 040424.
+Downloaded James_041924.ssn_NEWEST.zip and it is stored in James_041924.ssn with file modified on 04/22/2024 at 7:34am. Ellen removed netid and pid columns and reran through SSN compilation. Bestglm still gave error
+
+On 04/19/2024 imported James041924.ssn, still could not get bestglm to run.
+
+On 04/17/2024 imported James041724.ssn that now include annual maximum temperature, annual average temperature, and annual average precipitation. Also, I will simplify coding of wetlands to be absence/presence across all 4 geographies:  watershed, watershed-riparian, catchment, and catchment-riparian. For grass cover at catchment and catchment-riparian I will also use binary code for absence/presence.
+
+On 04/16/2024 imported James041924.ssn, which now has PRISM climate data from StreamCat.
+
+This code will only use vsci as the response variable. Also, I will examine if impervious surface, forest, hay, and grass at 0 values show dramatically different vsci y-intercept, when x = 0, compared to vsci y-intercepts when x > 0.
+
+On 04/09/2024, I had a call with Mike Dumelle, and he suggested 1) use untransformed response variable, 2) include binary absence/presence along with continuous landscape percentages, and 3) try including year.
+
+On 04/04/2024 now using James040424.ssn as Ellen D'Amico from Pegasus updated Preds_2021_2022 points. I entered WQ data as described in section 1.10 Missing Water Chemistry Data below.
+
+On 01/09/2023 read in Pegasus' SSN object from 01/09/2024, which has additional StreamCat variables. I am interested in the shrub and wetland metrics. In previous SSN, Note that VDEQ switched fonts between Wadeable_ProbMon_2001-2018_Final_Final.xlsx
+and Wadeable_ProbMon_2001-2020.xlsx. I used janitor package to put all variable names in lowercase.
+
+
+On 12/26/2023 read in Pegasus' SSN object from 11/16/2023, which as fields of COMID, AreaSqkM, TotDASqKM, h2oAreaKm2, and rcaAreaKM2. Using this new SSN object means I re-entered missing water chemistry data for two stations in ArcGIS.
+
+Now using SSN2 from CRAN on 11/16/2023.
+
+Note on SSNs I receive from Pegasus, I have to hand enter some of the water chemistry values for stations 2-WLS023.10 and 2AMLC000.84. This is because Emma Jones at VDEQ sent FinalFieldAnalytes_MissingJamesSites.csv by email on 09/29/2023. That csv file has water chemistry entries for those two stations, which in the original data file were NAs. I edit those entries in ArcGIS before I do import into R. Once the SSN is in R I can't export back to ArcGIS. 
+
+On 11/09/2023 unzipped. James.ssn_110923 and saved to James.ssn. This James.ssn_11092023 has additonal covariates produced by Ellen D'Amico, GIS analyst with Pegasus.
+The James.ssn_102323 had stream order added to edges.
+On 11/08/2023 unzipped James.ssn_102323 into ssn_objects folder and renamed it as James.ssn so I would not need to change R code.
+Can I use SSN2 package for some of ESDA of James River? Yes.
+# Library and Functions Load
+```{r setup, collapse=TRUE}
+
+
+library(ggplot2)
+library(gridExtra)
+library(car)
+library(bestglm)
+library(sf)
+library(dplyr)
+library(gpairs)
+library(moments)
+library(fitdistrplus)
+library(openxlsx)
+library(kableExtra)
+library(scales)
+library(gstat) # for semivariogram cloud
+library(lattice) # for random semivariograms
+# remotes::install_github('r-tmap/tmap')
+library(tmap)
+library(mapview)
+library(leaflet)
+library(leafpop) # for popups in mapview
+library(leafsync) # to sync obs and prediction maps
+library(units)
+library(GGally)
+library(readxl)
+library(tidyr)
+library(spmodel)
+library(purrr)
+library(SSN2)
+library(dummy)
+library(performance)
+library(see)
+library(effects)
+library(ggeffects)
+library(janitor)
+library(nngeo) # nearest neighbor distances
+library(plotly)
+
+knitr::opts_chunk$set(message=FALSE, warning=FALSE,collapse = T)
+
+```
+
+# 1.0 SSN and Covariates
+
+Bring in the SSN object and modify covariates.
+
+```{r load data}
+j_ssn1a <- SSN2::ssn_import("ssn_object/James_071024.ssn", predpts = "sites")
+
+
+names(j_ssn1a)
+summary(j_ssn1a)
+
+# now Torgegram function gives all 3 distances & plots them
+# perhaps I had typo somewhere
+ztg1 <- SSN2::Torgegram(VSCIVCPMI ~ 1, j_ssn1a, type = c("flowcon", "flowuncon", "euclid"))
+
+names(ztg1)
+plot(ztg1, main = "VSCI")
+torg <- ztg1[["flowcon"]] # returns flowcon & see small np
+torg
+names(torg)
+class(torg)
+ggplot(torg, aes(x=dist, y=gamma,size=np)) + geom_point()
+
+# pull set of observation data out from ssn
+DFobs <- SSN2::ssn_get_data(j_ssn1a)
+
+# preds <- SSN2::ssn_get_data(zj_ssn1a, name = "Wadeable_PredictionPts_snapped")
+
+# Randomly selected row numbers 84, 121, 157, and 195 based on row order of imported SSN to check on StreamCat covariates. Those row numbers correspond to st_id_tren:  2-SLT003.00, 2-JOB013.77, 2BBUF000.25 and 2BBUF006.39, respectively.
+# DFobs %>% filter(st_id_2 == "2-SLT003.00")
+
+# summarise below worked, returning NA for mean of HUC8, which is character
+# DFobs %>% 
+#   summarise(across(c(63:94), min))
+# 
+# stats_sc <- DFobs %>% 
+#   summarise(across(c(63:94), list(mean = mean, median = median, sd = sd, min = min, max = max)))
+
+
+```
+
+## 0.00 Explore WWTP Data
+Evaluating if wastewater treatment plant (wwtp) data from StreamCat should be considered as a predictor.
+```{r wwtp}
+wwtp_ds1 <- read.csv("data/WWTP_VA.csv")
+
+zDFobs <- left_join(DFobs, wwtp_ds1, by = join_by(FeatureID == COMID))
+
+names(zDFobs)
+
+zDFobs <- zDFobs %>% 
+  mutate(
+    wwtp = case_when(
+      WWTPAllDensWs > 0 ~ "yes",
+      WWTPAllDensWs == 0 ~ "no"
+    )
+  )
+
+names(zDFobs)
+
+summary(zDFobs$WWTPAllDensCat)
+summary(zDFobs$wwtp)
+# in VIEW filter wwtp = yes returns 68 entries
+# in VIEW filter wwtp = no returns 131 entries
+
+ggplot(zDFobs, aes(x = as.factor(wwtp), y = log(SpCond))) + geom_boxplot()
+
+ggplot(zDFobs, aes(x = as.factor(wwtp), y = log(TP))) + geom_boxplot()
+
+ggplot(zDFobs, aes(x = as.factor(wwtp), y = log(Turb))) + geom_boxplot()
+
+ggplot(zDFobs, aes(x = as.factor(wwtp), y = pH)) + geom_boxplot()
+
+ggplot(zDFobs, aes(x = as.factor(wwtp), y = PctImp_W)) + geom_boxplot()
+
+zDFobs %>%
+  group_by(wwtp) %>%
+  summarize(min = fivenum(PctImp_W)[1],
+            low = fivenum(PctImp_W)[2],
+            median = fivenum(PctImp_W)[3],
+            mean = mean(PctImp_W, na.rm = TRUE),
+            upper = fivenum(PctImp_W)[4],
+            max = fivenum(PctImp_W)[5],
+            count = dplyr::n()) %>% 
+  print(n = Inf)
+
+ggplot(zDFobs, aes(x = as.factor(wwtp), y = VSCIVCPMI)) + geom_boxplot()
+
+# Trend station 2-TYE008.77 has wwtp upstream.
+trend1 <- dplyr::filter(zDFobs, (StationID != StationID_) & wwtp == "yes")
+
+impwwtp <- ggplot(zDFobs, aes( x = PctImp_W, y = WWTPAllDensWs)) + geom_point()
+ggplotly(impwwtp)
+
+wwtp_3highest <- dplyr::filter(zDFobs, WWTPAllDensWs > 0.05)
+
+ggplot(zDFobs, aes( x = PctImp_W, y = VSCIVCPMI, color = as.factor(wwtp))) + geom_point()
+
+
+```
+
+## 0.04 Explore Waterbodies Data
+Ellen D'Amico calculated waterbody variables. Have Travis evaluate coding to evaluate an interaction between presence/absence of waterbody and distance (km) to nearest upstream waterbody.
+```{r waterbodies}
+wb_ds1 <- read.csv("data/ObservationPoints_DistancesUpstream_100424.csv")
+class(wb_ds1)
+names(wb_ds1)
+head(wb_ds1)
+str(wb_ds1)
+
+## Table of Variables from OBI Query
+| R Variable Name | Description |
+|:----------------- |:---------------------|
+| inclNHDWB | Is there a waterbody upstream of site |
+| NumWaterbodyUp | How many waterbodies are upstream |
+| DistNearestUpWb_km | Distance to nearest upstream waterbody |
+| wbArea_up_SqKM | Cumulative area of upstream waterbodies |
+| NumWb_1km | Number of waterbodies within 1km |
+| NumWb_5km | Number of waterbodies within 5km |
+| NumWb_10km | Number of waterbodies within 10km |
+| Number Installed | number_installed |
+| COMID | Unique identifier |
+| clanl | Cumulative watebody area per number per stream distance |
+
+
+summary(wb_ds1$NumWaterbodyUp, na.rm = TRUE)
+summary(wb_ds1$DistNearestUpWb_km, na.rm = TRUE)
+wb_ds1$DistNearestUpWb_km <- round(wb_ds1$DistNearestUpWb_km, 1)
+
+summary(wb_ds1$DistNearestUpWb_km, na.rm = TRUE)
+# file below provides a link to waterbody, and subsequently to DFobs data.
+StationIDs_UniqLocIDs <- read.csv("data/StationIDs_UniqLocIDs.csv")
+
+names(StationIDs_UniqLocIDs)
+
+wb_ds2 <- left_join(StationIDs_UniqLocIDs, wb_ds1, by=join_by(UniqLocID))
+# produces wb_ds2 with 199 obs
+
+DFobs_wb <- left_join(DFobs, wb_ds2, by = join_by(StationID_))
+
+DFobs_wb2 <- DFobs_wb %>% 
+  mutate(
+    wbc = case_when(
+      inclNHDWB == "yes" ~ "present",
+      inclNHDWB != "yes" ~ "absent"
+    )
+  )
+
+class(DFobs_wb2$wbc)
+
+DFobs_wb2$wbc <- factor(DFobs_wb2$wbc, levels = c("present", "absent"))
+summary(DFobs_wb2$wbc)
+
+DFobs_wb2$DistNearestUpWb_km[is.na(DFobs_wb2$DistNearestUpWb_km)] <- 0
+
+DFobs_wb2$wbc_nrstupwb <- (DFobs_wb2$wbc*DFobs_wb2$DistNearestUpWb_km)
+
+DFobs_wb2$wbc_nrstupwb == DFobs_wb2$DistNearestUpWb_km
+# Does the equality above mean I could skip having to test main effect A (wbc), main effect B (DistNearestUpWb_km) and the A x B interaction (wbc_nrstupwb)? Could I just test a single covariate of DistNearestUpWb_km where 0 is absence of upstream waterbodies and values > 0 are km to nearest upstream waterbody?
+
+as.data.frame(DFobs_wb2) %>%
+  group_by(wbc) %>%
+  summarize(min = fivenum(VSCIVCPMI)[1],
+            q1 = fivenum(VSCIVCPMI)[2],
+            median = fivenum(VSCIVCPMI)[3],
+            mean = mean(VSCIVCPMI, na.rm = TRUE),
+            q3 = fivenum(VSCIVCPMI)[4],
+            max = fivenum(VSCIVCPMI)[5],
+            count = dplyr::n()) %>% 
+  print(n = Inf)
+
+ggplot(DFobs_wb2, aes(x = wbc, y = VSCIVCPMI)) + geom_boxplot()
+
+ggplot(DFobs_wb2, aes(x = DistNearestUpWb_km, y = VSCIVCPMI)) + geom_point() + geom_smooth(method = "lm", se = TRUE)
+
+ggplot(DFobs_wb2, aes(x = DistNearestUpWb_km, y = VSCIVCPMI)) + geom_point() + facet_wrap(vars(wbc))  + geom_smooth(method = "lm", se =TRUE)
+
+summary(DFobs_wb$NumWaterbodyUp, na.rm = TRUE)
+summary(DFobs_wb$DistNearestUpWb_km, na.rm = TRUE)
+
+ggplot(DFobs_wb |> filter(inclNHDWB == "yes"), aes(x = NumWaterbodyUp, y = VSCIVCPMI)) + geom_point() 
+
+ggplot(DFobs_wb |> filter(inclNHDWB == "yes"), aes(x = DistNearestUpWb_km, y = VSCIVCPMI)) + geom_point() + facet_wrap(vars(as.factor(VAHUSB)))  + geom_smooth(method = "lm", se =TRUE)
+
+ggplot(DFobs_wb |> filter(inclNHDWB == "yes"), aes(x = wbArea_up_SqKM, y = VSCIVCPMI)) + geom_point()  + geom_smooth(method = "lm", se =TRUE)
+
+ggplot(DFobs_wb |> filter(inclNHDWB == "yes"), aes(x = clanl, y = VSCIVCPMI)) + geom_point()  + geom_smooth(method = "lm", se =TRUE)
+
+filter(DFobs_wb, inclNHDWB == "yes") %>% 
+  select(., StationID_,VSCIVCPMI, inclNHDWB, DistNearestUpWb_km, NumWaterbodyUp, wbArea_up_SqKM, clanl) %>% arrange(VSCIVCPMI) %>% 
+  print(n = Inf)
+
+filter(DFobs_wb, inclNHDWB == "yes") %>% 
+  select(., StationID_,VSCIVCPMI, inclNHDWB, DistNearestUpWb_km, NumWaterbodyUp, wbArea_up_SqKM, clanl) %>% arrange(StationID_) %>% 
+  print(n = Inf)
+
+st_write(DFobs_wb, "outputs/DFobs_wb_100424.shp")
+```
+
+## 1.05 Observations, unique stations
+Steps are 1) select StationID_ from DFobs, 2) assign st_geometry, 3) use unique.data.frame to get unique stations, and then 4) use st_nn
+```{r dist_knn1}
+# See binding distances to join result from
+# https://michaeldorman.github.io/nngeo/articles/intro.html
+
+z <- dplyr::select(DFobs, StationID) #199 obs
+head(z)
+z1 <- unique.data.frame(z) #181 unique stations
+z1_nn <- st_nn(z1, z1, k =2, returnDist = TRUE, progress = False)
+str(z1_nn)
+
+head(z1_nn[[1]]) # list station obs & nn obs
+head(z1_nn[[2]]) # list distance to self & knn1
+
+station_nn <- as.data.frame(z1_nn$nn)
+# go to 2nd of two list and grab first entry by row, which is 0
+dists = sapply(z1_nn[[2]], "[", 1)
+# go to 2nd of two list and grab second entry by row, which is knn1 distance
+dists_knn1 = sapply(z1_nn[[2]], "[", 2)
+head(dists_knn1)
+summary(dists_knn1)
+# Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
+# 0.161  2014.809  4765.854  5034.192  7320.395 16006.036 
+
+# based on VDEQ stream order (SO) entries, compare to SSN sites and edges
+VAHUSB_SO <- as.data.frame(DFobs) %>%
+  group_by(VAHUSB, Order_) %>%
+  summarize(
+            count = dplyr::n()) %>% 
+  print(n = Inf)
+```
+
+
+## 1.10 Missing Water Chemistry Data
+I emailed Emma Jones, VDEQ, on September 28, 2023 regarding two stations, 2AMLC000.84 and 2-WLS023.10, in the James in 2011 that had missing water chemistry. She replied the next day saying the NA entries may have occurred because the internal data querying system, called Logi,may not have pulled the data for those sites. Emma attached a spreadsheet, FinalFieldAnalyteMetals_MissingJamesSites.csv, that contained numeric entries for those two stations. I entered those values in ArcMap so that the data would come in with the James SSN object. Also, that way when I look at the James SSN object in ArcMap all the fields have the correct entries and not zeroes. That csv file is pulled in below so it can be checked against the SSN object.
+
+```{r missing_waterchem}
+nachem_ds1 <- read.csv("data/FinalFieldAnalyteMetals_MissingJamesSites.csv")
+```
+
+## 1.20 Total Habitat (RBP) score
+Bring Total Habitat Score (TotHab) in from Wadeable_ProbMon_2001-2018_Final_Final.xslx spreadsheet so it can be joined to DFobs and then j_ssn1a. These 2 stations:  2-JKS070.97 and 2-DDY000.75_2017 do not have tothab as Emma confirmed in her 11/24/2023 email. Both sites are in Central Appalachian Ridges and Valleys. Both have high VSCI scores of 73.8 and 84.5 (the latter is max VSCI), respectively. Not sure what to do about the 2 sites, drop them entirely? I prefer to impute their tothab scores. For trend station 2-DDY000.75_2017, I could average the scores of 172.5, 173.5, and 178 from 2011, 2013, and 2015, respectively. For  2-JKS070.97 on 3rd order, could I average nearby 2-JKS0 sites? 2-JKS076.16, has tothab of 162.0 on 3rd order, is upstream of 2-JKS070.97, about 16 km apart. Perhaps also use Back Creek site, 2-BCC001.90 (has tothab of 189.0 on 2nd order),  that flows parallel to Jackson River, where the 2 sites are, and Back Creek site is near confluence to Jackson River.  2-BCC001.90 is about 9 stream km from 2-JKS070.97. The new variable tothab is created.
+
+```{r tothab}
+
+tothab_ds1 <- read_xlsx("data/Wadeable_ProbMon_2001-2018_Final_Final.xlsx", range = "Wadeable_ProbMon_2001-2018!D1:BK814")
+                        
+tothab_ds2 <- tothab_ds1 |>
+  filter(SubBasin == "James") |>
+  dplyr::select(StationID_Trend, TotHab)
+
+tothab_ds2 <- tothab_ds2 %>% mutate_at(c('TotHab'), as.numeric)
+
+summary(tothab_ds2$TotHab)
+
+# 2-DDY000.75_2017 is on Daddy Run headwater of Calfpasture River
+# https://stackoverflow.com/questions/32829358/dplyr-filter-with-sql-like-wildcard
+dr_na <- filter(tothab_ds2, grepl("2-DDY000.75", StationID_Trend, fixed = TRUE))
+summary(dr_na$TotHab)
+
+tothab_ds3 <- tothab_ds2|>
+  mutate(
+    TotHab = case_when(StationID_Trend == "2-DDY000.75_2017" ~ 176.4,
+       TRUE ~ TotHab))
+
+
+# 2-JKS070.97 is on Jackson River
+jr_na <- filter(tothab_ds3, StationID_Trend == "2-JKS076.16"| StationID_Trend == "2-BCC001.90")
+
+summary(jr_na$TotHab)
+
+tothab_ds4 <- tothab_ds3|>
+  mutate(
+    TotHab = case_when(StationID_Trend == "2-JKS070.97" ~ 175.5,
+       TRUE ~ TotHab))
+
+summary(tothab_ds4$TotHab)
+
+ggplot(tothab_ds4, aes(TotHab)) + geom_histogram()
+
+ggplot(tothab_ds4, aes(TotHab)) + geom_boxplot()
+ggplot(tothab_ds4, aes(x=TotHab)) + geom_density()
+
+tothab_ds4 <- rename(tothab_ds4,c(tothab = TotHab, st_id_tren = StationID_Trend ))
+head(tothab_ds4)
+
+# bizarre bug of having used lowercase in clean from janitor package on sf object
+# https://github.com/r-spatial/sf/issues/1891
+DFobs <- dplyr::rename(DFobs, st_id_tren = StationID_)
+
+DFobs <- full_join(DFobs, tothab_ds4, by = join_by(st_id_tren))
+
+# now can put variables into lowercase
+DFobs <- clean_names(DFobs)
+# str(DFobs)
+```
+
+## 1.25 PRISM data
+Correlations of PRISM climate data.
+```{r prism}
+# p_df1 <- SSN2::ssn_get_data(prism)
+# p_df1 <- dplyr::select(p_df1, c(StationID_, precip_mm, Tmean, Tmax)) %>% 
+#   dplyr::rename(., st_id_tren = StationID_) %>% 
+#   clean_names(.)
+# head(p_df1)
+# p_dfz1 <- st_set_geometry(p_df1, NULL)
+# DFobs <- left_join(DFobs, p_dfz1, by = join_by(st_id_tren))
+
+
+as.data.frame(dplyr::select(DFobs,c(vscivcpmi,precip_mm,tmean,tmax, d_precip_m, d_t_mean, d_t_max))) %>%
+ggcorr(., method=c("pairwise", "spearman"), label = TRUE)
+# vsci & precip_mm correlation -0.1
+# vsci & tmean/tmax correlations -0.5
+```
+
+
+## 1.30 Factors:  Ecoregion,  Bioregion, VAHUSB, Year, Status and Trend Stations
+Based on parallel coordinate plots I made in step4_james_predict_v1.Rmd I made ju as yes/no factor to use in SSN partition factor argument.
+Emma Jones on 02/05/2024 sent shapefiles for VAHUSB polygons, Virginia hydrologic unit subbasins. These 5 polygons from West to East are: JU James River Upper, (Mountain) n = 71; JM James River Middle, (Piedmont) n = 79; JR James River - Rivanna River n = 12; JA James River - Appomattox River n = 29; and JL James River Lower, (Tidal) n = 8.
+I created a station type (st_type) factor to indicate a status or trend station. Trend stations have repeated visits. Jason Hill's email of 01/03/2024 mentioned station 2-JKS028.69_2004 began as trend, wadeable station, but was difficult to sample. It is now a trend, boatable station. Because I am only working with wadeable stations I assigned the one observation of 2-JKS028.69_2004 as a status station. The factors station type and year (year_f) are considered random effects in the analysis.
+```{r ecoregions_vahusb}
+# DFobs$HUC8 <- as.factor(DFobs$HUC8)
+DFobs$station_id <- as.factor(DFobs$station_id)
+DFobs$eco_region <- as.factor(DFobs$eco_region)
+DFobs$bio_region <- factor(DFobs$bio_region, levels = c("Mountain", "Piedmont", "Coast"))
+DFobs$year_f <- as.factor(DFobs$year)
+DFobs$vahusb <- factor(DFobs$vahusb, levels = c("JU", "JM", "JR", "JA", "JL"))
+summary(DFobs$vahusb)
+
+DFobs <- DFobs %>% 
+  mutate(
+    ju = case_when(
+      vahusb == "JU" ~ "yes",
+      .default = "no"
+    )
+  )
+DFobs$ju <- factor(DFobs$ju, levels = c("yes","no"))
+summary(DFobs$ju)
+
+ggplot(DFobs, aes(x=vahusb, y = vscivcpmi)) + geom_boxplot()
+
+ggplot(DFobs, aes(x = tothab, y = vscivcpmi, colour = vahusb)) + geom_point() + geom_smooth(method = "lm")
+
+ggplot(DFobs, aes(x = tothab, y = vscivcpmi)) + geom_point() + geom_smooth(method = "lm") + facet_wrap(vars(vahusb))
+
+# use code to evaluate vsci by year for trend sites if a random effect for trend stations is needed
+DFobs <- DFobs %>%
+  mutate(
+    st_type = case_when(
+      st_id_tren == "2-JKS028.69_2004" ~ "status",
+      st_id_tren != "2-JKS028.69_2004" & st_id_tren != station_id ~ "trend",
+      st_id_tren != "2-JKS028.69_2004" & st_id_tren == station_id ~ "status",
+    )
+  )
+summary(as.factor(DFobs$st_type))
+
+trend <- dplyr::filter(DFobs, st_type == "trend")
+# returned 38 obs
+# trend stations suggestive of including random effect
+ggplot(trend, aes(x=year_f, y = vscivcpmi)) + geom_point() + facet_wrap(vars(vahusb_nam, station_id))
+# ggplot(DFobs, aes(x=st_type, y = vscivcpmi)) + geom_boxplot()
+
+# ggplot(DFobs, aes(x=st_type, y = tothab)) + geom_boxplot()
+# 
+# ggplot(DFobs, aes(x=st_type, y = do)) + geom_boxplot()
+
+
+```
+
+## 1.3.1 SFS Trend Stations
+```{r sfs_trend_stations}
+trend_stations <- ggplot(trend, aes(x=year_f, y = vscivcpmi)) + geom_point() + facet_wrap(vars(vahusb_nam, station_id), nrow = 2, ncol=4) +labs(x = "Survey Year", y = "VSCI")
+
+png(file="figures_sfs/trend_stations.png",width=12,height=3,units="in",res=150)
+trend_stations
+dev.off()
+```
+
+
+##1.3.2 Factors: Wetlands, Impervious Surface, Grass & TP
+On January 26, 2024, Jason Hill at VDEQ sent an email describing total phosphorus (tp) concentrations that impacted VSCI based on a relative risk analysis. At 0.02 mg/L tp and less see little impact, at 0.05 mg/L and above start seeing some impacts, and at 0.1 mg/L and above more likely to have impacts. I believe this is from a statewide relative risk analysis. I will use these levels, instead of the ones I had made based on quartertiles.
+```{r wetlands_impervious_grass_tp}
+
+# Watershed
+summary(DFobs$pct_wet_w)
+
+DFobs <- DFobs %>%
+  mutate(
+    pct_wet_w_f = case_when(
+      pct_wet_w == 0 ~ "none",
+      pct_wet_w > 0 & pct_wet_w <= 0.040 ~ "low",
+      pct_wet_w > 0.040 & pct_wet_w <= 1.885 ~ "medium",
+      pct_wet_w > 1.885 & pct_wet_w <= 16.820 ~ "high",
+    )
+  )
+
+DFobs$pct_wet_w_f <- factor(DFobs$pct_wet_w_f, levels = c("none", "low", "medium", "high"))
+
+summary(as.factor(DFobs$pct_wet_w_f))
+
+## binary absence/presence
+DFobs <- DFobs %>%
+  mutate(
+    bin_wet_w = case_when(
+      pct_wet_w == 0 ~ 0,
+      pct_wet_w > 0 ~ 1
+    )
+  )
+# DFobs$bin_wet_w <- factor(DFobs$bin_wet_w, levels = c("absence", "presence"))
+summary(as.factor(DFobs$bin_wet_w))
+
+# ggplot(DFobs, aes(x=bin_wet_w, y = vscivcpmi)) + geom_boxplot()
+# 
+# ggplot(DFobs, aes(x=pct_wet_w_f, y = tothab)) + geom_boxplot()
+# 
+# ggplot(DFobsz, aes(x=pct_wet_w_f, y = pct_imp_w_emplog)) + geom_boxplot()
+# 
+# ggplot(DFobs, aes(x = pct_wet_w_f, y = vscivcpmi)) + geom_point() + facet_wrap(vars(eco_region))
+
+# Watershed-riparian
+summary(DFobs$pct_wet_wr)
+DFobs <- DFobs %>%
+  mutate(
+    pct_wet_wr_f = case_when(
+      pct_wet_wr == 0 ~ "none",
+      pct_wet_wr > 0 & pct_wet_wr <= 0.170 ~ "low",
+      pct_wet_wr > 0.170 & pct_wet_wr <= 8.530 ~ "medium",
+      pct_wet_wr > 8.530 & pct_wet_wr <= 52.570 ~ "high",
+    )
+  )
+
+DFobs$pct_wet_wr_f <- factor(DFobs$pct_wet_wr_f, levels = c("none", "low", "medium", "high"))
+
+summary(as.factor(DFobs$pct_wet_wr_f))
+
+## binary absence/presence
+DFobs <- DFobs %>%
+  mutate(
+    bin_wet_wr = case_when(
+      pct_wet_wr == 0 ~ 0,
+      pct_wet_wr > 0 ~ 1
+    )
+  )
+# DFobs$bin_wet_wr <- factor(DFobs$bin_wet_wr, levels = c("absence", "presence"))
+summary(as.factor(DFobs$bin_wet_wr))
+
+
+# ggplot(DFobs, aes(x=bin_wet_wr, y = vscivcpmi)) + geom_boxplot()
+
+# ggplot(DFobs, aes(x=pct_wet_wr_f, y = tothab)) + geom_boxplot()
+# 
+# ggplot(DFobsz, aes(x=pct_wet_wr_f, y = pct_imp_w_emplog)) + geom_boxplot()
+# 
+# ggplot(DFobs, aes(x = pct_wet_wr_f, y = vscivcpmi)) + geom_point() + facet_wrap(vars(eco_region))
+
+# Catchment
+summary(DFobs$pct_wet_c)
+
+DFobs <- DFobs %>%
+  mutate(
+    pct_wet_c_f = case_when(
+      pct_wet_c == 0 ~ "none",
+      pct_wet_c > 0 & pct_wet_c <= 0.040 ~ "low",
+      pct_wet_c > 0.040 & pct_wet_c <= 2.940 ~ "medium",
+      pct_wet_c > 2.940 & pct_wet_c <= 62.90 ~ "high",
+    )
+  )
+
+DFobs$pct_wet_c_f <- factor(DFobs$pct_wet_c_f, levels = c("none", "low", "medium", "high"))
+
+summary(as.factor(DFobs$pct_wet_c_f))
+
+summary(as.factor(DFobs$pct_wet_wr_f))
+
+## binary absence/presence
+DFobs <- DFobs %>%
+  mutate(
+    bin_wet_c = case_when(
+      pct_wet_c == 0 ~ 0,
+      pct_wet_c > 0 ~ 1
+    )
+  )
+# DFobs$bin_wet_c <- factor(DFobs$bin_wet_c, levels = c("absence", "presence"))
+summary(as.factor(DFobs$bin_wet_c))
+
+
+# ggplot(DFobs, aes(x=bin_wet_c, y = vscivcpmi)) + geom_boxplot()
+ 
+# ggplot(DFobs, aes(x=pct_wet_c_f, y = tothab)) + geom_boxplot()
+# 
+# ggplot(DFobsz, aes(x=pct_wet_c_f, y = pct_imp_w_emplog)) + geom_boxplot()
+# 
+# ggplot(DFobs, aes(x = pct_wet_c_f, y = vscivcpmi)) + geom_point() + facet_wrap(vars(eco_region))
+
+# Catchment-Riparian
+# Change to none, low, or high
+summary(DFobs$pct_wet_cr)
+
+DFobs <- DFobs %>%
+  mutate(
+    pct_wet_cr_f = case_when(
+      pct_wet_cr == 0 ~ "none",
+      pct_wet_cr > 0 & pct_wet_cr <= 11.85 ~ "low",
+      pct_wet_cr > 11.85 ~ "high",
+    )
+  )
+
+DFobs$pct_wet_cr_f <- factor(DFobs$pct_wet_cr_f, levels = c("none", "low", "high"))
+
+summary(as.factor(DFobs$pct_wet_cr_f))
+
+## binary absence/presence
+DFobs <- DFobs %>%
+  mutate(
+    bin_wet_cr = case_when(
+      pct_wet_cr == 0 ~ 0,
+      pct_wet_cr > 0 ~ 1
+    )
+  )
+# DFobs$bin_wet_cr <- factor(DFobs$bin_wet_cr, levels = c("absence", "presence"))
+summary(as.factor(DFobs$bin_wet_cr))
+
+
+# ggplot(DFobs, aes(x=bin_wet_cr, y = vscivcpmi)) + geom_boxplot()
+# 
+# ggplot(DFobs, aes(x=pct_wet_cr_f, y = tothab)) + geom_boxplot()
+# 
+# ggplot(DFobsz, aes(x=pct_wet_cr_f, y = pct_imp_w_emplog)) + geom_boxplot()
+# 
+# ggplot(DFobs, aes(x = pct_wet_cr_f, y = vscivcpmi)) + geom_point() + facet_wrap(vars(eco_region))
+
+# Catchment-Riparian percent impervious
+# pct_im_rp_c
+summary(DFobs$pct_imp_rp_c)
+
+DFobs <- DFobs %>%
+  mutate(
+    pct_imp_rp_c_f = case_when(
+      pct_imp_rp_c == 0 ~ "none",
+      pct_imp_rp_c > 0 & pct_imp_rp_c <= 1.015 ~ "low",
+      pct_imp_rp_c > 1.015 ~ "high"
+    )
+  )
+
+DFobs$pct_imp_rp_c_f <- factor(DFobs$pct_imp_rp_c_f, levels = c("none", "low", "high"))
+
+summary(as.factor(DFobs$pct_imp_rp_c_f))
+
+# ggplot(DFobs, aes(x=pct_imp_rp_c_f, y = vscivcpmi)) + geom_boxplot()
+
+
+# Catchment percent grass cover
+## binary absence/presence
+DFobs <- DFobs %>%
+  mutate(
+    bin_grs_c = case_when(
+      pct_grs_c == 0 ~ 0,
+      pct_grs_c > 0 ~ 1
+    )
+  )
+# DFobs$bin_grs_c <- factor(DFobs$bin_grs_c, levels = c("absence", "presence"))
+summary(as.factor(DFobs$bin_grs_c))
+
+# ggplot(DFobs, aes(x=bin_grs_c, y = vscivcpmi)) + geom_boxplot()
+
+# Catchment-riparian percent grass cover
+DFobs <- DFobs %>%
+  mutate(
+    bin_grs_cr = case_when(
+      pct_grs_cr == 0 ~ 0,
+      pct_grs_cr > 0 ~ 1
+    )
+  )
+# DFobs$bin_grs_cr <- factor(DFobs$bin_grs_cr, levels = c("absence", "presence"))
+summary(as.factor(DFobs$bin_grs_cr))
+
+# ggplot(DFobs, aes(x=bin_grs_cr, y = vscivcpmi)) + geom_boxplot()
+
+# tp set to low, medium, and high
+summary(DFobs$tp)
+
+DFobs <- DFobs %>%
+  mutate(
+    tp_f = case_when(
+      tp <= 0.02 ~ "low",
+      tp > 0.02 & tp <= 0.05 ~ "medium",
+      tp > 0.05 ~ "high"
+    )
+  )
+
+DFobs$tp_f <- factor(DFobs$tp_f, levels = c("low", "medium", "high"))
+
+summary(as.factor(DFobs$tp_f))
+
+# ggplot(DFobs, aes(x=tp_f, y = vscivcpmi)) + geom_boxplot()
+```
+
+
+## 1.40 Transform Onsite and Area Covariates
+Turb and no3 had NA entries. Emma Jones, VDEQ, sent email with csv file, FinalFieldAnalyte_MissingJamesSites.csv, that had analyte entries for stations 2AMLC000.84 and 2-WLS023.10. The entries I made to James.ssn_101623 appear to have come in as character. The columns in DFobs of nh4,no3,tkn, ortho_p, turb, and tss are charcter. Convert them to numeric, log transform some of the covariates and put DFobs2 back into SSN.
+
+Not considering total suspended solids, total phosphorus, total Kjeldahl nitrogen, and ammonia for analysis as logged scatter plots of those variables showed vertical bars of points. That pattern might arise from detection limits. Need to speak to VDEQ as to how those variables might be used.
+```{r transform_onsite}
+
+glimpse(DFobs) # shows pct_for_c and pct_for_w as chr
+# In ArcGIS these 2 fields are not numeric so have to mutate
+DFobs2 <- DFobs %>% mutate_at(c('pct_for_c', 'pct_for_w'), as.numeric)
+
+DFobs2$l_no3 <- log(DFobs2$no3)
+DFobs2$l_tn <- log(DFobs2$tn)
+DFobs2$l_tp <- log(DFobs2$tp)
+# DFobs2$l_tss <- log(DFobs2$tss)
+DFobs2$l_turb <- log(DFobs2$turb)
+DFobs2$l_tds <- log(DFobs2$tds)
+DFobs2$l_spc <- log(DFobs2$sp_cond)
+DFobs2$vsci <- round(DFobs2$vscivcpmi,1)
+# DFobs2$l_catkm2 <- log(DFobs2$AreaSqKM)
+# DFobs2$l_wskm2 <- log(DFobs2$TotDASqKM)
+DFobs2$l_ws_area <- log(DFobs2$ws_area)
+DFobs2$l_ws_area_r <- log(DFobs2$ws_area_r)
+DFobs2$l_cat_area <- log(DFobs2$cat_area)
+DFobs2$l_cat_area_r <- log(DFobs2$cat_area_r)
+# DFobs2$y2 <- round((DFobs2$vscivcpmi^2),1)
+# transformation suggested by Box-Cox
+# improved posterior predictive check and linearity from model_check
+
+summary(DFobs2$pct_for_w)
+summary(DFobs2$pct_for_wr)
+summary(DFobs2$pct_for_c)
+summary(DFobs2$pct_for_cr)
+
+summary(DFobs2$pct_imp_w)
+summary(DFobs2$pct_imp_rp_w)
+summary(DFobs2$pct_imp_c)
+summary(DFobs2$pct_imp_rp_c)
+
+summary(DFobs2$pct_grs_w)
+summary(DFobs2$pct_grs_wr)
+summary(DFobs2$pct_grs_c)
+summary(DFobs2$pct_grs_cr)
+
+summary(DFobs2$pct_hay_w)
+summary(DFobs2$pct_hay_wr)
+summary(DFobs2$pct_hay_c)
+summary(DFobs2$pct_hay_cr)
+
+summary(DFobs2$l_tp)
+ggplot(DFobs2, aes(tp)) + stat_ecdf()
+
+str(DFobs2)
+
+str(DFobs2$turb)
+str(DFobs2$no3)
+
+#across years
+ggplot(DFobs2, aes(x=as.factor(year), y=vsci)) + geom_boxplot(varwidth = TRUE)
+ggplot(DFobs2, aes(x=as.factor(year), y=tothab)) + geom_boxplot()
+#across stream orders
+ggplot(DFobs2, aes(x=as.factor(order), y=tothab)) + geom_boxplot()
+
+#across different polygon geographies
+ggplot(DFobs2, aes(x=eco_region, y=tothab)) + geom_boxplot()
+ggplot(DFobs2, aes(x=eco_region, y=vsci)) + geom_boxplot()
+# clear downward trend from mountains to coast
+ggplot(DFobs2, aes(x=no3)) + geom_histogram()
+ggplot(DFobs2, aes(x=no3)) + geom_boxplot()
+ggplot(DFobs2, aes(x=no3)) + geom_density()
+
+ggplot(DFobs2, aes(x = l_tp, y = vsci)) + geom_point() + geom_smooth()
+
+ggplot(DFobs2, aes(x = log(tss), y = vsci)) + geom_point()
+
+ggplot(DFobs2, aes(x = tothab, y = vsci)) + geom_point() + facet_wrap(vars(year))
+ggplot(DFobs2, aes(x = tn, y = no3)) + geom_point()
+
+
+summary(DFobs2$turb)
+
+summary(DFobs2$no3)
+
+ggplot(DFobs2, aes(x= tothab)) + geom_boxplot() + facet_wrap(vars(year))
+
+ggplot(DFobs2, aes(x=turb, y = as.factor(year))) + geom_boxplot()
+
+#64.  Tidyverse five number summary
+tothab_by_year <- DFobs2 %>%
+  group_by(year) %>%
+  summarize(min = fivenum(tothab)[1],
+            low = fivenum(tothab)[2],
+            median = fivenum(tothab)[3],
+            mean = mean(tothab, na.rm = TRUE),
+            upper = fivenum(tothab)[4],
+            max = fivenum(tothab)[5],
+            count = dplyr::n()) %>% 
+  print(n = Inf)
+
+pct_imp_w_by_vahusb <- DFobs2 %>%
+  group_by(vahusb) %>%
+  summarize(min = fivenum(pct_imp_w)[1],
+            low = fivenum(pct_imp_w)[2],
+            median = fivenum(pct_imp_w)[3],
+            mean = mean(pct_imp_w, na.rm = TRUE),
+            upper = fivenum(pct_imp_w)[4],
+            max = fivenum(pct_imp_w)[5],
+            count = dplyr::n()) %>% 
+  print(n = Inf)
+
+vsci_by_vahusb <- DFobs2 %>%
+  group_by(vahusb) %>%
+  summarize(min = fivenum(vsci)[1],
+            low = fivenum(vsci)[2],
+            median = fivenum(vsci)[3],
+            mean = mean(vsci, na.rm = TRUE),
+            upper = fivenum(vsci)[4],
+            max = fivenum(vsci)[5],
+            count = dplyr::n()) %>% 
+  print(n = Inf)
+
+ggplot(DFobs2, aes(x = l_tn, y = vsci, colour = tp_f)) + geom_point() + geom_smooth()
+
+ggplot(DFobs2, aes(x = l_tn, y = vsci, colour = tp_f)) + geom_point() + geom_smooth(method = "lm", se = TRUE)
+```
+
+## 1.41 New Variables into SSN
+```{r put DFobs2 into SSN}
+names(DFobs2)
+
+class(DFobs2)
+str(DFobs2$ju)
+# note ssn_put_data requires sf object and SSN2 object
+j_ssn2 <-  SSN2::ssn_put_data(DFobs2,j_ssn1a)
+# just doing this assignment so not have to rename objects
+j_ssn3 <- j_ssn2
+
+glimpse(j_ssn3)
+
+# only need to run ssn_create_distmat one time as it is stored
+# SSN2 creates distance folder where distance R object stored
+## Create distance matrices for observed sites
+SSN2::ssn_create_distmat(j_ssn2, overwrite = TRUE)
+# see ditance folder created 07/12/2024 8:19am at
+# E:\R_vdeq_sci\Working\Data\neptune_analysis\ssn_objects\James_071024.ssn
+
+# Likely delete or move code below
+# sci_euc <- SSN::EmpiricalSemivariogram(j_ssn2, "turb", EmpVarMeth = "RobustMedian")
+# sci_euc
+# plot(sci_euc$distance, sci_euc$gamma, ylab = "Gamma", xlab = "Distance", col = sci_euc$azimuth, main = "Empirical Semivariogram - Logged Data - Robust Median")
+# rm(sci_euc)
+
+# default nlag = 6
+# sci_esvf1 <- SSN::Torgegram(j_ssn2, "turb")
+# plot(sci_esvf1)
+# sci_esvf1
+# 
+# plot(sci_esvf1, sp.relationship = "fu", col = "green", main = "Flow-unconnected Torgegram")
+
+# step through
+# nlag 10 & maxlag 50,000
+# nlag 12 & maxlag 60,000
+# nlag 15 & maxlag 75,000
+# nlag 20 & maxlag 300,000
+# sci_esvf2 <- Torgegram(j_ssn2, "l_no3", nlag = 10, maxlag = 50000, EmpVarMeth = "RobustMedian")
+# plot(sci_esvf2)
+# sci_esvf2
+# rm(sci_esvf2)
+```
+
+## 1.42 SFS Log_tn and tothab Plots
+```{r sfs_logtn_plot}
+scat_tn1 <- ggplot(DFobs2, aes(x=l_tn, y=vsci)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + labs(x="Total Nitrogen (mg/L, logged)", y = "VSCI")
+
+png(file="figures_sfs/scat_tn1.png",width=6,height=3,units="in",res=150)
+scat_tn1
+dev.off()
+
+scat_tothab1 <- ggplot(DFobs2, aes(x=tothab, y=vsci)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + labs(x="Total Habitat", y = "VSCI")
+
+png(file="figures_sfs/scat_tothab1.png",width=6,height=3,units="in",res=150)
+scat_tothab1
+dev.off()
+```
+
+
+## 1.50 Empirical Logit
+This code came from Travis Linscome-Hatfield at Neptune. 
+
+Another transformation explored is the empirical logit for the covariates "PctNat_W", "PctImp_Ws", "PctCrop_W", "PctHay_W", "PctGrs_W" as explained below
+I need to make a data frame without any geometry with st_set_geometry(DFobs2, NULL). Then join data frame to sf object and put the sf object into the SSN.
+
+\[ 
+\begin{eqnarray}
+P_i \, & \text{are} & \, \text{a set of percentages} \\
+f_i & = & P_i/100 \, \text{are a set of frequencies} \\
+F_\text{int} \, & \text{is} & \, \text{the set of} \, f_i \text{with 0s and 1s removed} \\
+\delta & = & \min \left\{ F_\text{int} \, \cup \, 1-F_\text{int} \right\} \\
+ & = & \min_{F_{int}} \left\{  f_i, 1-f_i   \right\}  \\
+f^*_i & = & \left\{   
+\begin{array}{ll}
+\delta / 2, & f_i \leq \delta \\
+1 - \delta / 2, & f_i \geq 1 - \delta \\
+f_i, & \text{otherwise}
+\end{array}
+\right. \\
+l_i & = &\log\left( \frac{f^*_i}{1-f^*_i} \right)
+\end{eqnarray}
+\]
+
+```{r emplogit_eda}
+
+################################################################
+################################################################
+# DFobs2 %>% dplyr::select(ends_with(("_c")))
+# DFobs2 %>% dplyr::select(starts_with(("pct_"))) %>% distinct(.)
+
+# VARIABLE ADJUSTMENT ZONE 4
+### Variables to apply empirical logit transformation
+emplog_vars <- c("pct_for_w","pct_imp_w","pct_crop_w","pct_hay_w","pct_grs_w","pct_shrb_w","pct_for_wr","pct_imp_rp_w","pct_crop_wr","pct_hay_wr","pct_grs_wr","pct_shrb_wr","pct_for_c","pct_imp_c","pct_crop_c","pct_hay_c","pct_grs_c", "pct_shrb_c","pct_for_cr","pct_imp_rp_c","pct_crop_cr","pct_hay_cr","pct_grs_cr","pct_shrb_cr")
+
+# remove geometry so empirical logit can be applied
+DFobsz <- st_set_geometry(DFobs2, NULL)
+################################################################
+################################################################
+
+
+## transform these variables and put the new values into new columns in DFobs
+for(var in emplog_vars){
+  ### create new tranformed data column to preserve the original
+  new_nm <- paste0(var,"_emplog")
+  dat_vec_obs <- DFobsz[,var]
+  # dat_vec_preds <- DFpreds[,var]
+  
+  #converting to 0-1 range
+  dat_vec_obs <- dat_vec_obs/100
+  # dat_vec_preds <- dat_vec_preds/100
+  
+  # dat_vec[dat_vec == 1] <- .9999
+  # dat_vec[dat_vec == 0] <- .0001
+  
+  if(any(dat_vec_obs > 1 | dat_vec_obs < 0)){
+    cat("ERROR: percentage variables outside logical bounds")
+  }
+  
+  small_dat_vec_obs <- dat_vec_obs[dat_vec_obs <1 & dat_vec_obs >0]
+  # small_dat_vec_preds <- dat_vec_preds[dat_vec_preds <1 & dat_vec_preds >0]
+  op1_obs <- small_dat_vec_obs
+  op2_obs<- 1-small_dat_vec_obs
+  # op1_preds <- small_dat_vec_preds
+  # op2_preds <- 1-small_dat_vec_preds
+  
+  ## minimum of op1 op2
+  delt_obs <- min(c(op1_obs,op2_obs))
+  # delt_preds <- min(c(op1_preds,op2_preds))
+  
+  ## getting set of frequencies
+  freqs_obs <- NULL
+  for(i in 1:length(dat_vec_obs)){
+    if(dat_vec_obs[i] <= delt_obs){
+      freqs_obs[i] <- delt_obs/2
+    }else if(dat_vec_obs[i] >= 1- delt_obs){
+      freqs_obs[i] <- 1-(delt_obs/2)
+    }else{
+      freqs_obs[i] <-dat_vec_obs[i]
+    }
+  }
+  
+ # freqs_preds <- NULL
+ # for(i in 1:length(dat_vec_preds)){
+ #   if(dat_vec_preds[i] <= delt_preds){
+ #     freqs_preds[i] <- delt_preds/2
+ #   }else if(dat_vec_preds[i] >= 1- delt_preds){
+ #     freqs_preds[i] <- 1-(delt_preds/2)
+ #   }else{
+ #     freqs_preds[i] <-dat_vec_preds[i]
+  #  }
+ # }
+  
+  ##getting logits
+  logits_obs <- log(freqs_obs/(1-freqs_obs))
+  DFobsz[,new_nm] <- logits_obs
+  
+  # logits_preds <- log(freqs_preds/(1-freqs_preds))
+  # DFpreds[,new_nm] <- logits_preds
+}
+
+```
+
+## 1.51 Logit of Impervious Cover
+On 04/30/2024 summaries of empirical logit of impervious cover show that minimum for impervious cover of catchment is greater than minima for watershed, watershed-riparian, and catchment-riparian. I think the minimum non-zero proportions of 0.01 versus 0.02 is causing the different transformation values. But, I can't get "hand" calculator versions to work. Also see that impervious cover values of 0 and the second smallest value under each of the 4 geographies is assigned the empirical logit transformation. Does result below have something to do with second smallest value for pct_imp_w, pct_imp_rp, and pct_imp_rp_c is 0.01, but for pct_imp_c it is 0.02?
+
+```{r emplogit_of_impevious}
+names(DFobsz)
+summary(DFobsz$pct_imp_w_emplog)
+summary(DFobsz$pct_imp_rp_w_emplog)
+summary(DFobsz$pct_imp_c_emplog)
+summary(DFobsz$pct_imp_rp_c_emplog)
+
+str(DFobsz$pct_imp_w_emplog)
+str(DFobsz$pct_imp_rp_w_emplog)
+str(DFobsz$pct_imp_c_emplog)
+str(DFobsz$pct_imp_rp_c_emplog)
+
+zlogit <- dplyr::select(DFobsz, c(st_id_tren, pct_imp_w, pct_imp_w_emplog,pct_imp_rp_w, pct_imp_rp_w_emplog, pct_imp_c, pct_imp_c_emplog, pct_imp_rp_c, pct_imp_rp_c_emplog))
+
+```
+
+## 1.52 Logit variables into SSN
+```{r logit_into_ssn}
+names(DFobsz)
+
+DFobsz2 <- dplyr::select(DFobsz, c(st_id_tren, pct_for_w_emplog:pct_shrb_cr_emplog))
+# put transformed covariates in an SF object
+DFobs2a <- full_join(DFobs2, DFobsz2, by = join_by(st_id_tren))
+
+# put SF object into SSN
+j_ssn3 <-  SSN2::ssn_put_data(DFobs2a,j_ssn3)
+
+### set up a vector so we can loop through these transformed variables
+# emplog_vars_transformed <- paste0(emplog_vars,"_emplog")
+
+## produce eda.shape plots for each of the transformed variables
+## I got error with code below
+# for(var in emplog_vars_transformed){
+#   ## eda 4 panel plot for all covariates
+#   covariate_eda <- eda.shape(x = DFobsz[,var] , var_name = var, conf.bands=F)
+#   print(covariate_eda)
+# }
+
+# unconvinced of impervious surface and wetland interaction
+ggplot(DFobs2a, aes(x=pct_imp_rp_c_emplog, y = vsci, colour = pct_wet_cr_f)) + geom_point() + geom_smooth()
+
+# interaction plots of vsci with 3 covariates having high correlations to vsci crossed with wetland factor
+ggplot(DFobs2a, aes(x=pct_imp_rp_c_emplog, y = vsci, colour = pct_wet_cr_f)) + geom_point() + geom_smooth(method = lm, se = TRUE)
+
+ggplot(DFobs2a, aes(x=pct_for_cr_emplog, y = vsci, colour = pct_wet_cr_f)) + geom_point() + geom_smooth(method = lm, se = TRUE)
+
+ggplot(DFobs2a, aes(x=tothab, y = vsci, colour = pct_wet_cr_f)) + geom_point() + geom_smooth(method = lm, se = TRUE)
+
+# perhaps interaction between shrubs and ecoregions, but recall southeastern plains has n =7, but this line is similar to Piedmont line
+ggplot(DFobs2a, aes(x=pct_shrb_cr_emplog, y = vsci, colour = eco_region)) + geom_point() +geom_smooth(method =lm, se = TRUE)
+
+ggplot(DFobs2a, aes(x=pct_shrb_cr_emplog, y = vsci, colour = eco_region)) + geom_point() +geom_smooth(method =lm, se = TRUE)
+
+# Golden et al. 2016 JAWRA mentioned interaction of urban areas and TP. Slopes and intercepts overlap in plots with impervious surface area and forest.
+ggplot(DFobs2a, aes(x = pct_imp_c_emplog, y = vsci, colour = vahusb)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + labs(x="Catchment Impervious (empirical logit)", y = "VSCI") + expand_limits(x=-10) + scale_colour_discrete(name="Subbasin")
+
+ggplot(DFobs2a, aes(x = pct_for_w_emplog, y = vsci, colour = tp_f)) + geom_point() + geom_smooth(method = "lm", se = TRUE)
+
+# this plot suggested by result from WsRpWq analysis
+ggplot(DFobs2a, aes(x = pct_for_wr_emplog, y = vsci, colour = eco_region)) + geom_point() + geom_smooth(method = "lm", se = TRUE)
+
+ggplot(DFobs2a, aes(x = pct_for_wr_emplog, y = vsci, colour = vahusb)) + geom_point() + geom_smooth(method = "lm", se = TRUE)
+
+ggplot(DFobs2a, aes(x = pct_imp_w_emplog, y = vsci, colour = vahusb)) + geom_point() + geom_smooth(method = "lm", se = TRUE)
+
+ggplot(DFobs2a, aes(x = pct_imp_w_emplog, y = vscivcpmi)) + geom_point() + geom_smooth(method = "lm") + facet_wrap(vars(vahusb))
+
+ggplot(DFobs2a, aes(x = do, y = vsci, colour = vahusb)) + geom_point() + geom_smooth(method = "lm", se = TRUE)
+
+ggplot(DFobs2a, aes(x = vahusb, y = pct_imp_w_emplog)) + geom_boxplot()
+
+# check suggested by Mike Dumelle if y-interecept at x = 0 looks different from y-intercept when x > 0
+ggplot(DFobsz, aes(x=pct_grs_c_emplog, y = vsci)) + geom_point() + geom_smooth(method = "lm")
+```
+
+## 1.53 SFS StreamCat Plots
+```{r sfs_streamcat}
+scat_cat2 <- ggplot(DFobs2a, aes(x = pct_imp_c_emplog, y = vsci, colour = vahusb)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + labs(x="Catchment Impervious (empirical logit)", y = "VSCI") + expand_limits(x=-10) + scale_colour_discrete(name="Subbasin")
+
+scat_cat2
+png(file="figures_sfs/scat_cat2.png",width=4,height=3,units="in",res=150)
+  scat_cat2
+dev.off()
+
+```
+
+## 1.60 ESDA Across Different Polygons
+Need to bring in HUC8 polygons. VSCICPMI scores quite high in Blue Ridge. Using vahusb as those 5 polygons are comprised of huc8s.
+```{r esda_polygons}
+
+#by regions
+ggplot(DFobs, aes(x=factor(vahusb), y=vscivcpmi)) + geom_boxplot(varwidth = TRUE)
+
+ggplot(DFobs, aes(x=factor(eco_region), y=vscivcpmi)) + geom_boxplot(varwidth = TRUE)
+
+ggplot(DFobs, aes(x=factor(bio_region), y=vscivcpmi)) + geom_boxplot(varwidth = TRUE)
+
+ggplot(DFobsz, aes(x=pct_imp_rp_w_emplog, y = vscivcpmi, colour = eco_region)) + geom_point() + geom_smooth(se = TRUE, method = lm)
+
+ggplot(DFobsz, aes(x = pct_imp_rp_w_emplog, y = l_tn)) + geom_point() + geom_smooth()
+
+ggplot(DFobsz, aes(x = pct_imp_w_emplog, y = l_tn)) + geom_point() + geom_smooth()
+
+ggplot(DFobsz, aes(x=tothab, y = vscivcpmi, colour = eco_region)) + geom_point() + geom_smooth(se = TRUE, method = lm)
+
+ggplot(DFobsz, aes(x = l_tn, y = vscivcpmi, colour = eco_region)) + geom_point() + geom_smooth()
+
+ggplot(DFobsz, aes(x = pct_imp_rp_w_emplog, y = l_tn)) + geom_point()
+
+# ggplot(DFobsz, aes(x = PctImp_Ws_emplog, y = l_tn)) + geom_point() + geom_smooth(se = TRUE, method = lm)
+
+ggplot(DFobsz, aes(x=vahusb, y=vscivcpmi)) + geom_boxplot(varwidth = TRUE)
+
+mapview(DFobs2)
+```
+
+
+## 1.70 Instream/Onsite Correlations
+Brought in Total Habitat Score.
+```{r instream_onsite_corr}
+DFobs3 <- dplyr::select(DFobsz, st_id_tren, vsci, do:tss, tothab, l_no3, l_tn, l_tp, l_tds)
+
+# instream
+ggpairs(DFobs3, columns = c(2:5,8,13:15))
+ggpairs(DFobs3, columns = c(2:5,8,15,18:19))
+# nutrients
+ggpairs(DFobs3, columns = c(2,6:12,16:18))
+
+# WQ and WS variables
+DFobs4 <- dplyr::select(DFobsz, st_id_tren, vsci, do,p_h, tothab, l_no3:l_spc, pct_imp_w_emplog, pct_grs_w_emplog, pct_hay_w_emplog, pct_shrb_w_emplog, pct_for_w_emplog)
+names(DFobs4)
+
+ggpairs(DFobs4, columns = c(2:15))
+
+# WQ and WS-Riparian
+DFobs5 <- dplyr::select(DFobsz, st_id_tren, vsci, do,p_h, tothab, l_no3:l_spc, pct_imp_rp_w_emplog, pct_grs_wr_emplog, pct_hay_wr_emplog, pct_shrb_wr_emplog, pct_for_wr_emplog)
+names(DFobs5)
+ggpairs(DFobs5, columns = c(2:15))
+
+# WQ and Catchment
+DFobs6 <- dplyr::select(DFobsz, st_id_tren, vsci, do,p_h, tothab, l_no3:l_spc, pct_imp_c_emplog, pct_grs_c_emplog, pct_hay_c_emplog, pct_shrb_c_emplog, pct_for_c_emplog)
+
+names(DFobs6)
+
+ggpairs(DFobs6, columns = c(2:15))
+
+# WQ and Catchment-Riparian
+DFobs7 <- dplyr::select(DFobsz, st_id_tren, vsci, do,p_h, tothab, l_no3:l_spc, pct_imp_rp_c_emplog, pct_grs_cr_emplog, pct_hay_cr_emplog, pct_shrb_cr_emplog, pct_for_cr_emplog)
+names(DFobs7)
+
+ggpairs(DFobs7, columns = c(2:15))
+ggpairs(DFobs7, columns = c(2,11:15))
+
+# Mix of Watershed, Catchment, Riparian
+DFobs8 <- dplyr::select(DFobsz, st_id_tren, vsci, pct_imp_w_emplog, pct_imp_c_emplog, pct_imp_rp_c_emplog, pct_for_wr_emplog, elev_ws, elev_cat)
+names(DFobs8)
+
+ggpairs(DFobs8, columns = c(2:8))
+```
+
+## 1.80 Semivariogram & Torgegram
+Following code in help. For empirical semivariogram, defaults are nlag = 20, directions = c(0, 45, 90, 135). If set directions = 0, then only get north oriented semivariogram. With no directions specified, then get 4 points plotted per lag distance corresponding to 4 directions. Default distance went out to 300,000 m (300 km). Initially, I will set maxlag = 150,000. Does not appear a way to get omnidirectional semivariogram. Given skewness of DO, and logging not help, will use Robust Median ESV from start. However, method of moments used on DO seem to better separate FC and FU. TDS needed log transformation to get unimodal. TN is also skewed and log helps a bit, but rather broad peak. Logged TN with robust median has smoother, less spread out semivariogram. 
+
+
+```{r esda_ssn2}
+
+class(j_ssn3)
+names(j_ssn3)
+summary(j_ssn3)
+
+ggplot() +
+  geom_sf(data = j_ssn3$edges) +
+  geom_sf(data = j_ssn3$obs, color = "blue") +
+  theme_bw()
+
+# see scale_color_viridis_c option = "H" is one of eight color options
+ggplot() +
+  geom_sf(data = j_ssn3$edges) +
+  geom_sf(data = j_ssn3$obs, aes(color = tothab)) +
+  scale_color_viridis_c(option = "H") +
+  theme_bw()
+
+
+# have to hard code type to get all 3 distances otherwise only
+# get flowcon and flowuncon if drop type argument
+ztg2 <- SSN2::Torgegram(tothab ~ 1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
+names(ztg2)
+summary(ztg2$flowcon)
+summary(ztg2$flowuncon)
+summary(ztg2$euclid)
+plot(ztg2)
+plot(ztg2, type = "flowcon", main="TotHab")
+plot(ztg2, type = "flowuncon", main = "TotHab")
+plot(ztg2, type = "euclid", main = "TotHab")
+class(ztg2)
+# plot(ztg2, separate = TRUE, main = "TotHab")
+
+# head(ztg$flowcon)
+# print(ztg$flowcon)
+# print(ztg$flowuncon)
+# print(ztg$euclid)
+
+# getting error message with cutoff
+ytg <- SSN2::Torgegram(l_tn ~ 1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
+plot(ytg, main = "Log(TN)")
+
+ztg3 <- Torgegram(vsci ~ 1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
+# , type = c("flowcon", "flowuncon", "euclid"))
+plot(ztg3, main = "VSCI")
+# plot now working getting all 3 distances
+# plot(ztg3, separate = TRUE, main = "VSCI")
+plot(ztg3, main ="VSCI")
+plot(ztg3, type = "flowcon", main="VSCI")
+plot(ztg3, type = "flowuncon", main = "VSCI")
+plot(ztg3, type = "euclid", main = "VSCI")
+
+ztg4 <- Torgegram(l_tn ~ 1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
+# , type = c("flowcon", "flowuncon", "euclid"))
+# plot working Torgegram object has all 3 distances
+plot(ztg4, main = "Log(TN)")
+# plot(ztg4, separate = TRUE, main = "Log(TN)")
+
+print(ztg4$flowcon)
+print(ztg4$flowuncon)
+print(ztg4$euclid) # get output just like other distances
+
+
+```
+
+# 2.0 Simulations
+## 2.10 SSN2 Simulated Data
+This is code I want Neptune to evaluate, chunks 21-24.
+Simulate VSCI data for SSN to work out code on simulated response variables. Have sim1 simulated parameters based from y-intercept SSN model, ssn_mod_y. Have sim2 be  strong flow unconnected spatial structure and sim3 based on strong Euclidean spatial structure. Use j_ssn3 as that has variables in lowercase. Putting the simulated data into j_ssn4. My use of the term function refers to SSN tailup, taildown, or Euclidean, and shape refers distribution of residuals in the semivariogram/Torgegram as Gaussian, exponential, linear sill, etc.
+
+```{r ssn2_sim1}
+?ssn_params
+summary(DFobs2$vscivcpmi)
+
+# this keeps geometry sticky with the df
+zdf <- ssn_get_data(j_ssn3)
+class(zdf)
+
+# z1 has inputs from ssn_mod_y summary
+# mean = 65 is from mean vscivcpmi
+set.seed(110723)
+tailup <- tailup_params("exponential", de = 16, range = 200000)
+taildown <- taildown_params("exponential", de = 0.2, range = 140000)
+euclid <- euclid_params("exponential", de = 150, range = 30000, rotate = 0, scale = 1)
+nugget <- nugget_params("nugget", nugget = 60)
+z1 <- ssn_simulate("gaussian", j_ssn3, "obs", tailup, taildown, euclid, nugget, additive = "afv_area", mean = 65)
+
+# put simulated vector into sticky df then df into ssn
+zdf$sim1 <- z1
+summary(zdf$sim1)
+j_ssn4 <- ssn_put_data(zdf, j_ssn3)
+head(ssn_get_data(j_ssn4)[,c("vscivcpmi", "sim1")])
+
+zg1 <- Torgegram(sim1 ~ 1, j_ssn4, type = c("flowcon", "flowuncon", "euclid"))
+plot(zg1)
+
+plot(zg1, type = "flowcon")
+plot(zg1, type = "flowuncon")
+plot(zg1, type = "euclid")
+```
+
+## 2.20 Test Simulated Data and 3-Way Spatial
+In 2.10 I simulated data based on the three-way (tail up, tail down, and Euclidean) exponential y-intercept model. Below I am taking that simulated data and testing it against different spatial autocovariance models, including a nugget or nonspatial model.
+```{r evaluate_simulated_data}
+# from Travis' step 3 code of !RARE_FY21_Updates_2023-07-23
+# grid of 3-way autocovariances and shapes
+# selected model options
+tailup<-c("Exponential.tailup", "LinearSill.tailup")
+taildown<-c("Exponential.taildown", "LinearSill.taildown")
+euclidean<-c("Exponential.Euclid", "Gaussian.Euclid")
+
+zcor.funs<-expand.grid(tailup,taildown,euclidean,stringsAsFactors = F)
+zcor.funs
+
+ssn_mod_y1 <- ssn_lm(
+  formula = sim1 ~ 1,
+  ssn.object = j_ssn4,
+  tailup_type = "exponential",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  additive = "afv_area"
+)
+summary(ssn_mod_y1)
+varcomp(ssn_mod_y1) 
+
+ssn_mod_y2 <- ssn_lm(
+  formula = sim1 ~ 1,
+  ssn.object = j_ssn4,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  additive = "afv_area"
+)
+summary(ssn_mod_y2)
+varcomp(ssn_mod_y2)
+
+ssn_mod_y3 <- ssn_lm(
+  formula = sim1 ~ 1,
+  ssn.object = j_ssn4,
+  tailup_type = "exponential",
+  taildown_type = "none",
+  euclid_type = "exponential",
+  additive = "afv_area"
+)
+summary(ssn_mod_y3)
+varcomp(ssn_mod_y3)
+
+ssn_mod_y4 <- ssn_lm(
+  formula = sim1 ~ 1,
+  ssn.object = j_ssn4,
+  tailup_type = "linear",
+  taildown_type = "linear",
+  euclid_type = "none",
+  additive = "afv_area"
+)
+summary(ssn_mod_y4)
+varcomp(ssn_mod_y4)
+
+ssn_mod_mlr <- ssn_lm(
+  formula = sim1 ~ 1,
+  ssn.object = j_ssn4,
+  tailup_type = "none",
+  taildown_type = "none",
+  euclid_type = "none",
+  nugget_type = "nugget"
+)
+summary(ssn_mod_mlr)
+varcomp(ssn_mod_mlr)
+
+
+model_glances <- glances(ssn_mod_y1, ssn_mod_y2, ssn_mod_y3, ssn_mod_y4, ssn_mod_mlr)
+
+```
+
+## 2.30 Sim TU none, TD strong, Euclid weak, Nugget moderate
+Matt Fuller suggested that by having TD strong then this might allow selection of both TU and TD autocovariances given that TD can pick up FC and FU relationships. He suggested trying TU strong, TD none, Euclid weak, and Nugget moderate.
+```{r sim_TD_strong}
+# creating sim4 with tailup parameterization set to none and setting parameters for strong taildown,
+# intermediate nugget and weak euclid
+
+# set all tailup_type parameter to "none" and de and range to 0
+set.seed(110723)
+tailup <- tailup_params("none", de = 0, range = 0)
+taildown <- taildown_params("linear", de = 120, range = 20000)
+euclid <- euclid_params("gaussian", de = 10, range = 5000, rotate = 0, scale = 1)
+nugget <- nugget_params("nugget", nugget = 40)
+
+z4 <- ssn_simulate("gaussian", j_ssn3, "obs", tailup, taildown, euclid, nugget, additive = "afv_area", mean = 65)
+
+# put simulated vector into sticky df then df into ssn
+zdf$sim4 <- z4
+
+summary(zdf$sim4)
+j_ssn4 <- ssn_put_data(zdf, j_ssn3)
+head(ssn_get_data(j_ssn4)[,c("vscivcpmi", "vsci", "sim4")])
+
+ztg4 <- SSN2::Torgegram(vscivcpmi ~ 1, j_ssn4, type = c("flowcon", "flowuncon", "euclid"))
+names(ztg4)
+summary(ztg4$flowcon)
+summary(ztg4$flowuncon)
+summary(ztg4$euclid)
+plot(ztg4, main = "sim4 TD Strong")
+plot(ztg4, type = "flowcon",main = "sim4 TD Strong" )
+plot(ztg4, type = "flowuncon", main = "sim4 TD Strong")
+plot(ztg4, type = "euclid", main = "sim4 TD Strong")
+# plot(ztg4, separate = TRUE, main = "sim4 TD Strong")
+
+class(ztg4)
+
+# on 12/13/2023 saw that ztg4 was using j_ssn3, which is wrong object, and I changed it to j_ssn4 and remade torgegrams. For the model comparisons I was using correct j_ssn4 and have that output on 11/07/2023 in OneNote.
+# see 10/31/2023 OneNote 
+# three-way
+# a. TU wrong fxn and shape, TD & EU correct fxns and shapes 
+ssn_mod_ya <- ssn_lm(
+  formula = sim4 ~ 1,
+  ssn.object = j_ssn4,
+  tailup_type = "linear",
+  taildown_type = "linear",
+  euclid_type = "gaussian",
+  additive = "afv_area"
+)
+summary(ssn_mod_ya)
+varcomp(ssn_mod_ya) 
+# b. TU wrong fxn and shape, TD & EU correct fxns, wrong shapes
+# expect a) have smaller AIC than b
+ssn_mod_yb <- ssn_lm(
+  formula = sim4 ~ 1,
+  ssn.object = j_ssn4,
+  tailup_type = "exponential",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  additive = "afv_area"
+)
+summary(ssn_mod_yb)
+varcomp(ssn_mod_yb)
+
+# two-way
+# c. TRUE model so expect smallest AIC
+ssn_mod_yc <- ssn_lm(
+  formula = sim4 ~ 1,
+  ssn.object = j_ssn4,
+  tailup_type = "none",
+  taildown_type = "linear",
+  euclid_type = "gaussian",
+  additive = "afv_area"
+)
+summary(ssn_mod_yc)
+varcomp(ssn_mod_yc)
+# d. TU wrong fxn and shape, TD correct fxn & shape, EU omitted
+ssn_mod_yd <- ssn_lm(
+  formula = sim4 ~ 1,
+  ssn.object = j_ssn4,
+  tailup_type = "linear",
+  taildown_type = "linear",
+  euclid_type = "none",
+  additive = "afv_area"
+)
+summary(ssn_mod_yd)
+varcomp(ssn_mod_yd)
+# e. TU wrong function and shape, TD omitted, EU correct function, wrong shape
+ssn_mod_ye <- ssn_lm(
+  formula = sim4 ~ 1,
+  ssn.object = j_ssn4,
+  tailup_type = "exponential",
+  taildown_type = "none",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  additive = "afv_area"
+)
+summary(ssn_mod_ye)
+varcomp(ssn_mod_ye)
+
+# one-way
+# f. TU omitted, TD correct shape and fxn, EU omitted
+ssn_mod_yf <- ssn_lm(
+  formula = sim4 ~ 1,
+  ssn.object = j_ssn4,
+  tailup_type = "none",
+  taildown_type = "linear",
+  euclid_type = "none",
+  nugget_type = "nugget",
+  additive = "afv_area"
+)
+summary(ssn_mod_yf)
+varcomp(ssn_mod_yf)
+
+# g. TU wrong fxn and shape, TD and EU omitted
+ssn_mod_yg <- ssn_lm(
+  formula = sim4 ~ 1,
+  ssn.object = j_ssn4,
+  tailup_type = "linear",
+  taildown_type = "none",
+  euclid_type = "none",
+  nugget_type = "nugget",
+  additive = "afv_area"
+)
+summary(ssn_mod_yg)
+varcomp(ssn_mod_yg)
+
+# h. TU correctly omitted, TD incorrectly omitted, EU correct fxn and shape
+ssn_mod_yh <- ssn_lm(
+  formula = sim4 ~ 1,
+  ssn.object = j_ssn4,
+  tailup_type = "none",
+  taildown_type = "none",
+  euclid_type = "gaussian",
+  nugget_type = "nugget",
+  additive = "afv_area"
+)
+summary(ssn_mod_yh)
+varcomp(ssn_mod_yh)
+
+# i. mlr model
+ssn_mod_yi <- ssn_lm(
+  formula = sim4 ~ 1,
+  ssn.object = j_ssn4,
+  tailup_type = "none",
+  taildown_type = "none",
+  euclid_type = "none",
+  nugget_type = "nugget"
+)
+summary(ssn_mod_yi)
+varcomp(ssn_mod_yi)
+
+model_glances <- glances(ssn_mod_ya, ssn_mod_yb, ssn_mod_yc, ssn_mod_yd, ssn_mod_ye, ssn_mod_yf, ssn_mod_yg, ssn_mod_yh, ssn_mod_yi)
+
+model_glances
+
+```
+
+## 2.40 Sim TU Strong
+```{r sim_TU_strong}
+
+# creating sim5 with taildown parameterization set to none and setting parameters for strong tailup, weak euclid, and intermediate nugget
+
+
+set.seed(110723)
+tailup <- tailup_params("linear", de = 120, range = 20000)
+taildown <- taildown_params("none", de = 0, range = 0)
+euclid <- euclid_params("gaussian", de = 10, range = 5000, rotate = 0, scale = 1)
+nugget <- nugget_params("nugget", nugget = 40)
+
+z5 <- ssn_simulate("gaussian", j_ssn3, "obs", tailup, taildown, euclid, nugget, additive = "afv_area", mean = 65)
+
+# put simulated vector into sticky df then df into ssn
+zdf$sim5 <- z5
+
+summary(zdf$sim5)
+j_ssn5 <- ssn_put_data(zdf, j_ssn3)
+head(ssn_get_data(j_ssn5)[,c("vscivcpmi", "vsci", "sim5")])
+
+# ztg1 <- SSN2::Torgegram(vscivcpmi ~ 1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
+
+ztg5 <- SSN2::Torgegram(sim5 ~ 1, j_ssn5, type = c("flowcon", "flowuncon", "euclid"))
+
+names(ztg5)
+summary(ztg5$flowcon)
+summary(ztg5$flowuncon)
+summary(ztg5$euclid)
+plot(ztg5, main = "sim5 TU strong")
+plot(ztg5, type = "flowcon", main = "sim5 TU strong")
+plot(ztg5, type = "flowuncon", main = "sim5 TU strong")
+plot(ztg5, type = "euclid", main = "sim5 TU strong")
+# plot(ztg5, separate = TRUE, main = "sim5 TU strong")
+
+class(ztg5)
+
+
+# three-way
+# a. TU correct fxn and shape, TD wrong fxn and shape, EU correct fxn and shapes 
+ssn_mod_ya <- ssn_lm(
+  formula = sim5 ~ 1,
+  ssn.object = j_ssn5,
+  tailup_type = "linear",
+  taildown_type = "linear",
+  euclid_type = "gaussian",
+  additive = "afv_area"
+)
+summary(ssn_mod_ya)
+varcomp(ssn_mod_ya) 
+# b. TU correct fxn and wrong shape, TD wrong fxn and shape, EU correct fxn and wrong shape
+# expect a) have smaller AIC than b
+ssn_mod_yb <- ssn_lm(
+  formula = sim5 ~ 1,
+  ssn.object = j_ssn5,
+  tailup_type = "exponential",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  additive = "afv_area"
+)
+summary(ssn_mod_yb)
+varcomp(ssn_mod_yb)
+
+# two-way
+# c. TRUE model so expect smallest AIC
+ssn_mod_yc <- ssn_lm(
+  formula = sim5 ~ 1,
+  ssn.object = j_ssn5,
+  tailup_type = "linear",
+  taildown_type = "none",
+  euclid_type = "gaussian",
+  additive = "afv_area"
+)
+summary(ssn_mod_yc)
+varcomp(ssn_mod_yc)
+# d. TU correct fxn and shape, TD wrong fxn & shape, EU omitted
+ssn_mod_yd <- ssn_lm(
+  formula = sim5 ~ 1,
+  ssn.object = j_ssn5,
+  tailup_type = "linear",
+  taildown_type = "linear",
+  euclid_type = "none",
+  additive = "afv_area"
+)
+summary(ssn_mod_yd)
+varcomp(ssn_mod_yd)
+# e. TU correct function and shape, TD omitted, EU correct function, wrong shape
+ssn_mod_ye <- ssn_lm(
+  formula = sim5 ~ 1,
+  ssn.object = j_ssn5,
+  tailup_type = "exponential",
+  taildown_type = "none",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  additive = "afv_area"
+)
+summary(ssn_mod_ye)
+varcomp(ssn_mod_ye)
+
+# one-way
+# f. TU correct shape and fxn, TD and EU omitted
+ssn_mod_yf <- ssn_lm(
+  formula = sim5 ~ 1,
+  ssn.object = j_ssn5,
+  tailup_type = "linear",
+  taildown_type = "none",
+  euclid_type = "none",
+  nugget_type = "nugget",
+  additive = "afv_area"
+)
+summary(ssn_mod_yf)
+varcomp(ssn_mod_yf)
+
+# g. TU correct fxn and wrong shape, TD and EU omitted
+ssn_mod_yg <- ssn_lm(
+  formula = sim5 ~ 1,
+  ssn.object = j_ssn5,
+  tailup_type = "exponential",
+  taildown_type = "none",
+  euclid_type = "none",
+  nugget_type = "nugget",
+  additive = "afv_area"
+)
+summary(ssn_mod_yg)
+varcomp(ssn_mod_yg)
+
+# h. TU wrongly omitted, TD omitted, EU correct fxn and shape
+ssn_mod_yh <- ssn_lm(
+  formula = sim5 ~ 1,
+  ssn.object = j_ssn5,
+  tailup_type = "none",
+  taildown_type = "none",
+  euclid_type = "gaussian",
+  nugget_type = "nugget",
+  additive = "afv_area"
+)
+summary(ssn_mod_yh)
+varcomp(ssn_mod_yh)
+
+# i. mlr model
+ssn_mod_yi <- ssn_lm(
+  formula = sim5 ~ 1,
+  ssn.object = j_ssn5,
+  tailup_type = "none",
+  taildown_type = "none",
+  euclid_type = "none",
+  nugget_type = "nugget"
+)
+summary(ssn_mod_yi)
+varcomp(ssn_mod_yi)
+
+model_glances <- glances(ssn_mod_ya, ssn_mod_yb, ssn_mod_yc, ssn_mod_yd, ssn_mod_ye, ssn_mod_yf, ssn_mod_yg, ssn_mod_yh, ssn_mod_yi)
+
+model_glances
+
+```
+
+
+# 3.0 Bestglm, Nugget and SSN Models
+
+# 3.1 Dummy Coding of Factors
+Dummy coding for ecoregions, Virginia hydrologic unit subbasins, wetlands, impervious surfaces, and total phosphorus.
+```{r dummy_code}
+# select just X continuous covariates for watershed
+# remove geometry as bestglm does not want it
+# DFobsz <- st_set_geometry(DFobsz, NULL)
+
+# dummy code 5 ecoregions with base being Blue Ridge Mtns
+eco_r <- dplyr::select(DFobsz, eco_region)
+summary(eco_r)
+glimpse(eco_r)
+
+eco_d <- (data.frame(dummy(eco_r)))
+class(eco_d)
+dim(eco_d)
+head(eco_d)
+str(eco_d)
+distinct(eco_d)
+# 5 levels need only n-1 =4 dummy variables, removed base level of Blue Ridge Mountains by dropping first column
+eco_d <- eco_d[c(-1)]
+dim(eco_d)
+head(DFobsz$eco_region)
+distinct(eco_d)
+head(eco_d)
+str(eco_d)
+class(eco_d)
+
+DFobsz <- cbind(DFobsz,eco_d)
+names(DFobsz)
+
+# dummy code 5 vahusb with base being JU, James Upper
+vahusb <- dplyr::select(DFobsz, vahusb)
+summary(vahusb)
+glimpse(vahusb)
+
+vahusb_d <- (data.frame(dummy(vahusb)))
+# 5 levels need only n-1 =4 dummy variables, removed base level of JU by dropping first column
+vahusb_d <- vahusb_d[c(-1)]
+dim(vahusb_d)
+head(DFobsz$vahusb)
+distinct(vahusb_d)
+head(vahusb_d)
+str(vahusb_d)
+class(vahusb_d)
+
+DFobsz <- cbind(DFobsz,vahusb_d)
+names(DFobsz)
+
+
+# dummy code 4 watershed wetland levels with base being none
+wet_w_f <- dplyr::select(DFobsz, pct_wet_w_f)
+summary(wet_w_f)
+glimpse(wet_w_f)
+
+wet_w_d <- (data.frame(dummy(wet_w_f)))
+# 4 levels need only n-1 =3 dummy variables, removed base level of none by dropping first column
+wet_w_d <- wet_w_d[c(-1)]
+DFobsz <- cbind(DFobsz,wet_w_d)
+names(DFobsz)
+
+# dummy code 4 watershed-riparian wetland levels with base being none
+wet_wr_f <- dplyr::select(DFobsz, pct_wet_wr_f)
+summary(wet_wr_f)
+glimpse(wet_wr_f)
+
+wet_wr_d <- (data.frame(dummy(wet_wr_f)))
+# 4 levels need only n-1 =3 dummy variables, removed base level of none by dropping first column
+wet_wr_d <- wet_wr_d[c(-1)]
+DFobsz <- cbind(DFobsz,wet_wr_d)
+names(DFobsz)
+
+# dummy code 4 catchment wetland levels with base being none
+wet_c_f <- dplyr::select(DFobsz, pct_wet_c_f)
+summary(wet_c_f)
+glimpse(wet_c_f)
+
+wet_c_d <- (data.frame(dummy(wet_c_f)))
+# 4 levels need only n-1 =3 dummy variables, removed base level of none by dropping first column
+wet_c_d <- wet_c_d[c(-1)]
+DFobsz <- cbind(DFobsz,wet_c_d)
+names(DFobsz)
+
+# dummy code 3 catchment-riparian wetland levels (none, low, high) with base being none
+wet_cr_f <- dplyr::select(DFobsz, pct_wet_cr_f)
+summary(wet_cr_f)
+glimpse(wet_cr_f)
+
+wet_cr_d <- (data.frame(dummy(wet_cr_f)))
+# 3 levels need only n-1 =2 dummy variables, removed base level of none by dropping first column
+wet_cr_d <- wet_cr_d[c(-1)]
+DFobsz <- cbind(DFobsz,wet_cr_d)
+names(DFobsz)
+
+# dummy code 3 catchment-riparian impervious surfaces levels with base being none
+imp_cr_f <- dplyr::select(DFobsz, pct_imp_rp_c_f)
+summary(imp_cr_f)
+glimpse(imp_cr_f)
+
+imp_cr_d <- (data.frame(dummy(imp_cr_f)))
+# 3 levels need only n-1 =2 dummy variables, removed base level of none by dropping first column
+imp_cr_d <- imp_cr_d[c(-1)]
+DFobsz <- cbind(DFobsz,imp_cr_d)
+names(DFobsz)
+
+# dummy code 3 total phosphorus levels with base being low
+tp_f <- dplyr::select(DFobsz, tp_f)
+summary(tp_f)
+glimpse(tp_f)
+
+tp_d <- (data.frame(dummy(tp_f)))
+# 3 levels need only n-1 =2 dummy variables, removed base level of none by dropping first column
+tp_d <- tp_d[c(-1)]
+DFobsz <- cbind(DFobsz,tp_d)
+names(DFobsz)
+
+```
+
+# 3.1T Dummy Coding of Factors-Travis
+Dummy coding for ecoregions, Virginia hydrologic unit subbasins, wetlands, impervious surfaces, and total phosphorus.
+```{r dummy_code-Travis}
+# select just X continuous covariates for watershed
+# remove geometry as bestglm does not want it
+# DFobsz <- st_set_geometry(DFobsz, NULL)
+
+names(DFobsz)
+# dat = DFobsz
+# alt_dat = DFobsz
+# variable = "eco_region"
+category_break = function(dat,alt_dat,variable,base1=NULL,base2=NULL){
+  
+  #pull the column we wish to dummy code
+  var_r <- dplyr::select(dat, all_of(variable))
+  # get the value with the highest number of instances
+  var_b <- as.data.frame(table(var_r))
+  var_b <- var_b[order(-var_b$Freq),]
+  # if base cases aren't already defined
+  if(is.null(base1)){
+    # pick base case
+    base1 = as.character(var_b[1,1])
+  }
+  
+  # if base2 isn't defined 
+  if(is.null(base2)){
+    if(base1 == as.character(var_b[1,1])){
+      base2 = as.character(var_b[2,1])
+    }else{
+      base2 = as.character(var_b[1,1])
+    }
+  }
+
+  
+  # dummying the variable
+  var_d <- (data.frame(dummy(var_r)))
+  # identify which column is the base case
+  # turning column names into something that can be directly matched with the base case
+  col_short = colnames(var_d)
+  col_short = gsub(variable,"",col_short)
+  col_short = gsub("_","",col_short)
+  col_short = gsub("\\."," ",col_short)
+  base1_col_id = which(base1 == col_short)
+  base2_col_id = which(base2 == col_short)
+
+  
+  # remove the base case from var_d
+  var_d1 = var_d[,-base1_col_id]
+  var_d2 = var_d[,-base2_col_id]
+  # binding into apropriate datasets
+  dat = cbind(dat,var_d1)
+  alt_dat = cbind(alt_dat,var_d2)
+  
+  out_list = list("Variable"=variable,
+                  "base1"=base1,
+                  "base2"=base2,
+                  "dat"=dat,
+                  "alt_dat"=alt_dat)
+  return(out_list)
+  
+}
+
+# dummy data for eco_region
+df_dum_eco = category_break(dat= DFobsz,alt_dat=DFobsz,"eco_region")
+# dummy data for vahusb
+df_dum_vahusb = category_break(df_dum_eco$dat,df_dum_eco$alt_dat,"vahusb")
+# dummy data for wetland (pct_wet_w_f)
+levels(DFobsz$pct_wet_w_f)
+df_dum_wet = category_break(dat = df_dum_vahusb$dat,
+                            alt_dat = df_dum_vahusb$alt_dat,
+                            variable = "pct_wet_w_f",
+                            base1 = "none")
+# dummy data for watershed-riperian wetland (pct_wet_wr_f)
+levels(DFobsz$pct_wet_wr_f)
+df_dum_wet_wr = category_break(df_dum_wet$dat,
+                               df_dum_wet$alt_dat,
+                               "pct_wet_wr_f",
+                               base1 = "none")
+# dummy data for catchment wetland levels (pct_wet_c_f)
+levels(DFobsz$pct_wet_c_f)
+df_dum_wet_c = category_break(df_dum_wet_wr$dat,
+                              df_dum_wet_wr$alt_dat,
+                              "pct_wet_c_f",
+                              base1 = "none")
+# dummy data for catchment-riperian wetland levels (pct_wet_cr_f)
+levels(DFobsz$pct_wet_cr_f)
+df_dum_wet_cr = category_break(df_dum_wet_c$dat,
+                               df_dum_wet_c$alt_dat,
+                               "pct_wet_cr_f",
+                               base1 = "none")
+
+# dummy code for catchment-riparian impervious surfaces levels (pct_imp_rp_c_f)
+levels(DFobsz$pct_imp_rp_c_f)
+df_dum_imp_rp = category_break(df_dum_wet_cr$dat,
+                               df_dum_wet_cr$alt_dat,
+                               "pct_imp_rp_c_f",
+                               base1 = "none")
+
+# dummy code for total phosphorus levels (tp_f)
+levels(DFobsz$tp_f)
+df_dum_tp = category_break(df_dum_imp_rp$dat,
+                           df_dum_imp_rp$alt_dat,
+                           "tp_f",
+                           base1 = "low")
+
+dat_dummy = df_dum_tp$dat
+alt_dat_dummy = df_dum_tp$alt_dat
+
+```
+
+
+
+
+# 3.20 SSN Ws, WsRp, Cat, CatRp & Wq Models
+I need Neptune to vet code below across all 4 geographies.
+## 3.21 Combined WS-Wq
+### Z1 Bestglm and SSN0 Nugget Model
+On 07/12/2024 I will simply keep precip_mm and tmean in the candidate pool for all 4 geographies. No change to original selected covariates after I replaced precip_mm with d_precip_m and tmean with d_t_mean, which are deviations from 30-year normals for precip and temperature.
+On 04/22/2024 changed WsWq so that precip_mm and tmean are now included, but they were not selected by bestglm. The previous wetland factor with multiple levels was replaced with a binary absence/presence variable. 
+The X3 matrix below includes that dummy factors with the st_id_tren that allows me to join the dummy factor to an sf object and then to the SSN. 
+
+```{r ws_bestglm}
+
+WsWq <- DFobsz|>
+  dplyr::select(precip_mm, tmean, pct_imp_w_emplog, pct_for_w_emplog, pct_hay_w_emplog, pct_grs_w_emplog, elev_ws, do, p_h, tothab, l_spc, l_tds, l_turb, l_tn, vahusb_JM, vahusb_JR, vahusb_JA, vahusb_JL, bin_wet_w, tp_f_medium, tp_f_high)
+str(WsWq)
+# X can only contain numeric or factor
+WsWq<- WsWq %>% mutate_at(c('vahusb_JM', 'vahusb_JR', 'vahusb_JA', 'vahusb_JL','tp_f_medium', 'tp_f_high'), as.numeric)
+
+WsWqy<-cbind.data.frame(WsWq,y=DFobsz$vsci)
+ASRcum_wswq1.best<-bestglm(WsWqy,IC = "AIC", nvmax =4, TopModels=15)
+
+# See what terms are in best models
+ASRcum_wswq1.best$BestModels
+ASRcum_wswq1.best$Subsets
+summary(ASRcum_wswq1.best$BestModel)
+
+wswq_mlry2 <- lm(vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL, data = DFobsz)
+summary(wswq_mlry2)
+check_model(wswq_mlry2)
+avPlots(wswq_mlry2)
+
+# SSN0 nugget model
+# st_id_tren lets join_by work
+X1 <- DFobsz|>
+   dplyr::select(st_id_tren, vahusb_JM, vahusb_JR, vahusb_JA, vahusb_JL, pct_wet_w_f_low, pct_wet_w_f_medium, pct_wet_w_f_high, tp_f_medium, tp_f_high)
+
+# X can only contain numeric or factor
+X1 <- X1 %>% mutate_at(c('vahusb_JM', 'vahusb_JR', 'vahusb_JA', 'vahusb_JL', 'pct_wet_w_f_low', 'pct_wet_w_f_medium', 'pct_wet_w_f_high', 'tp_f_medium', 'tp_f_high'), as.numeric)
+str(X1)
+# put dummy covariates in an SF object
+DFobs3a <- full_join(DFobs2a, X1, by = join_by(st_id_tren))
+names(DFobs3a)
+
+# put SF object into SSN
+j_ssn3 <-  SSN2::ssn_put_data(DFobs3a,j_ssn3)
+
+# Watershed
+ssn0_wswq_mlr <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "none",
+  euclid_type = "none",
+  nugget_type = "nugget",
+  estmethod = "reml" #default
+)
+summary(ssn0_wswq_mlr)
+varcomp(ssn0_wswq_mlr)
+loocv(ssn0_wswq_mlr)
+
+plot(ssn0_wswq_mlr, which = c(1:6))
+```
+
+
+### Z1T Bestglm and SSN0 Nugget Model-Travis
+
+
+```{r ws_bestglm-Travis}
+
+#double checking our base cases for variables we're selectingfor the bestglm
+df_dum_vahusb$base1
+df_dum_vahusb$base2
+df_dum_tp$base1
+df_dum_tp$base2
+# initial selection
+WsWq <- dat_dummy|>
+  dplyr::select(precip_mm, tmean, pct_imp_w_emplog, pct_for_w_emplog, pct_hay_w_emplog, pct_grs_w_emplog, elev_ws, do, p_h, tothab, l_spc, l_tds, l_turb, l_tn, vahusb_JU, vahusb_JR, vahusb_JA, vahusb_JL, bin_wet_w, tp_f_medium, tp_f_high)
+str(WsWq)
+# X can only contain numeric or factor
+WsWq<- apply(WsWq, 2, as.numeric)
+
+WsWqy<-cbind.data.frame(WsWq,y=DFobsz$vsci)
+ASRcum_wswq1.best<-bestglm(WsWqy,IC = "AIC", nvmax =4, TopModels=15)
+
+# See what terms are in best models
+ASRcum_wswq1.best$BestModels
+ASRcum_wswq1.best$Subsets
+summary(ASRcum_wswq1.best$BestModel)
+
+wswq_mlry2 <- lm(vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL, data = DFobsz)
+summary(wswq_mlry2)
+check_model(wswq_mlry2)
+avPlots(wswq_mlry2)
+
+## testing alternate base case to see if any issues arise
+WsWq2 <- alt_dat_dummy|>
+  dplyr::select(precip_mm, tmean, pct_imp_w_emplog, pct_for_w_emplog, pct_hay_w_emplog, pct_grs_w_emplog, elev_ws, do, p_h, tothab, l_spc, l_tds, l_turb, l_tn, vahusb_JM, vahusb_JR, vahusb_JA, vahusb_JL, bin_wet_w, tp_f_low, tp_f_high)
+
+WsWq2<- apply(WsWq2, 2, as.numeric)
+
+WsWqy2<-cbind.data.frame(WsWq2,y=DFobsz$vsci)
+ASRcum_wswq2.best<-bestglm(WsWqy2,IC = "AIC", nvmax =4, TopModels=15)
+summary(ASRcum_wswq1.best$BestModel)
+
+# Perfect we get the same model we had before, no issues there. 
+
+# SSN0 nugget model
+# st_id_tren lets join_by work
+X1 <- dat_dummy|>
+   dplyr::select(st_id_tren, vahusb_JU, vahusb_JR, vahusb_JA, vahusb_JL, pct_wet_w_f_low, pct_wet_w_f_medium, pct_wet_w_f_high, tp_f_medium, tp_f_high)
+
+# X can only contain numeric or factor
+X1[,2:ncol(X1)] <- apply(X1[,2:ncol(X1)], 2, as.numeric)
+str(X1)
+
+# put dummy covariates in an SF object
+DFobs3a <- full_join(DFobs2a, X1, by = join_by(st_id_tren))
+names(DFobs3a)
+
+# put SF object into SSN
+j_ssn3 <-  SSN2::ssn_put_data(DFobs3a,j_ssn3)
+
+# Watershed
+ssn0_wswq_mlr <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "none",
+  euclid_type = "none",
+  nugget_type = "nugget",
+  estmethod = "reml" #default
+)
+summary(ssn0_wswq_mlr)
+varcomp(ssn0_wswq_mlr)
+loocv(ssn0_wswq_mlr)
+
+plot(ssn0_wswq_mlr, which = c(1:6))
+```
+
+
+
+
+
+### Z2 SSN0 Nugget vs SSN1
+On 04/16/2024, re-ran R_vdeq_tutdeu_comparison.Rmd and models_yintercept AICc statistic and loocv(tdExp_eu_exp) RMSPE and cor2 showed that tail down exponential and Euclidean exponential was the best of the 15 spatial autocovariance models compared. For some reason I had been specifying tail down exponential and Euclidean Gaussian. I corrected so both TD and EU are exponential. The R_vdeq_tutdeu_comparison.Rmd file is at E:\R_vdeq_sci.
+```{r nugget_vs_spatial_ws}
+ssn_wswq_reml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area"
+)
+summary(ssn_wswq_reml1)
+varcomp(ssn_wswq_reml1)
+loocv(ssn_wswq_reml1)
+
+plot(ssn_wswq_reml1, which = c(1:6))
+
+models_ssn0_ssn1 <- glances(ssn0_wswq_mlr, ssn_wswq_reml1)
+
+aug_ssn_wswq_reml1 <- augment(ssn_wswq_reml1, drop = FALSE)
+class(aug_ssn_wswq_reml1)
+mapview(aug_ssn_wswq_reml1)
+
+ggplot(aug_ssn_wswq_reml1, aes(x = pct_imp_w_emplog, y = .fitted, colour = vahusb)) + geom_point() + geom_smooth(method = "lm")
+
+ggplot(aug_ssn_wswq_reml1, aes(x = vahusb, y = .fitted)) + geom_boxplot()
+
+names(aug_ssn_wswq_reml1)
+
+resid_ssn1 <- as.data.frame(aug_ssn_wswq_reml1)|>
+   dplyr::select(st_id_tren, .fitted, .resid, .std.resid)
+
+class(resid_ssn1)
+names(resid_ssn1)
+# put dummy covariates in an SF object
+DFobs4 <- full_join(DFobs3a, resid_ssn1, by = join_by(st_id_tren))
+names(DFobs4)
+
+# put SF object into SSN
+j_ssn4 <-  SSN2::ssn_put_data(DFobs4,j_ssn3)
+
+ztg <- SSN2::Torgegram(.resid ~ 1, j_ssn4, type = c("flowuncon", "euclid"))
+
+plot(zztg)
+class(ztg)
+names(ztg)
+ztg[["flowuncon"]]
+ztg[["euclid"]]
+# summary(ztg$flowcon)
+summary(ztg$flowuncon)
+summary(ztg$euclid)
+plot(ztg)
+# plot(ztg, type = "flowcon", main="Residuals")
+plot(ztg, type = "flowuncon", main = "Residuals")
+plot(ztg, type = "euclid", main = "Residuals")
+class(ztg)
+# plot(ztg, separate = TRUE, main = "TotHab")
+
+
+```
+
+### Observed vs Predicted
+```{r}
+loocv_ssn <- loocv(ssn_wswq_reml1, cv_predict = TRUE, se.fit = TRUE)
+names(loocv_ssn)
+head(loocv_ssn$cv_predict)
+print(loocv_ssn$cv_predict)
+
+cv_predict <- bind_cols(loocv_ssn$cv_predict, loocv_ssn$se.fit)
+colnames(cv_predict) <- c("cv_predict", "se.fit")
+names(cv_predict)
+head(cv_predict)
+
+# make ssn a df
+# dfobs <- SSN2::ssn_get_data(mf04p)
+
+DFobs4 <- bind_cols(DFobs3a,cv_predict)
+
+# Pineiro 2008 put observed on y and predict on x
+ggplot(DFobs4, aes(x = cv_predict, y = y2)) + geom_point() + geom_abline()
+
+ggpairs(DFobs4, columns = c(206,172))
+
+
+cor(DFobs4$cv_predict,DFobs4$y2, method = "pearson")
+
+# if I square 0.666 I get COR2 value of 0.443
+
+ggplot(DFobs4, aes(x = y2, y = se.fit)) + geom_point()
+
+ggplot(DFobs4, aes(x = cv_predict, y = se.fit)) + geom_point()
+
+```
+
+
+
+### ssn_wswq_reml1 Mapview residuals 
+```{r}
+edges <- sf::st_read("E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/James.ssn/edges.shp")
+
+mapview(aug_ssn_wswq_reml1, zcol = ".std.resid", cex = ".std.resid", alpha.regions = .8, legend = TRUE, layer.name = 'Standardized Residuals', popup = popupTable(aug_ssn_wswq_reml1, zcol = c("y2", ".fitted", ".resid", ".std.resid"))) + mapview(edges)
+
+
+obs1 <- mapview(aug_ssn_wswq_reml1, zcol = "vsci", cex = "vsci", alpha.regions = .8, legend = TRUE, layer.name = 'VSCI', popup = popupTable(aug_ssn_wswq_reml1, zcol = c("vsci", "y2", ".fitted", ".resid", ".std.resid"))) + mapview(edges)
+
+
+fit1 <- mapview(aug_ssn_wswq_reml1, zcol = ".fitted", cex = ".fitted", alpha.regions = .8, legend = TRUE, layer.name = 'Fitted', popup = popupTable(aug_ssn_wswq_reml1, zcol = c("vsci", "y2", ".fitted", ".resid", ".std.resid"))) + mapview(edges)
+
+sync(obs1,fit1, ncol=1) # obs & predicted
+
+```
+
+### Z3 Random Effects
+I want Neptune to check this code.
+I believe the the random effect for station_id is coded correctly as it recognizes that there are 8 stations with repeated 4 to 5 observations whereas all the other stations have single observation. The st_type, for study type, I believe is not coded correctly as it only recognizes two groups, status or trend, stations so that code is commented out. Based on AICc and cor2, ssn_wswq_reml1 is still a better model. 
+```{r year_f_and_st_type}
+ssn_wswq_rand1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area",
+  random = ~ (1 | station_id)
+)
+
+summary(ssn_wswq_rand1)
+varcomp(ssn_wswq_rand1)
+loocv(ssn_wswq_rand1)
+plot(ssn_wswq_rand1, which = c(1:6))
+
+models_rand1 <- glances(ssn0_wswq_mlr, ssn_wswq_reml1, ssn_wswq_rand1)
+
+# ssn_wswq_rand2 <- ssn_lm(
+#   formula = y2 ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
+#   ssn.object = j_ssn3,
+#   tailup_type = "none",
+#   taildown_type = "exponential",
+#   euclid_type = "gaussian",
+#   nugget_type = "nugget",
+#   estmethod = "reml",
+#   additive = "afv_area",
+#   random = ~ (1 | st_type)
+# )
+# 
+# summary(ssn_wswq_rand2)
+# varcomp(ssn_wswq_rand2)
+# loocv(ssn_wswq_rand2)
+# 
+# models_rand2 <- glances(ssn0_wswq_mlr, ssn_wswq_reml1, ssn_wswq_rand1)
+
+
+```
+
+## 3.22 Combined WsRp-Wq
+### Y1
+On 04/22/2024 changes WsWq so that precip_mm and tmean are now included. The previous wetland factor with multiple levels was replaced with a binary absence/presence variable. 
+On 04/17/2024 caught typo in WsRpWQ as "pct_hay_w_emplog" listed and corrected to "pct_hay_wr_emplog".
+On 04/16/2024 running models on vsci, and pct_imp_rp_w_emplog, elev_ws, do, and tothab selected.
+```{r wsriparian_bestglm}
+WsRpWq <- DFobsz|>
+  dplyr::select(precip_mm, tmean, pct_imp_rp_w_emplog, pct_for_wr_emplog, pct_hay_wr_emplog, pct_grs_wr_emplog, elev_ws, do, p_h, tothab, l_spc, l_tds, l_turb, l_tn,  vahusb_JM, vahusb_JR, vahusb_JA, vahusb_JL, bin_wet_wr, tp_f_medium, tp_f_high)
+str(WsRpWq)
+# X can only contain numeric or factor
+WsRpWq<- WsRpWq %>% mutate_at(c('vahusb_JM', 'vahusb_JR', 'vahusb_JA', 'vahusb_JL', 'tp_f_medium', 'tp_f_high'), as.numeric)
+
+WsRpWqy<-cbind.data.frame(WsRpWq,y=DFobsz$vsci)
+ASRcum_wsrpwq1.best<-bestglm(WsRpWqy,IC = "AIC",nvmax =4, TopModels=15)
+
+# See what terms are in best models
+ASRcum_wsrpwq1.best$BestModels
+ASRcum_wsrpwq1.best$Subsets
+summary(ASRcum_wsrpwq1.best$BestModel)
+
+wsrpwq_mlry2 <- lm(vsci ~ pct_imp_rp_w_emplog + elev_ws + do + tothab, data = DFobsz)
+summary(wsrpwq_mlry2)
+check_model(wsrpwq_mlry2)
+avPlots(wsrpwq_mlry2)
+
+# SSN0 nugget model
+# st_id_tren lets join_by work
+X2 <- DFobsz|>
+  dplyr::select(st_id_tren, vahusb_JM, vahusb_JR, vahusb_JA, vahusb_JL, pct_wet_wr_f_low, pct_wet_wr_f_medium, pct_wet_wr_f_high, tp_f_medium, tp_f_high)
+
+# X can only contain numeric or factor
+X2 <- X2 %>% mutate_at(c('vahusb_JM', 'vahusb_JR', 'vahusb_JA', 'vahusb_JL', 'pct_wet_wr_f_low', 'pct_wet_wr_f_medium', 'pct_wet_wr_f_high', 'tp_f_medium', 'tp_f_high'), as.numeric)
+
+# put dummy covariates in an SF object
+DFobs3a <- full_join(DFobs2a, X2, by = join_by(st_id_tren))
+names(DFobs3a)
+
+# put SF object into SSN
+j_ssn3 <-  SSN2::ssn_put_data(DFobs3a,j_ssn3)
+
+# Watershed-Riparian
+ssn0_wsrpwq_mlr <- ssn_lm(
+  formula = vsci ~ pct_imp_rp_w_emplog + elev_ws + do + tothab,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "none",
+  euclid_type = "none",
+  nugget_type = "nugget",
+  estmethod = "reml" #default
+)
+summary(ssn0_wsrpwq_mlr)
+varcomp(ssn0_wsrpwq_mlr)
+loocv(ssn0_wsrpwq_mlr)
+
+plot(ssn0_wsrpwq_mlr, which = c(1:6))
+```
+
+### Y2
+```{r nugget_vs_spatial_wsriparian}
+ssn_wsrpwq_reml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_rp_w_emplog + elev_ws + do + tothab,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area"
+)
+summary(ssn_wsrpwq_reml1)
+varcomp(ssn_wsrpwq_reml1)
+loocv(ssn_wsrpwq_reml1)
+
+plot(ssn_wsrpwq_reml1, which = c(1:6))
+
+models_ssn0_ssn1 <- glances(ssn0_wsrpwq_mlr, ssn_wsrpwq_reml1)
+
+
+
+aug_ssn_wsrpwq_reml1 <- augment(ssn_wsrpwq_reml1, drop = FALSE)
+class(aug_ssn_wsrpwq_reml1)
+mapview(aug_ssn_wsrpwq_reml1)
+
+ggplot(aug_ssn_wsrpwq_reml1, aes(x = pct_for_wr_emplog, y = .fitted, colour = vahusb)) + geom_point() + geom_smooth(method = "lm")
+
+ggplot(aug_ssn_wsrpwq_reml1, aes(x = vahusb, y = .fitted)) + geom_boxplot()
+
+ggplot(aug_ssn_wsrpwq_reml1, aes(x = vahusb, y = pct_for_wr_emplog)) + geom_boxplot()
+
+```
+
+
+### Y3 Random Effects: Ws_Riparian
+```{r wsrpwq_random}
+ssn_wsrpwq_rand1 <- ssn_lm(
+  formula = vsci ~ pct_imp_rp_w_emplog + elev_ws + do + tothab,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area",
+  random = ~ (1 | station_id)
+)
+
+summary(ssn_wsrpwq_rand1)
+varcomp(ssn_wsrpwq_rand1)
+loocv(ssn_wsrpwq_rand1)
+plot(ssn_wsrpwq_rand1, which = c(1:6))
+
+models_rand2 <- glances(ssn0_wsrpwq_mlr, ssn_wsrpwq_reml1, ssn_wsrpwq_rand1)
+
+```
+
+### ssn_wsrpwq_reml1 Mapview residuals 
+```{r}
+edges <- sf::st_read("E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/James.ssn/edges.shp")
+
+mapview(aug_ssn_wsrpwq_reml1, zcol = ".std.resid", cex = ".std.resid", alpha.regions = .8, legend = TRUE, layer.name = 'Standardized Residuals', popup = popupTable(aug_ssn_wsrpwq_reml1, zcol = c("vsci", ".fitted", ".resid", ".std.resid"))) + mapview(edges)
+
+```
+
+
+
+## 3.23 Combined Cat-Wq
+### X1
+On 04/22/2024 changes CatWq so that precip_mm and tmean are now included. The previous wetland factor with multiple levels was replaced with a binary absence/presence variable as was grass cover. VSCI values at pct_grs_c_emplog at 0 encompasses range of VSCI values at pct_grs_c_emplog > 0. 
+On 04/16/2024 running model on vsci and specifying exponential for tail down and Euclidean.
+```{r cat_bestglm}
+CatWq <- DFobsz|>
+  dplyr::select(precip_mm, tmean, pct_imp_c_emplog, pct_for_c_emplog, pct_hay_c_emplog, bin_grs_c, elev_cat, do, p_h, tothab, l_spc, l_tds, l_turb, l_tn, vahusb_JM, vahusb_JR, vahusb_JA, vahusb_JL, bin_wet_c,  tp_f_medium, tp_f_high)
+str(CatWq)
+# X can only contain numeric or factor
+CatWq<- CatWq %>% mutate_at(c('vahusb_JM', 'vahusb_JR', 'vahusb_JA', 'vahusb_JL', 'bin_wet_c','tp_f_medium', 'tp_f_high'), as.numeric)
+
+CatWqy<-cbind.data.frame(CatWq,y=DFobsz$vsci)
+ASRcum_catwq1.best<-bestglm(CatWqy,IC = "AIC",nvmax =4, TopModels=15)
+
+# See what terms are in best models
+ASRcum_catwq1.best$BestModels
+ASRcum_catwq1.best$Subsets
+summary(ASRcum_catwq1.best$BestModel)
+
+catwq_mlry2 <- lm(vsci ~ pct_imp_c_emplog + elev_cat + tothab + l_tn, data = DFobsz)
+summary(catwq_mlry2)
+check_model(catwq_mlry2)
+avPlots(catwq_mlry2)
+
+# No categorical covariates needed so commented out X3
+# SSN0 nugget model
+# st_id_tren lets join_by work
+# X3 <- DFobsz|>
+#  dplyr::select(st_id_tren, vahusb_JM, vahusb_JR, vahusb_JA, vahusb_JL, pct_wet_c_f_low, pct_wet_c_f_medium, pct_wet_c_f_high, tp_f_medium, tp_f_high)
+
+# X can only contain numeric or factor
+# X3 <- X3 %>% mutate_at(c('vahusb_JM', 'vahusb_JR', 'vahusb_JA', 'vahusb_JL', 'pct_wet_c_f_low', 'pct_wet_c_f_medium', 'pct_wet_c_f_high','tp_f_medium', 'tp_f_high'), as.numeric)
+
+# put dummy covariates in an SF object
+# DFobs3a <- full_join(DFobs2a, X3, by = join_by(st_id_tren))
+# names(DFobs3a)
+# put transformed covariates in an SF object
+# DFobs2a <- full_join(DFobs2, DFobsz2, by = join_by(st_id_tren))
+
+# put SF object into SSN
+# j_ssn3 <-  SSN2::ssn_put_data(DFobs3a,j_ssn3)
+
+# Catchment
+ssn0_catwq_mlr <- ssn_lm(
+  formula = vsci ~ pct_imp_c_emplog + elev_cat + tothab + l_tn,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "none",
+  euclid_type = "none",
+  nugget_type = "nugget",
+  estmethod = "reml" #default
+)
+summary(ssn0_catwq_mlr)
+varcomp(ssn0_catwq_mlr)
+loocv(ssn0_catwq_mlr)
+
+plot(ssn0_catwq_mlr, which = c(1:6))
+```
+
+### X2
+```{r nugget_vs_spatial_cat}
+ssn_catwq_reml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_c_emplog + elev_cat + tothab + l_tn,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area"
+)
+summary(ssn_catwq_reml1)
+varcomp(ssn_catwq_reml1)
+loocv(ssn_catwq_reml1)
+
+plot(ssn_catwq_reml1, which = c(1:6))
+
+models_ssn0_ssn1 <- glances(ssn0_catwq_mlr, ssn_catwq_reml1)
+
+
+aug_ssn_catwq_reml1 <- augment(ssn_catwq_reml1, drop = FALSE)
+class(aug_ssn_catwq_reml1)
+mapview(aug_ssn_catwq_reml1)
+
+ggplot(aug_ssn_catwq_reml1, aes(x = pct_imp_c_emplog, y = .fitted)) + geom_point() + geom_smooth(method = "lm")
+
+ggplot(aug_ssn_catwq_reml1, aes(x = elev_cat, y = .fitted)) + geom_point() + geom_smooth(method = "lm")
+
+ggplot(aug_ssn_catwq_reml1, aes(x = tothab, y = .fitted)) + geom_point() + geom_smooth(method = "lm")
+
+ggplot(aug_ssn_catwq_reml1, aes(x = l_tn, y = .fitted)) + geom_point() + geom_smooth(method = "lm")
+```
+
+### X3 Random Effects: Cat-Wq
+Still need to check random effects of station_id on ssn_catwq_rand1.
+```{r catwq_random}
+ssn_catwq_rand1 <- ssn_lm(
+  formula = vsci ~ pct_imp_c_emplog + elev_cat + tothab + l_tn,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area",
+  random = ~ (1 | station_id)
+)
+summary(ssn_catwq_rand1)
+varcomp(ssn_catwq_rand1)
+loocv(ssn_catwq_rand1)
+
+plot(ssn_catwq_rand1, which = c(1:6))
+
+models_rand3 <- glances(ssn0_catwq_mlr, ssn_catwq_reml1,ssn_catwq_rand1)
+```
+
+## 3.24 Combined CatRp-Wq
+On 04/22/2024 changes CatRpWq so that precip_mm and tmean are now included. The previous wetland factor with multiple levels was replaced with a binary absence/presence variable as was grass cover.
+With this smallest geography (by extent and configuration), I have to shift some land cover from continuous to categorical. Grass at this geography has a median value of 0 so I made an absence/presence variable for grass cover so a form of that covariate is in the model.
+### W1
+```{r catriparian_bestglm}
+CatRpWq <- DFobsz|>
+  dplyr::select(precip_mm, tmean, pct_imp_rp_c_emplog, pct_for_cr_emplog, pct_hay_cr_emplog, bin_grs_cr, elev_cat, do, p_h, tothab, l_spc, l_tds, l_turb, l_tn,  vahusb_JM, vahusb_JR, vahusb_JA, vahusb_JL, bin_wet_cr, tp_f_medium, tp_f_high)
+str(CatRpWq)
+# X can only contain numeric or factor
+CatRpWq<- CatRpWq %>% mutate_at(c('vahusb_JM', 'vahusb_JR', 'vahusb_JA', 'vahusb_JL',
+'tp_f_medium', 'tp_f_high'), as.numeric)
+
+CatRpWqy<-cbind.data.frame(CatRpWq,y=DFobsz$vsci)
+ASRcum_catrpwq1.best<-bestglm(CatRpWqy,IC = "AIC",nvmax =4, TopModels=15)
+
+# See what terms are in best models
+ASRcum_catrpwq1.best$BestModels
+ASRcum_catrpwq1.best$Subsets
+summary(ASRcum_catrpwq1.best$BestModel)
+
+catrpwq_mlry2 <- lm(vsci ~ pct_imp_rp_c_emplog + elev_cat + tothab + l_tn, data = DFobsz)
+summary(catrpwq_mlry2)
+check_model(catrpwq_mlry2)
+avPlots(catrpwq_mlry2)
+
+# No categorical predictors selected so comment out code
+# SSN0 nugget model
+# st_id_tren lets join_by work
+# X4 <- DFobsz|>
+#   dplyr::select(st_id_tren, vahusb_JM, vahusb_JR, vahusb_JA, vahusb_JL, pct_wet_cr_f_low, pct_wet_cr_f_high, tp_f_medium, tp_f_high)
+
+# X can only contain numeric or factor
+# X4 <- X4 %>% mutate_at(c('vahusb_JM', 'vahusb_JR', 'eco_region_Piedmont', 'vahusb_JA', 'pct_wet_cr_f_low', 'pct_wet_cr_f_high', 'tp_f_medium', 'tp_f_high'), as.numeric)
+
+# put dummy covariates in an SF object
+# DFobs3a <- full_join(DFobs2a, X4, by = join_by(st_id_tren))
+# names(DFobs3a)
+# put transformed covariates in an SF object
+# DFobs2a <- full_join(DFobs2, DFobsz2, by = join_by(st_id_tren))
+
+# put SF object into SSN
+# j_ssn3 <-  SSN2::ssn_put_data(DFobs3a,j_ssn3)
+
+# Catchment
+ssn0_catrpwq_mlr <- ssn_lm(
+  formula = vsci ~ pct_imp_rp_c_emplog + elev_cat + tothab + l_tn,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "none",
+  euclid_type = "none",
+  nugget_type = "nugget",
+  estmethod = "reml" #default
+)
+summary(ssn0_catrpwq_mlr)
+varcomp(ssn0_catrpwq_mlr)
+loocv(ssn0_catrpwq_mlr)
+
+plot(ssn0_catrpwq_mlr, which = c(1:6))
+
+```
+
+### W2
+```{r nugget_vs_spatial_catriparian}
+ssn_catrpwq_reml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_rp_c_emplog + elev_cat + tothab + l_tn,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area"
+)
+summary(ssn_catrpwq_reml1)
+varcomp(ssn_catrpwq_reml1)
+loocv(ssn_catrpwq_reml1)
+
+plot(ssn_catrpwq_reml1, which = c(1:6))
+
+models_ssn0_ssn1 <- glances(ssn0_catrpwq_mlr, ssn_catrpwq_reml1)
+
+
+aug_ssn_catrpwq_reml1 <- augment(ssn_catrpwq_reml1, drop = FALSE)
+
+# mapview(aug_ssn_catrpwq_reml1)
+
+ggplot(aug_ssn_catrpwq_reml1, aes(x = pct_imp_rp_c_emplog, y = .fitted)) + geom_point() + geom_smooth(method = "lm")
+
+ggplot(aug_ssn_catrpwq_reml1, aes(x = elev_cat, y = .fitted)) + geom_point() + geom_smooth(method = "lm")
+
+ggplot(aug_ssn_catrpwq_reml1, aes(x = tothab, y = .fitted)) + geom_point() + geom_smooth(method = "lm")
+
+ggplot(aug_ssn_catrpwq_reml1, aes(x = l_tn, y = .fitted)) + geom_point() + geom_smooth(method = "lm")
+```
+
+### W3 Random Effects: CatRp-Wq
+```{r catrpwq_random}
+ssn_catrpwq_rand1 <- ssn_lm(
+  formula = vsci ~ pct_imp_rp_c_emplog + elev_cat + tothab + l_tn,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area",
+  random = ~ (1 | station_id)
+)
+summary(ssn_catrpwq_rand1)
+varcomp(ssn_catrpwq_rand1)
+loocv(ssn_catrpwq_rand1)
+
+plot(ssn_catrpwq_rand1, which = c(1:6))
+
+models_rand4 <- glances(ssn0_catrpwq_mlr, ssn_catrpwq_reml1, ssn_catrpwq_rand1)
+```
+
+## 4.00 Compare SSN Models with ML
+This to compare different SSN models having different covariates.
+```{r ssn_ml}
+ssn_wswq_ml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "ml",
+  additive = "afv_area"
+)
+
+ssn_wsrpwq_ml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_rp_w_emplog + elev_ws + do + tothab,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "ml",
+  additive = "afv_area"
+)
+
+ssn_catwq_ml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_c_emplog + elev_cat + tothab + l_tn,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "ml",
+  additive = "afv_area"
+)
+
+ssn_catrpwq_ml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_rp_c_emplog + elev_cat + tothab + l_tn,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "ml",
+  additive = "afv_area"
+)
+
+models_ml_ssn <- glances(ssn_wswq_ml1, ssn_wsrpwq_ml1, ssn_catwq_ml1, ssn_catrpwq_ml1)
+
+loocv(ssn_wswq_ml1)
+loocv(ssn_wsrpwq_ml1)
+loocv(ssn_catwq_ml1)
+loocv(ssn_catrpwq_ml1)
+
+
+```
+
+
+# ZZZ Subset Test
+Cannot get subset working, return this later.
+```{r subsetSSN_test}
+
+ssn_2018 <- ssn_subset(j_ssn3, path= "E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/subset_test" ,subset = year_ == 2018)
+
+str(DFobs2)
+```
+
