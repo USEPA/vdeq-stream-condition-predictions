@@ -1,0 +1,10 @@
+﻿R Variable Name,Description
+inclNHDWB,Is there a waterbody upstream of site
+NumWaterbodyUp,How many waterbodies are upstream
+DistNearestUpWb_km,Distance to nearest upstream waterbody
+wbArea_up_SqKM,Cumulative area of upstream waterbodies
+NumWb_1km,Number of waterbodies within 1km
+NumWb_5km,Number of waterbodies within 5km
+NumWb_10km,Number of waterbodies within 10km 
+COMID,Unique identifier
+clanl,Cumulative watebody area per number per stream distance

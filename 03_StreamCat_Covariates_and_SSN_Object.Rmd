@@ -13,23 +13,29 @@ output:
     theme: lumen
 editor_options: 
   chunk_output_type: console
+  markdown: 
+    wrap: sentence
 ---
 
 ## Outline
-WE now turn our attention to the covariates, or predictor variables, we want to use to model and predict VSCI. The SSN object we are using was built using the STARS Toolbox in ArcGIS. Now the building of an SSN object can be done in R using <https://cran.r-project.org/package=SSNbler>. This script shows how additional covariates from EPA's Stream Catchment dataset, or StreamCat, can be incorporated in the SSN object.
 
+We now turn our attention to the covariates, or predictor variables, we want to use to model and predict VSCI.
+The SSN object we are using was built using the STARS Toolbox in ArcGIS.
+Now the building of an SSN object can be done in R using <https://cran.r-project.org/package=SSNbler>.
+This script shows how additional covariates from EPA's Stream Catchment dataset, or StreamCat, can be incorporated in the SSN object.
 
-Log
-Keeping log below for now when reach final version will delete. Text above the log I plan to keep to provide background for users.
+Log Keeping log below for now when reach final version will delete.
+Text above the log I plan to keep to provide background for users.
 
 On 10/15/2024 added waterbody data for Travis to evaluate on github.
 
 On 09/19/2024 Ellen provided update waterbody datasets as csv files.
 
-09/11/2024 Ellen and I worked out how to get NHD waterbody associated with 199 monitoring observations. 
+09/11/2024 Ellen and I worked out how to get NHD waterbody associated with 199 monitoring observations.
 
-08/28/2024 explored STATSGO_Set1 and STATSGO_Set2 variables from StreamCat. Also, brought in waterbodies data created by Ellen D'Amico from Pegasus. Ellen used comid from edges, but I am not sure they all match to the featureid of the points.
-
+08/28/2024 explored STATSGO_Set1 and STATSGO_Set2 variables from StreamCat.
+Also, brought in waterbodies data created by Ellen D'Amico from Pegasus.
+Ellen used comid from edges, but I am not sure they all match to the featureid of the points.
 
 On 08/15/2024 added data, figures_sfs, and ssn_object folders and trying to run code pointing to those folders.
 
@@ -42,36 +48,54 @@ On 07/10/2024 downloaded James_071024.ssn that had PRISM climate data, including
 
 On 05/14/2024 running code to get SSN output for SSN models for the 4 geographies and because 05/08/2024 updated R, RTools, and RStudio.
 
-I am going to bring in two SSNs, the 040424 version and the latest 041924 version. I will take the PRISM climate variables out of 041924 and put into 040424.
-Downloaded James_041924.ssn_NEWEST.zip and it is stored in James_041924.ssn with file modified on 04/22/2024 at 7:34am. Ellen removed netid and pid columns and reran through SSN compilation. Bestglm still gave error
+I am going to bring in two SSNs, the 040424 version and the latest 041924 version.
+I will take the PRISM climate variables out of 041924 and put into 040424.
+Downloaded James_041924.ssn_NEWEST.zip and it is stored in James_041924.ssn with file modified on 04/22/2024 at 7:34am.
+Ellen removed netid and pid columns and reran through SSN compilation.
+Bestglm still gave error
 
 On 04/19/2024 imported James041924.ssn, still could not get bestglm to run.
 
-On 04/17/2024 imported James041724.ssn that now include annual maximum temperature, annual average temperature, and annual average precipitation. Also, I will simplify coding of wetlands to be absence/presence across all 4 geographies:  watershed, watershed-riparian, catchment, and catchment-riparian. For grass cover at catchment and catchment-riparian I will also use binary code for absence/presence.
+On 04/17/2024 imported James041724.ssn that now include annual maximum temperature, annual average temperature, and annual average precipitation.
+Also, I will simplify coding of wetlands to be absence/presence across all 4 geographies: watershed, watershed-riparian, catchment, and catchment-riparian.
+For grass cover at catchment and catchment-riparian I will also use binary code for absence/presence.
 
 On 04/16/2024 imported James041924.ssn, which now has PRISM climate data from StreamCat.
 
-This code will only use vsci as the response variable. Also, I will examine if impervious surface, forest, hay, and grass at 0 values show dramatically different vsci y-intercept, when x = 0, compared to vsci y-intercepts when x > 0.
+This code will only use vsci as the response variable.
+Also, I will examine if impervious surface, forest, hay, and grass at 0 values show dramatically different vsci y-intercept, when x = 0, compared to vsci y-intercepts when x \> 0.
 
 On 04/09/2024, I had a call with Mike Dumelle, and he suggested 1) use untransformed response variable, 2) include binary absence/presence along with continuous landscape percentages, and 3) try including year.
 
-On 04/04/2024 now using James040424.ssn as Ellen D'Amico from Pegasus updated Preds_2021_2022 points. I entered WQ data as described in section 1.10 Missing Water Chemistry Data below.
+On 04/04/2024 now using James040424.ssn as Ellen D'Amico from Pegasus updated Preds_2021_2022 points.
+I entered WQ data as described in section 1.10 Missing Water Chemistry Data below.
 
-On 01/09/2023 read in Pegasus' SSN object from 01/09/2024, which has additional StreamCat variables. I am interested in the shrub and wetland metrics. In previous SSN, Note that VDEQ switched fonts between Wadeable_ProbMon_2001-2018_Final_Final.xlsx
-and Wadeable_ProbMon_2001-2020.xlsx. I used janitor package to put all variable names in lowercase.
+On 01/09/2023 read in Pegasus' SSN object from 01/09/2024, which has additional StreamCat variables.
+I am interested in the shrub and wetland metrics.
+In previous SSN, Note that VDEQ switched fonts between Wadeable_ProbMon_2001-2018_Final_Final.xlsx and Wadeable_ProbMon_2001-2020.xlsx.
+I used janitor package to put all variable names in lowercase.
 
-On 12/26/2023 read in Pegasus' SSN object from 11/16/2023, which as fields of COMID, AreaSqkM, TotDASqKM, h2oAreaKm2, and rcaAreaKM2. Using this new SSN object means I re-entered missing water chemistry data for two stations in ArcGIS.
+On 12/26/2023 read in Pegasus' SSN object from 11/16/2023, which as fields of COMID, AreaSqkM, TotDASqKM, h2oAreaKm2, and rcaAreaKM2.
+Using this new SSN object means I re-entered missing water chemistry data for two stations in ArcGIS.
 
 Now using SSN2 from CRAN on 11/16/2023.
 
-Note on SSNs I receive from Pegasus, I have to hand enter some of the water chemistry values for stations 2-WLS023.10 and 2AMLC000.84. This is because Emma Jones at VDEQ sent FinalFieldAnalytes_MissingJamesSites.csv by email on 09/29/2023. That csv file has water chemistry entries for those two stations, which in the original data file were NAs. I edit those entries in ArcGIS before I do import into R. Once the SSN is in R I can't export back to ArcGIS. 
+Note on SSNs I receive from Pegasus, I have to hand enter some of the water chemistry values for stations 2-WLS023.10 and 2AMLC000.84.
+This is because Emma Jones at VDEQ sent FinalFieldAnalytes_MissingJamesSites.csv by email on 09/29/2023.
+That csv file has water chemistry entries for those two stations, which in the original data file were NAs.
+I edit those entries in ArcGIS before I do import into R.
+Once the SSN is in R I can't export back to ArcGIS.
 
-On 11/09/2023 unzipped. James.ssn_110923 and saved to James.ssn. This James.ssn_11092023 has additonal covariates produced by Ellen D'Amico, GIS analyst with Pegasus.
+On 11/09/2023 unzipped.
+James.ssn_110923 and saved to James.ssn.
+This James.ssn_11092023 has additonal covariates produced by Ellen D'Amico, GIS analyst with Pegasus.
 The James.ssn_102323 had stream order added to edges.
 On 11/08/2023 unzipped James.ssn_102323 into ssn_objects folder and renamed it as James.ssn so I would not need to change R code.
-Can I use SSN2 package for some of ESDA of James River? Yes.
+Can I use SSN2 package for some of ESDA of James River?
+Yes.
 
 # Load Libraries
+
 ```{r setup, collapse=TRUE}
 
 library(ggplot2)
@@ -115,8 +139,10 @@ knitr::opts_chunk$set(message=FALSE, warning=FALSE,collapse = T)
 
 # 1.0 SSN and Initial Covariates
 
-Bring in the SSN object. Pulling out DFobs gives an sf and data frame object in which variables and be added, edited, modified, transformed, etc. and then put back into the SSN object.
+Bring in the SSN object.
+Pulling out DFobs gives an sf and data frame object in which variables can be added, edited, modified, transformed, etc. and then put back into the SSN object.
 
+Also, get some summary stats on the VDEQ stations.
 ```{r load data}
 j_ssn1a <- SSN2::ssn_import("ssn_object/James_071024.ssn", predpts = "sites")
 
@@ -144,16 +170,55 @@ DFobs <- SSN2::ssn_get_data(j_ssn1a) %>% clean_names(.)
 
 ```
 
+Steps are 1) select station_id from DFobs with geometry, 3) use unique.data.frame to get unique stations, and then 4) use st_nn
+```{r dist_knn1}
+# See binding distances to join result from
+# https://michaeldorman.github.io/nngeo/articles/intro.html
+
+z <- dplyr::select(DFobs, station_id) #199 obs
+head(z)
+z1 <- unique.data.frame(z) #181 unique stations
+z1_nn <- st_nn(z1, z1, k =2, returnDist = TRUE, progress = False)
+str(z1_nn)
+
+head(z1_nn[[1]]) # list station obs & nn obs
+head(z1_nn[[2]]) # list distance to self & knn1
+
+station_nn <- as.data.frame(z1_nn$nn)
+# go to 2nd of two list and grab first entry by row, which is 0
+dists = sapply(z1_nn[[2]], "[", 1)
+# go to 2nd of two list and grab second entry by row, which is knn1 distance
+dists_knn1 = sapply(z1_nn[[2]], "[", 2)
+head(dists_knn1)
+summary(dists_knn1)
+# Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
+# 0.161  2014.809  4765.854  5034.192  7320.395 16006.036 
+
+# based on VDEQ stream order (SO) entries, compare to SSN sites and edges
+vahusb <- as.data.frame(DFobs) %>%
+  group_by(vahusb, Order_) %>%
+  summarize(
+            count = dplyr::n()) %>% 
+  print(n = Inf)
+
+# remove datasets not used downstream
+rm(z1, z1, z1_nn, dists, dists_knn1,vahusb)
+```
+
+
 # 2.0 Add New StreamCat Covariate
+
 ## 2.00 Explore WWTP Data
 
-Having the COMID/FeatureID for each of the obs site and prediction points is what allows us to work with StreamCat Covariates. StreamCat covariates have a COMID/FeatureID associated with them, with those identifiers coming from the reaches in NHDPlusV2.
+Having the COMID/FeatureID for each of the obs site and prediction points is what allows us to work with StreamCat Covariates.
+StreamCat covariates have a COMID/FeatureID associated with them, with those identifiers coming from the reaches in NHDPlusV2.
 
-A typical StreamCat workflow is to bring a csv file for a specific variable for all of the catchments in the state. The left join of the DFobs from the SSN to the csv using 
-`r by = join_by(FeatureID == COMID))`
+A typical StreamCat workflow is to bring a csv file for a specific variable for all of the catchments in the state.
+The left join of the DFobs from the SSN to the csv using `r by = join_by(FeatureID == COMID))`
 
-returns only the observations satisfying that match. 
+returns only the observations satisfying that match.
 Evaluating if wastewater treatment plant (wwtp) data from StreamCat should be considered as a predictor.
+
 ```{r wwtp}
 wwtp_ds1 <- read.csv("data/WWTP_VA.csv") %>% 
   clean_names(.)
@@ -231,10 +296,15 @@ rm(wwtp_ds1)
 
 ```
 
-## 2.01 Explore SandWs Data
-Based on Schmid et al. 2011 and Hill et al. 2017, consider SandWs as a possible covariate. Four observations at ~ 55% or greater really stand out and are all from JL. Median SandWs and IQR for JL much greater than other for subbasins. JU shows positive slope to VSCI, 3 other subbasins show negative slope, and JL is flat.
+## 2.01 Explore STATSGO_Set1 Variables
+
+Based on Schmid et al. 2011 and Hill et al. 2017, consider SandWs as a possible covariate.
+Four observations at \~ 55% or greater really stand out and are all from JL.
+Median SandWs and IQR for JL much greater than other for subbasins.
+JU shows positive slope to VSCI, 3 other subbasins show negative slope, and JL is flat.
 Based on EDA decided not include ws_sand as covariate.
-```{r sand_ws}
+
+```{r statsgo_set1}
 # statsgo_set1 <- read.csv("data/STATSGO_Set1_VA.csv") %>% clean_names(.)
 # 
 # zDFobs <- left_join(DFobs, statsgo_set1, by = join_by(feature_id == comid))
@@ -266,184 +336,193 @@ Based on EDA decided not include ws_sand as covariate.
 ```
 
 ## 2.03 Explore STATSGO_Set2 Variables
-WtDepWs values decrease going from west to east. JU, JM, and JR all have about same median, and much lower medians in JR and JL. OmWs shows west to east gradient on map, but lot of overlap among boxplots by vAHUSB. PermWS spatially variable as highest medians in JU and JL and lower medians in JM, JR, and JA. RckDepWs increases as go from west to east. RckDepWs has the largest correlation, -0.5, with VSCICPMI so likely only use that as covariate from STATSGO data. JL and JA have largest RckDepWs but with very little variation. RckDepWs is highly, negatively correlated with ElevWs.
+
+wt_dep_ws values decrease going from west to east.
+JU, JM, and JR all have about same median, and much lower medians in JR and JL.
+om_ws shows west to east gradient on map, but lot of overlap among boxplots by vAHUSB.
+perm_ws spatially variable as highest medians in JU and JL and lower medians in JM, JR, and JA.
+rck_dep_ws increases as go from west to east.
+rck_dep_ws has the largest correlation, -0.5, with VSCICPMI so likely only use that as covariate from STATSGO data.
+JL and JA have largest rck_dep_ws but with very little variation.
+rck_dep_ws is highly, negatively correlated with elev_ws.
+
 ```{r statsgo_set2}
-statsgo_set2 <- read.csv("E:/R_vdeq_nhdplus/STATSGO_Set2_VA.csv")
+statsgo_set2 <- read.csv("E:/R_vdeq_nhdplus/STATSGO_Set2_VA.csv") %>% clean_names(.)
 
-zzDFobs <- left_join(zDFobs, statsgo_set2, by = join_by(FeatureID == COMID))
+names(statsgo_set2)
 
-names(zzDFobs)
+DFobs <- left_join(DFobs, statsgo_set2, by = join_by(feature_id == comid))
+names(DFobs)
 
-mapview(zzDFobs, zcol = "RckDepWs", cex = "RckDepWs", alpha.regions = .8, legend = TRUE, layer.name = 'Mean Depth to Bedrock (cm)', popup = popupTable(zzDFobs, zcol = c("RckDepWs", "StationID_", "VAHUSB", "Year_")))
+rm(statsgo_set2)
+# EDA code commented out
+# mapview(zzDFobs, zcol = "RckDepWs", cex = "RckDepWs", alpha.regions = .8, legend = TRUE, layer.name = 'Mean Depth to Bedrock (cm)', popup = popupTable(zzDFobs, zcol = c("RckDepWs", "StationID_", "VAHUSB", "Year_")))
+# 
+# ggplot(zzDFobs, aes(x = as.factor(VAHUSB), y = RckDepWs)) + geom_boxplot()
+# 
+# 
+# as.data.frame(dplyr::select(zzDFobs,c(VSCIVCPMI,SandWs,WtDepWs,OmWs, PermWs, RckDepWs))) %>%
+# ggcorr(., method=c("pairwise", "spearman"), label = TRUE)
+# 
+# st_set_geometry(zzDFobs, NULL) %>% dplyr::select(.,c(VSCIVCPMI,SandWs,WtDepWs,OmWs, PermWs, RckDepWs,ElevWs)) %>% ggpairs(.)
+# 
+# ggplot(zzDFobs, aes( x = RckDepWs, y = VSCIVCPMI, color = as.factor(VAHUSB))) + geom_point() + geom_smooth(method = lm)
+# 
+# ggplot(zzDFobs, aes( x = RckDepWs, y = VSCIVCPMI)) + geom_point() + geom_smooth(method = lm)
+# 
+# filter(zzDFobs, VAHUSB == "JU") %>% select(c(SandWs, RckDepWs,ElevWs)) %>% arrange(ElevWs) %>% print(n =Inf)
+# 
+# zzDFobs %>%
+#   group_by(VAHUSB) %>%
+#   summarize(min = fivenum(RckDepWs)[1],
+#             low = fivenum(RckDepWs)[2],
+#             median = fivenum(RckDepWs)[3],
+#             mean = mean(RckDepWs, na.rm = TRUE),
+#             upper = fivenum(RckDepWs)[4],
+#             max = fivenum(RckDepWs)[5],
+#             count = dplyr::n()) %>% 
+#   print(n = Inf)
 
-ggplot(zzDFobs, aes(x = as.factor(VAHUSB), y = RckDepWs)) + geom_boxplot()
-
-
-as.data.frame(dplyr::select(zzDFobs,c(VSCIVCPMI,SandWs,WtDepWs,OmWs, PermWs, RckDepWs))) %>%
-ggcorr(., method=c("pairwise", "spearman"), label = TRUE)
-
-st_set_geometry(zzDFobs, NULL) %>% dplyr::select(.,c(VSCIVCPMI,SandWs,WtDepWs,OmWs, PermWs, RckDepWs,ElevWs)) %>% ggpairs(.)
-
-ggplot(zzDFobs, aes( x = RckDepWs, y = VSCIVCPMI, color = as.factor(VAHUSB))) + geom_point() + geom_smooth(method = lm)
-
-ggplot(zzDFobs, aes( x = RckDepWs, y = VSCIVCPMI)) + geom_point() + geom_smooth(method = lm)
-
-filter(zzDFobs, VAHUSB == "JU") %>% select(c(SandWs, RckDepWs,ElevWs)) %>% arrange(ElevWs) %>% print(n =Inf)
-
-zzDFobs %>%
-  group_by(VAHUSB) %>%
-  summarize(min = fivenum(RckDepWs)[1],
-            low = fivenum(RckDepWs)[2],
-            median = fivenum(RckDepWs)[3],
-            mean = mean(RckDepWs, na.rm = TRUE),
-            upper = fivenum(RckDepWs)[4],
-            max = fivenum(RckDepWs)[5],
-            count = dplyr::n()) %>% 
-  print(n = Inf)
 ```
 
-
 ## 2.04 Explore Waterbodies Data
-Ellen D'Amico calculated waterbody variables. Have Travis evaluate coding to evaluate an interaction between presence/absence of waterbody and distance (km) to nearest upstream waterbody.
+
+Ellen D'Amico calculated waterbody variables.
+Have Travis evaluate coding to evaluate an interaction between presence/absence of waterbody and distance (km) to nearest upstream waterbody.
+
 ```{r waterbodies}
-wb_ds1 <- read.csv("data/ObservationPoints_DistancesUpstream_100424.csv")
+wb_ds1 <- read.csv("data/ObservationPoints_DistancesUpstream_100424.csv") %>% clean_names(.)
 class(wb_ds1)
 names(wb_ds1)
 head(wb_ds1)
 str(wb_ds1)
+wb_metadata <- read.csv("data/waterbody_variables.csv") %>% clean_names(.)
 
-## Table of Variables from OBI Query
-| R Variable Name | Description |
-|:----------------- |:---------------------|
-| inclNHDWB | Is there a waterbody upstream of site |
-| NumWaterbodyUp | How many waterbodies are upstream |
-| DistNearestUpWb_km | Distance to nearest upstream waterbody |
-| wbArea_up_SqKM | Cumulative area of upstream waterbodies |
-| NumWb_1km | Number of waterbodies within 1km |
-| NumWb_5km | Number of waterbodies within 5km |
-| NumWb_10km | Number of waterbodies within 10km |
-| Number Installed | number_installed |
-| COMID | Unique identifier |
-| clanl | Cumulative watebody area per number per stream distance |
+summary(wb_ds1$num_waterbody_up, na.rm = TRUE)
+summary(wb_ds1$dist_nearest_up_wb_km, na.rm = TRUE)
+wb_ds1$dist_nearest_up_wb_km <- round(wb_ds1$dist_nearest_up_wb_km, 1)
 
-
-summary(wb_ds1$NumWaterbodyUp, na.rm = TRUE)
-summary(wb_ds1$DistNearestUpWb_km, na.rm = TRUE)
-wb_ds1$DistNearestUpWb_km <- round(wb_ds1$DistNearestUpWb_km, 1)
-
-summary(wb_ds1$DistNearestUpWb_km, na.rm = TRUE)
+summary(wb_ds1$dist_nearest_up_wb_km, na.rm = TRUE)
 # file below provides a link to waterbody, and subsequently to DFobs data.
-StationIDs_UniqLocIDs <- read.csv("data/StationIDs_UniqLocIDs.csv")
+StationIDs_UniqLocIDs <- read.csv("data/StationIDs_UniqLocIDs.csv") %>% clean_names(.)
 
 names(StationIDs_UniqLocIDs)
 
-wb_ds2 <- left_join(StationIDs_UniqLocIDs, wb_ds1, by=join_by(UniqLocID))
+wb_ds2 <- left_join(StationIDs_UniqLocIDs, wb_ds1, by=join_by(uniq_loc_id))
 # produces wb_ds2 with 199 obs
 
-DFobs_wb <- left_join(DFobs, wb_ds2, by = join_by(StationID_))
+DFobs <- left_join(DFobs, wb_ds2, by = join_by(station_id_2==station_id))
+names(DFobs)
 
-DFobs_wb2 <- DFobs_wb %>% 
+DFobs <- DFobs %>% 
   mutate(
     wbc = case_when(
-      inclNHDWB == "yes" ~ "present",
-      inclNHDWB != "yes" ~ "absent"
+      incl_nhdwb == "yes" ~ "present",
+      incl_nhdwb != "yes" ~ "absent"
     )
   )
 
-class(DFobs_wb2$wbc)
+class(DFobs$wbc)
 
-DFobs_wb2$wbc <- factor(DFobs_wb2$wbc, levels = c("present", "absent"))
-summary(DFobs_wb2$wbc)
+DFobs$wbc <- factor(DFobs$wbc, levels = c("present", "absent"))
+summary(DFobs$wbc)
+names(DFobs)
 
-DFobs_wb2$DistNearestUpWb_km[is.na(DFobs_wb2$DistNearestUpWb_km)] <- 0
+rm(wb_ds1, wb_ds2, wb_metadata, StationIDs_UniqLocIDs)
 
-DFobs_wb2$wbc_nrstupwb <- (DFobs_wb2$wbc*DFobs_wb2$DistNearestUpWb_km)
+# EDA code below commented out
+# DFobs_wb <- left_join(DFobs, wb_ds2, by = join_by(StationID_))
+# 
+# DFobs_wb2 <- DFobs_wb %>% 
+#   mutate(
+#     wbc = case_when(
+#       inclNHDWB == "yes" ~ "present",
+#       inclNHDWB != "yes" ~ "absent"
+#     )
+#   )
+# 
+# class(DFobs_wb2$wbc)
+# 
+# DFobs_wb2$wbc <- factor(DFobs_wb2$wbc, levels = c("present", "absent"))
+# summary(DFobs_wb2$wbc)
+# 
+# DFobs_wb2$DistNearestUpWb_km[is.na(DFobs_wb2$DistNearestUpWb_km)] <- 0
+# 
+# DFobs_wb2$wbc_nrstupwb <- (DFobs_wb2$wbc*DFobs_wb2$DistNearestUpWb_km)
+# 
+# DFobs_wb2$wbc_nrstupwb == DFobs_wb2$DistNearestUpWb_km
+# # Does the equality above mean I could skip having to test main effect A (wbc), main effect B (DistNearestUpWb_km) and the A x B interaction (wbc_nrstupwb)? Could I just test a single covariate of DistNearestUpWb_km where 0 is absence of upstream waterbodies and values > 0 are km to nearest upstream waterbody?
+# 
+# as.data.frame(DFobs_wb2) %>%
+#   group_by(wbc) %>%
+#   summarize(min = fivenum(VSCIVCPMI)[1],
+#             q1 = fivenum(VSCIVCPMI)[2],
+#             median = fivenum(VSCIVCPMI)[3],
+#             mean = mean(VSCIVCPMI, na.rm = TRUE),
+#             q3 = fivenum(VSCIVCPMI)[4],
+#             max = fivenum(VSCIVCPMI)[5],
+#             count = dplyr::n()) %>% 
+#   print(n = Inf)
+# 
+# ggplot(DFobs_wb2, aes(x = wbc, y = VSCIVCPMI)) + geom_boxplot()
+# 
+# ggplot(DFobs_wb2, aes(x = DistNearestUpWb_km, y = VSCIVCPMI)) + geom_point() + geom_smooth(method = "lm", se = TRUE)
+# 
+# ggplot(DFobs_wb2, aes(x = DistNearestUpWb_km, y = VSCIVCPMI)) + geom_point() + facet_wrap(vars(wbc))  + geom_smooth(method = "lm", se =TRUE)
+# 
+# summary(DFobs_wb$NumWaterbodyUp, na.rm = TRUE)
+# summary(DFobs_wb$DistNearestUpWb_km, na.rm = TRUE)
+# 
+# ggplot(DFobs_wb |> filter(inclNHDWB == "yes"), aes(x = NumWaterbodyUp, y = VSCIVCPMI)) + geom_point() 
+# 
+# ggplot(DFobs_wb |> filter(inclNHDWB == "yes"), aes(x = DistNearestUpWb_km, y = VSCIVCPMI)) + geom_point() + facet_wrap(vars(as.factor(VAHUSB)))  + geom_smooth(method = "lm", se =TRUE)
+# 
+# ggplot(DFobs_wb |> filter(inclNHDWB == "yes"), aes(x = wbArea_up_SqKM, y = VSCIVCPMI)) + geom_point()  + geom_smooth(method = "lm", se =TRUE)
+# 
+# ggplot(DFobs_wb |> filter(inclNHDWB == "yes"), aes(x = clanl, y = VSCIVCPMI)) + geom_point()  + geom_smooth(method = "lm", se =TRUE)
+# 
+# filter(DFobs_wb, inclNHDWB == "yes") %>% 
+#   select(., StationID_,VSCIVCPMI, inclNHDWB, DistNearestUpWb_km, NumWaterbodyUp, wbArea_up_SqKM, clanl) %>% arrange(VSCIVCPMI) %>% 
+#   print(n = Inf)
+# 
+# filter(DFobs_wb, inclNHDWB == "yes") %>% 
+#   select(., StationID_,VSCIVCPMI, inclNHDWB, DistNearestUpWb_km, NumWaterbodyUp, wbArea_up_SqKM, clanl) %>% arrange(StationID_) %>% 
+#   print(n = Inf)
 
-DFobs_wb2$wbc_nrstupwb == DFobs_wb2$DistNearestUpWb_km
-# Does the equality above mean I could skip having to test main effect A (wbc), main effect B (DistNearestUpWb_km) and the A x B interaction (wbc_nrstupwb)? Could I just test a single covariate of DistNearestUpWb_km where 0 is absence of upstream waterbodies and values > 0 are km to nearest upstream waterbody?
-
-as.data.frame(DFobs_wb2) %>%
-  group_by(wbc) %>%
-  summarize(min = fivenum(VSCIVCPMI)[1],
-            q1 = fivenum(VSCIVCPMI)[2],
-            median = fivenum(VSCIVCPMI)[3],
-            mean = mean(VSCIVCPMI, na.rm = TRUE),
-            q3 = fivenum(VSCIVCPMI)[4],
-            max = fivenum(VSCIVCPMI)[5],
-            count = dplyr::n()) %>% 
-  print(n = Inf)
-
-ggplot(DFobs_wb2, aes(x = wbc, y = VSCIVCPMI)) + geom_boxplot()
-
-ggplot(DFobs_wb2, aes(x = DistNearestUpWb_km, y = VSCIVCPMI)) + geom_point() + geom_smooth(method = "lm", se = TRUE)
-
-ggplot(DFobs_wb2, aes(x = DistNearestUpWb_km, y = VSCIVCPMI)) + geom_point() + facet_wrap(vars(wbc))  + geom_smooth(method = "lm", se =TRUE)
-
-summary(DFobs_wb$NumWaterbodyUp, na.rm = TRUE)
-summary(DFobs_wb$DistNearestUpWb_km, na.rm = TRUE)
-
-ggplot(DFobs_wb |> filter(inclNHDWB == "yes"), aes(x = NumWaterbodyUp, y = VSCIVCPMI)) + geom_point() 
-
-ggplot(DFobs_wb |> filter(inclNHDWB == "yes"), aes(x = DistNearestUpWb_km, y = VSCIVCPMI)) + geom_point() + facet_wrap(vars(as.factor(VAHUSB)))  + geom_smooth(method = "lm", se =TRUE)
-
-ggplot(DFobs_wb |> filter(inclNHDWB == "yes"), aes(x = wbArea_up_SqKM, y = VSCIVCPMI)) + geom_point()  + geom_smooth(method = "lm", se =TRUE)
-
-ggplot(DFobs_wb |> filter(inclNHDWB == "yes"), aes(x = clanl, y = VSCIVCPMI)) + geom_point()  + geom_smooth(method = "lm", se =TRUE)
-
-filter(DFobs_wb, inclNHDWB == "yes") %>% 
-  select(., StationID_,VSCIVCPMI, inclNHDWB, DistNearestUpWb_km, NumWaterbodyUp, wbArea_up_SqKM, clanl) %>% arrange(VSCIVCPMI) %>% 
-  print(n = Inf)
-
-filter(DFobs_wb, inclNHDWB == "yes") %>% 
-  select(., StationID_,VSCIVCPMI, inclNHDWB, DistNearestUpWb_km, NumWaterbodyUp, wbArea_up_SqKM, clanl) %>% arrange(StationID_) %>% 
-  print(n = Inf)
-
-st_write(DFobs_wb, "outputs/DFobs_wb_100424.shp")
-```
-
-## 1.05 Observations, unique stations
-Steps are 1) select StationID_ from DFobs, 2) assign st_geometry, 3) use unique.data.frame to get unique stations, and then 4) use st_nn
-```{r dist_knn1}
-# See binding distances to join result from
-# https://michaeldorman.github.io/nngeo/articles/intro.html
-
-z <- dplyr::select(DFobs, StationID) #199 obs
-head(z)
-z1 <- unique.data.frame(z) #181 unique stations
-z1_nn <- st_nn(z1, z1, k =2, returnDist = TRUE, progress = False)
-str(z1_nn)
-
-head(z1_nn[[1]]) # list station obs & nn obs
-head(z1_nn[[2]]) # list distance to self & knn1
-
-station_nn <- as.data.frame(z1_nn$nn)
-# go to 2nd of two list and grab first entry by row, which is 0
-dists = sapply(z1_nn[[2]], "[", 1)
-# go to 2nd of two list and grab second entry by row, which is knn1 distance
-dists_knn1 = sapply(z1_nn[[2]], "[", 2)
-head(dists_knn1)
-summary(dists_knn1)
-# Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
-# 0.161  2014.809  4765.854  5034.192  7320.395 16006.036 
-
-# based on VDEQ stream order (SO) entries, compare to SSN sites and edges
-VAHUSB_SO <- as.data.frame(DFobs) %>%
-  group_by(VAHUSB, Order_) %>%
-  summarize(
-            count = dplyr::n()) %>% 
-  print(n = Inf)
+# wrote shapefile to explore in GIS
+# st_write(DFobs_wb, "outputs/DFobs_wb_100424.shp")
 ```
 
 # 3.0 Entering, Modifying, and Transforming Covariates
+
 ## 3.10 Missing Water Chemistry Data
-I emailed Emma Jones, VDEQ, on September 28, 2023 regarding two stations, 2AMLC000.84 and 2-WLS023.10, in the James in 2011 that had missing water chemistry. She replied the next day saying the NA entries may have occurred because the internal data querying system, called Logi,may not have pulled the data for those sites. Emma attached a spreadsheet, FinalFieldAnalyteMetals_MissingJamesSites.csv, that contained numeric entries for those two stations. I entered those values in ArcMap so that the data would come in with the James SSN object. Also, that way when I look at the James SSN object in ArcMap all the fields have the correct entries and not zeroes. That csv file is pulled in below so it can be checked against the SSN object.
+
+I emailed Emma Jones, VDEQ, on September 28, 2023 regarding two stations, 2AMLC000.84 and 2-WLS023.10, in the James in 2011 that had missing water chemistry.
+She replied the next day saying the NA entries may have occurred because the internal data querying system, called Logi,may not have pulled the data for those sites.
+Emma attached a spreadsheet, FinalFieldAnalyteMetals_MissingJamesSites.csv, that contained numeric entries for those two stations.
+I entered those values in ArcMap so that the data would come in with the James SSN object.
+Also, that way when I look at the James SSN object in ArcMap all the fields have the correct entries and not zeroes.
+That csv file is pulled in below so it can be checked against the SSN object by comparing the values for those stations in the csv file to those in DFobs.
 
 ```{r missing_waterchem}
-nachem_ds1 <- read.csv("data/FinalFieldAnalyteMetals_MissingJamesSites.csv")
+# nachem_ds1 <- read.csv("data/FinalFieldAnalyteMetals_MissingJamesSites.csv")
+
 ```
 
 ## 3.20 Total Habitat (RBP) score
-Bring Total Habitat Score (TotHab) in from Wadeable_ProbMon_2001-2018_Final_Final.xslx spreadsheet so it can be joined to DFobs and then j_ssn1a. These 2 stations:  2-JKS070.97 and 2-DDY000.75_2017 do not have tothab as Emma confirmed in her 11/24/2023 email. Both sites are in Central Appalachian Ridges and Valleys. Both have high VSCI scores of 73.8 and 84.5 (the latter is max VSCI), respectively. Not sure what to do about the 2 sites, drop them entirely? I prefer to impute their tothab scores. For trend station 2-DDY000.75_2017, I could average the scores of 172.5, 173.5, and 178 from 2011, 2013, and 2015, respectively. For  2-JKS070.97 on 3rd order, could I average nearby 2-JKS0 sites? 2-JKS076.16, has tothab of 162.0 on 3rd order, is upstream of 2-JKS070.97, about 16 km apart. Perhaps also use Back Creek site, 2-BCC001.90 (has tothab of 189.0 on 2nd order),  that flows parallel to Jackson River, where the 2 sites are, and Back Creek site is near confluence to Jackson River.  2-BCC001.90 is about 9 stream km from 2-JKS070.97. The new variable tothab is created.
+
+Bring Total Habitat Score (TotHab) in from Wadeable_ProbMon_2001-2018_Final_Final.xslx spreadsheet so it can be joined to DFobs and then j_ssn1a.
+These 2 stations: 2-JKS070.97 and 2-DDY000.75_2017 do not have tothab as Emma confirmed in her 11/24/2023 email.
+Both sites are in Central Appalachian Ridges and Valleys.
+Both have high VSCI scores of 73.8 and 84.5 (the latter is max VSCI), respectively.
+
+I imputed their tothab scores by taking averages.
+For trend station 2-DDY000.75_2017, I could average the scores of 172.5, 173.5, and 178 from 2011, 2013, and 2015, respectively.
+For 2-JKS070.97 on 3rd order, could I average nearby 2-JKS0 sites?
+2-JKS076.16, has tothab of 162.0 on 3rd order, is upstream of 2-JKS070.97, about 16 km apart.
+Perhaps also use Back Creek site, 2-BCC001.90 (has tothab of 189.0 on 2nd order), that flows parallel to Jackson River, where the 2 sites are, and Back Creek site is near confluence to Jackson River.
+2-BCC001.90 is about 9 stream km from 2-JKS070.97.
+The new variable tothab is created.
 
 ```{r tothab}
 
@@ -480,27 +559,27 @@ tothab_ds4 <- tothab_ds3|>
 
 summary(tothab_ds4$TotHab)
 
-ggplot(tothab_ds4, aes(TotHab)) + geom_histogram()
+names(tothab_ds4)
 
-ggplot(tothab_ds4, aes(TotHab)) + geom_boxplot()
-ggplot(tothab_ds4, aes(x=TotHab)) + geom_density()
+# ggplot(tothab_ds4, aes(TotHab)) + geom_histogram()
+# 
+# ggplot(tothab_ds4, aes(TotHab)) + geom_boxplot()
+# ggplot(tothab_ds4, aes(x=TotHab)) + geom_density()
 
 tothab_ds4 <- rename(tothab_ds4,c(tothab = TotHab, st_id_tren = StationID_Trend ))
 head(tothab_ds4)
 
-# bizarre bug of having used lowercase in clean from janitor package on sf object
-# https://github.com/r-spatial/sf/issues/1891
-DFobs <- dplyr::rename(DFobs, st_id_tren = StationID_)
 
-DFobs <- full_join(DFobs, tothab_ds4, by = join_by(st_id_tren))
+DFobs <- full_join(DFobs, tothab_ds4, by = join_by(station_id_2==st_id_tren))
 
-# now can put variables into lowercase
-DFobs <- clean_names(DFobs)
-# str(DFobs)
+# remove datasets not needed downstream
+rm(tothab_ds1, tothab_ds2, dr_na, tothab_ds3, jr_na, tothab_ds4)
 ```
 
 ## 3.25 PRISM data
+Get better metadata description of the variables.
 Correlations of PRISM climate data.
+
 ```{r prism}
 # p_df1 <- SSN2::ssn_get_data(prism)
 # p_df1 <- dplyr::select(p_df1, c(StationID_, precip_mm, Tmean, Tmax)) %>% 
@@ -517,11 +596,18 @@ ggcorr(., method=c("pairwise", "spearman"), label = TRUE)
 # vsci & tmean/tmax correlations -0.5
 ```
 
+## 3.30 Factors: Ecoregion, Bioregion, VAHUSB, Year, Status and Trend Stations
 
-## 3.30 Factors:  Ecoregion,  Bioregion, VAHUSB, Year, Status and Trend Stations
 Based on parallel coordinate plots I made in step4_james_predict_v1.Rmd I made ju as yes/no factor to use in SSN partition factor argument.
-Emma Jones on 02/05/2024 sent shapefiles for VAHUSB polygons, Virginia hydrologic unit subbasins. These 5 polygons from West to East are: JU James River Upper, (Mountain) n = 71; JM James River Middle, (Piedmont) n = 79; JR James River - Rivanna River n = 12; JA James River - Appomattox River n = 29; and JL James River Lower, (Tidal) n = 8.
-I created a station type (st_type) factor to indicate a status or trend station. Trend stations have repeated visits. Jason Hill's email of 01/03/2024 mentioned station 2-JKS028.69_2004 began as trend, wadeable station, but was difficult to sample. It is now a trend, boatable station. Because I am only working with wadeable stations I assigned the one observation of 2-JKS028.69_2004 as a status station. The factors station type and year (year_f) are considered random effects in the analysis.
+Emma Jones on 02/05/2024 sent shapefiles for VAHUSB polygons, Virginia hydrologic unit subbasins.
+These 5 polygons from West to East are: JU James River Upper, (Mountain) n = 71; JM James River Middle, (Piedmont) n = 79; JR James River - Rivanna River n = 12; JA James River - Appomattox River n = 29; and JL James River Lower, (Tidal) n = 8.
+I created a station type (st_type) factor to indicate a status or trend station.
+Trend stations have repeated visits.
+Jason Hill's email of 01/03/2024 mentioned station 2-JKS028.69_2004 began as trend, wadeable station, but was difficult to sample.
+It is now a trend, boatable station.
+Because I am only working with wadeable stations I assigned the one observation of 2-JKS028.69_2004 as a status station.
+The factors station type and year (year_f) are considered random effects in the analysis.
+
 ```{r ecoregions_vahusb}
 # DFobs$HUC8 <- as.factor(DFobs$HUC8)
 DFobs$station_id <- as.factor(DFobs$station_id)
@@ -572,6 +658,7 @@ ggplot(trend, aes(x=year_f, y = vscivcpmi)) + geom_point() + facet_wrap(vars(vah
 ```
 
 ## 3.3.1 SFS Trend Stations
+
 ```{r sfs_trend_stations}
 # trend_stations <- ggplot(trend, aes(x=year_f, y = vscivcpmi)) + geom_point() + facet_wrap(vars(vahusb_nam, station_id), nrow = 2, ncol=4) +labs(x = "Survey Year", y = "VSCI")
 # 
@@ -581,9 +668,13 @@ ggplot(trend, aes(x=year_f, y = vscivcpmi)) + geom_point() + facet_wrap(vars(vah
 
 ```
 
-
 ## 3.3.2 Factors: Wetlands, Impervious Surface, Grass & TP
-On January 26, 2024, Jason Hill at VDEQ sent an email describing total phosphorus (tp) concentrations that impacted VSCI based on a relative risk analysis. At 0.02 mg/L tp and less see little impact, at 0.05 mg/L and above start seeing some impacts, and at 0.1 mg/L and above more likely to have impacts. I believe this is from a statewide relative risk analysis. I will use these levels, instead of the ones I had made based on quartertiles.
+
+On January 26, 2024, Jason Hill at VDEQ sent an email describing total phosphorus (tp) concentrations that impacted VSCI based on a relative risk analysis.
+At 0.02 mg/L tp and less see little impact, at 0.05 mg/L and above start seeing some impacts, and at 0.1 mg/L and above more likely to have impacts.
+I believe this is from a statewide relative risk analysis.
+I will use these levels, instead of the ones I had made based on quartertiles.
+
 ```{r wetlands_impervious_grass_tp}
 
 # Watershed
@@ -800,11 +891,18 @@ summary(as.factor(DFobs$tp_f))
 # ggplot(DFobs, aes(x=tp_f, y = vscivcpmi)) + geom_boxplot()
 ```
 
-
 ## 3.40 Transform Onsite and Area Covariates
-Turb and no3 had NA entries. Emma Jones, VDEQ, sent email with csv file, FinalFieldAnalyte_MissingJamesSites.csv, that had analyte entries for stations 2AMLC000.84 and 2-WLS023.10. The entries I made to James.ssn_101623 appear to have come in as character. The columns in DFobs of nh4,no3,tkn, ortho_p, turb, and tss are charcter. Convert them to numeric, log transform some of the covariates and put DFobs2 back into SSN.
 
-Not considering total suspended solids, total phosphorus, total Kjeldahl nitrogen, and ammonia for analysis as logged scatter plots of those variables showed vertical bars of points. That pattern might arise from detection limits. Need to speak to VDEQ as to how those variables might be used.
+Turb and no3 had NA entries.
+Emma Jones, VDEQ, sent email with csv file, FinalFieldAnalyte_MissingJamesSites.csv, that had analyte entries for stations 2AMLC000.84 and 2-WLS023.10.
+The entries I made to James.ssn_101623 appear to have come in as character.
+The columns in DFobs of nh4,no3,tkn, ortho_p, turb, and tss are charcter.
+Convert them to numeric, log transform some of the covariates and put DFobs2 back into SSN.
+
+Not considering total suspended solids, total phosphorus, total Kjeldahl nitrogen, and ammonia for analysis as logged scatter plots of those variables showed vertical bars of points.
+That pattern might arise from detection limits.
+Need to speak to VDEQ as to how those variables might be used.
+
 ```{r transform_onsite}
 
 glimpse(DFobs) # shows pct_for_c and pct_for_w as chr
@@ -928,6 +1026,7 @@ DFobs2$l_cat_area_r <- log(DFobs2$cat_area_r)
 ```
 
 ## 3.41 New Variables into SSN
+
 ```{r put DFobs2 into SSN}
 names(DFobs2)
 
@@ -972,6 +1071,7 @@ SSN2::ssn_create_distmat(j_ssn2, overwrite = TRUE)
 ```
 
 ## 1.42 SFS Log_tn and tothab Plots
+
 ```{r sfs_logtn_plot}
 # scat_tn1 <- ggplot(DFobs2, aes(x=l_tn, y=vsci)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + labs(x="Total Nitrogen (mg/L, logged)", y = "VSCI")
 # 
@@ -988,13 +1088,15 @@ SSN2::ssn_create_distmat(j_ssn2, overwrite = TRUE)
 ```
 
 # 4.0 Empirical Logit Transformation
+
 ## 4.10 Empirical Logit
-This code came from Travis Linscome-Hatfield at Neptune. 
 
-Another transformation explored is the empirical logit for the covariates "PctNat_W", "PctImp_Ws", "PctCrop_W", "PctHay_W", "PctGrs_W" as explained below
-I need to make a data frame without any geometry with st_set_geometry(DFobs2, NULL). Then join data frame to sf object and put the sf object into the SSN.
+This code came from Travis Linscome-Hatfield at Neptune.
 
-\[ 
+Another transformation explored is the empirical logit for the covariates "PctNat_W", "PctImp_Ws", "PctCrop_W", "PctHay_W", "PctGrs_W" as explained below I need to make a data frame without any geometry with st_set_geometry(DFobs2, NULL).
+Then join data frame to sf object and put the sf object into the SSN.
+
+$$ 
 \begin{eqnarray}
 P_i \, & \text{are} & \, \text{a set of percentages} \\
 f_i & = & P_i/100 \, \text{are a set of frequencies} \\
@@ -1010,7 +1112,7 @@ f_i, & \text{otherwise}
 \right. \\
 l_i & = &\log\left( \frac{f^*_i}{1-f^*_i} \right)
 \end{eqnarray}
-\]
+$$
 
 ```{r emplogit_eda}
 
@@ -1092,7 +1194,12 @@ for(var in emplog_vars){
 ```
 
 ## 4.20 Logit of Impervious Cover
-On 04/30/2024 summaries of empirical logit of impervious cover show that minimum for impervious cover of catchment is greater than minima for watershed, watershed-riparian, and catchment-riparian. I think the minimum non-zero proportions of 0.01 versus 0.02 is causing the different transformation values. But, I can't get "hand" calculator versions to work. Also see that impervious cover values of 0 and the second smallest value under each of the 4 geographies is assigned the empirical logit transformation. Does result below have something to do with second smallest value for pct_imp_w, pct_imp_rp, and pct_imp_rp_c is 0.01, but for pct_imp_c it is 0.02?
+
+On 04/30/2024 summaries of empirical logit of impervious cover show that minimum for impervious cover of catchment is greater than minima for watershed, watershed-riparian, and catchment-riparian.
+I think the minimum non-zero proportions of 0.01 versus 0.02 is causing the different transformation values.
+But, I can't get "hand" calculator versions to work.
+Also see that impervious cover values of 0 and the second smallest value under each of the 4 geographies is assigned the empirical logit transformation.
+Does result below have something to do with second smallest value for pct_imp_w, pct_imp_rp, and pct_imp_rp_c is 0.01, but for pct_imp_c it is 0.02?
 
 ```{r emplogit_of_impevious}
 names(DFobsz)
@@ -1111,6 +1218,7 @@ zlogit <- dplyr::select(DFobsz, c(st_id_tren, pct_imp_w, pct_imp_w_emplog,pct_im
 ```
 
 ## 4.30 Logit variables into SSN
+
 ```{r logit_into_ssn}
 names(DFobsz)
 
@@ -1170,6 +1278,7 @@ ggplot(DFobsz, aes(x=pct_grs_c_emplog, y = vsci)) + geom_point() + geom_smooth(m
 ```
 
 ## 5.50 SFS StreamCat Plots
+
 ```{r sfs_streamcat}
 # scat_cat2 <- ggplot(DFobs2a, aes(x = pct_imp_c_emplog, y = vsci, colour = vahusb)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + labs(x="Catchment Impervious (empirical logit)", y = "VSCI") + expand_limits(x=-10) + scale_colour_discrete(name="Subbasin")
 # 
@@ -1180,8 +1289,8 @@ ggplot(DFobsz, aes(x=pct_grs_c_emplog, y = vsci)) + geom_point() + geom_smooth(m
 
 ```
 
-#6.0 ESDA Across Different Polygons
-Using vahusb as those 5 polygons are comprised of huc8s.
+#6.0 ESDA Across Different Polygons Using vahusb as those 5 polygons are comprised of huc8s.
+
 ```{r esda_polygons}
 
 #by regions
@@ -1210,9 +1319,10 @@ ggplot(DFobsz, aes(x=vahusb, y=vscivcpmi)) + geom_boxplot(varwidth = TRUE)
 mapview(DFobs2)
 ```
 
-
 ## 7.0 Instream/Onsite Correlations
+
 Brought in Total Habitat Score.
+
 ```{r instream_onsite_corr}
 DFobs3 <- dplyr::select(DFobsz, st_id_tren, vsci, do:tss, tothab, l_no3, l_tn, l_tp, l_tds)
 
@@ -1254,13 +1364,13 @@ names(DFobs8)
 ggpairs(DFobs8, columns = c(2:8))
 ```
 
-
 # ZZZ Subset Test
+
 Cannot get subset working, return this later.
+
 ```{r subsetSSN_test}
 
 ssn_2018 <- ssn_subset(j_ssn3, path= "E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/subset_test" ,subset = year_ == 2018)
 
 str(DFobs2)
 ```
-
