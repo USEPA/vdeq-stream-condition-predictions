@@ -196,13 +196,13 @@ summary(dists_knn1)
 
 # based on VDEQ stream order (SO) entries, compare to SSN sites and edges
 vahusb <- as.data.frame(DFobs) %>%
-  group_by(vahusb, Order_) %>%
+  group_by(vahusb, order) %>%
   summarize(
             count = dplyr::n()) %>% 
   print(n = Inf)
 
 # remove datasets not used downstream
-rm(z1, z1, z1_nn, dists, dists_knn1,vahusb)
+rm(z, z1, z1, z1_nn, station_nn, dists, dists_knn1,vahusb)
 ```
 
 
@@ -608,7 +608,7 @@ It is now a trend, boatable station.
 Because I am only working with wadeable stations I assigned the one observation of 2-JKS028.69_2004 as a status station.
 The factors station type and year (year_f) are considered random effects in the analysis.
 
-```{r ecoregions_vahusb}
+```{r ecoregions_vahusb_trend}
 # DFobs$HUC8 <- as.factor(DFobs$HUC8)
 DFobs$station_id <- as.factor(DFobs$station_id)
 DFobs$eco_region <- as.factor(DFobs$eco_region)
@@ -627,19 +627,19 @@ DFobs <- DFobs %>%
 DFobs$ju <- factor(DFobs$ju, levels = c("yes","no"))
 summary(DFobs$ju)
 
-ggplot(DFobs, aes(x=vahusb, y = vscivcpmi)) + geom_boxplot()
-
-ggplot(DFobs, aes(x = tothab, y = vscivcpmi, colour = vahusb)) + geom_point() + geom_smooth(method = "lm")
-
-ggplot(DFobs, aes(x = tothab, y = vscivcpmi)) + geom_point() + geom_smooth(method = "lm") + facet_wrap(vars(vahusb))
+# ggplot(DFobs, aes(x=vahusb, y = vscivcpmi)) + geom_boxplot()
+# 
+# ggplot(DFobs, aes(x = tothab, y = vscivcpmi, colour = vahusb)) + geom_point() + geom_smooth(method = "lm")
+# 
+# ggplot(DFobs, aes(x = tothab, y = vscivcpmi)) + geom_point() + geom_smooth(method = "lm") + facet_wrap(vars(vahusb))
 
 # use code to evaluate vsci by year for trend sites if a random effect for trend stations is needed
 DFobs <- DFobs %>%
   mutate(
     st_type = case_when(
-      st_id_tren == "2-JKS028.69_2004" ~ "status",
-      st_id_tren != "2-JKS028.69_2004" & st_id_tren != station_id ~ "trend",
-      st_id_tren != "2-JKS028.69_2004" & st_id_tren == station_id ~ "status",
+      station_id_2 == "2-JKS028.69_2004" ~ "status",
+      station_id_2 != "2-JKS028.69_2004" & station_id_2 != station_id ~ "trend",
+      station_id_2 != "2-JKS028.69_2004" & station_id_2 == station_id ~ "status",
     )
   )
 summary(as.factor(DFobs$st_type))
@@ -647,14 +647,16 @@ summary(as.factor(DFobs$st_type))
 trend <- dplyr::filter(DFobs, st_type == "trend")
 # returned 38 obs
 # trend stations suggestive of including random effect
-ggplot(trend, aes(x=year_f, y = vscivcpmi)) + geom_point() + facet_wrap(vars(vahusb_nam, station_id))
+# ggplot(trend, aes(x=year_f, y = vscivcpmi)) + geom_point() + facet_wrap(vars(vahusb_nam, station_id))
+
 # ggplot(DFobs, aes(x=st_type, y = vscivcpmi)) + geom_boxplot()
 
 # ggplot(DFobs, aes(x=st_type, y = tothab)) + geom_boxplot()
 # 
 # ggplot(DFobs, aes(x=st_type, y = do)) + geom_boxplot()
 
-
+# remove data frames not needed downstream
+rm(trend)
 ```
 
 ## 3.3.1 SFS Trend Stations
@@ -694,7 +696,7 @@ DFobs$pct_wet_w_f <- factor(DFobs$pct_wet_w_f, levels = c("none", "low", "medium
 
 summary(as.factor(DFobs$pct_wet_w_f))
 
-## binary absence/presence
+## binary absence/presence of watershed wetlands
 DFobs <- DFobs %>%
   mutate(
     bin_wet_w = case_when(
@@ -713,7 +715,7 @@ summary(as.factor(DFobs$bin_wet_w))
 # 
 # ggplot(DFobs, aes(x = pct_wet_w_f, y = vscivcpmi)) + geom_point() + facet_wrap(vars(eco_region))
 
-# Watershed-riparian
+# Watershed-riparian wetlands
 summary(DFobs$pct_wet_wr)
 DFobs <- DFobs %>%
   mutate(
@@ -729,7 +731,7 @@ DFobs$pct_wet_wr_f <- factor(DFobs$pct_wet_wr_f, levels = c("none", "low", "medi
 
 summary(as.factor(DFobs$pct_wet_wr_f))
 
-## binary absence/presence
+## binary absence/presence of watershed riparian wetlands
 DFobs <- DFobs %>%
   mutate(
     bin_wet_wr = case_when(
@@ -749,7 +751,7 @@ summary(as.factor(DFobs$bin_wet_wr))
 # 
 # ggplot(DFobs, aes(x = pct_wet_wr_f, y = vscivcpmi)) + geom_point() + facet_wrap(vars(eco_region))
 
-# Catchment
+# Catchment wetlands
 summary(DFobs$pct_wet_c)
 
 DFobs <- DFobs %>%
@@ -768,7 +770,7 @@ summary(as.factor(DFobs$pct_wet_c_f))
 
 summary(as.factor(DFobs$pct_wet_wr_f))
 
-## binary absence/presence
+## binary absence/presence of catchment wetlands
 DFobs <- DFobs %>%
   mutate(
     bin_wet_c = case_when(
@@ -788,7 +790,7 @@ summary(as.factor(DFobs$bin_wet_c))
 # 
 # ggplot(DFobs, aes(x = pct_wet_c_f, y = vscivcpmi)) + geom_point() + facet_wrap(vars(eco_region))
 
-# Catchment-Riparian
+# Catchment-Riparian wetlands
 # Change to none, low, or high
 summary(DFobs$pct_wet_cr)
 
@@ -805,7 +807,7 @@ DFobs$pct_wet_cr_f <- factor(DFobs$pct_wet_cr_f, levels = c("none", "low", "high
 
 summary(as.factor(DFobs$pct_wet_cr_f))
 
-## binary absence/presence
+## binary absence/presence catchment riparian wetlands
 DFobs <- DFobs %>%
   mutate(
     bin_wet_cr = case_when(
@@ -923,10 +925,8 @@ DFobs2$l_ws_area <- log(DFobs2$ws_area)
 DFobs2$l_ws_area_r <- log(DFobs2$ws_area_r)
 DFobs2$l_cat_area <- log(DFobs2$cat_area)
 DFobs2$l_cat_area_r <- log(DFobs2$cat_area_r)
-# DFobs2$y2 <- round((DFobs2$vscivcpmi^2),1)
-# transformation suggested by Box-Cox
-# improved posterior predictive check and linearity from model_check but less interpretable and would have to come up with a back-transormation for predictions
 
+# commented out summary stats and EDA code below
 # summary(DFobs2$pct_for_w)
 # summary(DFobs2$pct_for_wr)
 # summary(DFobs2$pct_for_c)
@@ -1026,52 +1026,21 @@ DFobs2$l_cat_area_r <- log(DFobs2$cat_area_r)
 ```
 
 ## 3.41 New Variables into SSN
-
+All the variable manipulations have been done on DFobs. We now need to put those changes into the SSN object using the SSN2::ssn_put_data function.
 ```{r put DFobs2 into SSN}
 names(DFobs2)
 
 class(DFobs2)
-str(DFobs2$ju)
+# str(DFobs2$ju)
 # note ssn_put_data requires sf object and SSN2 object
 j_ssn2 <-  SSN2::ssn_put_data(DFobs2,j_ssn1a)
 # just doing this assignment so not have to rename objects
 j_ssn3 <- j_ssn2
 
-glimpse(j_ssn3)
-
-# only need to run ssn_create_distmat one time as it is stored
-# SSN2 creates distance folder where distance R object stored
-## Create distance matrices for observed sites
-SSN2::ssn_create_distmat(j_ssn2, overwrite = TRUE)
-# see ditance folder created 07/12/2024 8:19am at
-# E:\R_vdeq_sci\Working\Data\neptune_analysis\ssn_objects\James_071024.ssn
-
-# Likely delete or move code below
-# sci_euc <- SSN::EmpiricalSemivariogram(j_ssn2, "turb", EmpVarMeth = "RobustMedian")
-# sci_euc
-# plot(sci_euc$distance, sci_euc$gamma, ylab = "Gamma", xlab = "Distance", col = sci_euc$azimuth, main = "Empirical Semivariogram - Logged Data - Robust Median")
-# rm(sci_euc)
-
-# default nlag = 6
-# sci_esvf1 <- SSN::Torgegram(j_ssn2, "turb")
-# plot(sci_esvf1)
-# sci_esvf1
-# 
-# plot(sci_esvf1, sp.relationship = "fu", col = "green", main = "Flow-unconnected Torgegram")
-
-# step through
-# nlag 10 & maxlag 50,000
-# nlag 12 & maxlag 60,000
-# nlag 15 & maxlag 75,000
-# nlag 20 & maxlag 300,000
-# sci_esvf2 <- Torgegram(j_ssn2, "l_no3", nlag = 10, maxlag = 50000, EmpVarMeth = "RobustMedian")
-# plot(sci_esvf2)
-# sci_esvf2
-# rm(sci_esvf2)
 ```
 
-## 1.42 SFS Log_tn and tothab Plots
-
+## 3.42 SFS Log_tn and tothab Plots
+Scatter plots used in SFS 2024 talk.
 ```{r sfs_logtn_plot}
 # scat_tn1 <- ggplot(DFobs2, aes(x=l_tn, y=vsci)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + labs(x="Total Nitrogen (mg/L, logged)", y = "VSCI")
 # 
