@@ -840,6 +840,45 @@ st_write(z4rssn_wswq_reml1, dsn = file.path(getwd(), "z4rssn_wswq_reml1.gpkg"), 
 
 ```
 
+# Additional Hypotheses
+```{r hypotheses}
+
+a4ssn_wswq_ml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + rck_dep_ws + wwtp + wbc,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "ml",
+  additive = "afv_area",
+  partition_factor = ~ju
+)
+summary(a4ssn_wswq_ml1)
+varcomp(a4ssn_wswq_ml1)
+loocv(a4ssn_wswq_ml1) %>% print(n = Inf)
+
+glances(z5ssn_wswq_ml1,a4ssn_wswq_ml1)
+loocv(z5ssn_wswq_ml1)
+
+plot(a4ssn_wswq_ml1, which = c(1:6))
+
+tidy(a4ssn_wswq_reml1)
+
+# inserted r in file name to indicate residuals now included
+a4rssn_wswq_ml1 <- augment(a4ssn_wswq_ml1, drop = FALSE)
+# note on 10/04/2024 fixed mapview so popupTable using correct object, had been pointing to ssn_wswq_reml1
+summary(a4rssn_wswq_ml1$.std.resid)
+mapview(a4rssn_wswq_ml1, zcol = ".std.resid", cex = ".std.resid", alpha.regions = .8, legend = TRUE, popup = popupTable(a4rssn_wswq_ml1, zcol = c(".std.resid"))) 
+
+a4rssn_wswq_ml1 <- dplyr::select(a4rssn_wswq_ml1, c(station_id, st_id_tren, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, pct_imp_w, elev_ws, pct_imp_w_emplog, vsci, .fitted, .std.resid))
+
+# saveRDS(a4rssn_wswq_ml1, file = "a4rssn_wswq_ml1.rds")
+# 
+# st_write(a4rssn_wswq_ml1, dsn = file.path(getwd(), "a4rssn_wswq_ml1.gpkg"), layer = "a4rssn_wswq_ml1", driver = "GPKG", quiet = FALSE)
+
+```
+
 # Compare SSN Models with ML
 This to compare different SSN models having different covariates and slopes from these models are used in coefficient plot.
 ```{r ssn_ml}
