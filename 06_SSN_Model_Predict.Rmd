@@ -840,11 +840,73 @@ st_write(z4rssn_wswq_reml1, dsn = file.path(getwd(), "z4rssn_wswq_reml1.gpkg"), 
 
 ```
 
+# TLH prediction interval work
+
+```{r pred_interval}
+
+
+## fit model
+a4ssn_wswq_ml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "ml",
+  additive = "afv_area",
+  partition_factor = ~ju
+)
+
+# get spatial residuals from model
+spatResids<-residuals(a4ssn_wswq_ml1, cross.validation=T)
+
+# pull sd of residuals and fitted values
+resid_SD = sd(spatResids)
+fitted_vals = a4ssn_wswq_ml1$fitted$response
+
+# combine to a dataframe
+spat<-cbind(fitted_vals,resid_SD^2)
+
+# spatial prediction percentiles
+(spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
+
+spat.Pred.median = spat.Pred.pct[,4]
+
+# make sure I've got the right obj
+DFobs<-ssn_get_data(j_ssn3)
+# observed and median of our prediction intervals
+ty<-DFobs$vsci
+tx<-spat.Pred.median
+
+#percentiles
+ox<-order(tx)
+op05<-spat.Pred.pct[ox,"Q05"]
+op95 <- spat.Pred.pct[ox,"Q95"]
+
+# plot
+plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="Total Phosphorous Predicted Value",ylab="Total Phosphorous Observed Value",main="Spatial Model Observed vs. Predicted")
+abline(0,1,col="red")
+lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
+
+# 5th percentile of predictive distribution
+lines(tx[ox],op05,lty=2,col='black')
+# 95th percentile of predictive distribution
+lines(tx[ox],op95,lty=2,col='black')
+#legend
+legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
+
+
+
+```
+
+
+
 # Additional Hypotheses
 ```{r hypotheses}
 
 a4ssn_wswq_ml1 <- ssn_lm(
-  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + rck_dep_ws + wwtp + wbc,
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
   ssn.object = j_ssn3,
   tailup_type = "none",
   taildown_type = "exponential",
