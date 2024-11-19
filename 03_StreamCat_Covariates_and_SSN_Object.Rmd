@@ -27,6 +27,8 @@ This script shows how additional covariates from EPA's Stream Catchment dataset,
 Log Keeping log below for now when reach final version will delete.
 Text above the log I plan to keep to provide background for users.
 
+11/19/2024 have code running end to end.
+
 On 10/15/2024 added waterbody data for Travis to evaluate on github.
 
 On 09/19/2024 Ellen provided update waterbody datasets as csv files.
