@@ -336,9 +336,9 @@ head(DFobsz$imp_w_pres)
 head(DFobsz$pct_imp_w)
 
 names(DFobsz)
-DFobsz2 <- dplyr::select(DFobsz, c(sstation_id_2, pct_for_w_emplog:imp_w_pres))
+DFobsz2 <- dplyr::select(DFobsz, c(station_id_2, pct_for_w_emplog:imp_w_pres))
 # put transformed covariates in an SF object
-DFobs2a <- full_join(DFobs2, DFobsz2, by = join_by(st_id_tren))
+DFobs2a <- full_join(DFobs2, DFobsz2, by = join_by(station_id_2))
 
 # put SF object into SSN
 j_ssn3 <-  SSN2::ssn_put_data(DFobs2a,j_ssn3)
