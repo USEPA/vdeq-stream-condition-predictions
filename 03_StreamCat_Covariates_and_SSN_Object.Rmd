@@ -1060,7 +1060,7 @@ Scatter plots used in SFS 2024 talk.
 
 ## 4.10 Empirical Logit
 
-This code came from Travis Linscome-Hatfield at Neptune.
+This code came from Travis Linscome-Hatfield at Neptune. Applying empirical logit only to obs.
 
 Another transformation explored is the empirical logit for the covariates "PctNat_W", "PctImp_Ws", "PctCrop_W", "PctHay_W", "PctGrs_W" as explained below I need to make a data frame without any geometry with st_set_geometry(DFobs2, NULL).
 Then join data frame to sf object and put the sf object into the SSN.
@@ -1170,19 +1170,21 @@ But, I can't get "hand" calculator versions to work.
 Also see that impervious cover values of 0 and the second smallest value under each of the 4 geographies is assigned the empirical logit transformation.
 Does result below have something to do with second smallest value for pct_imp_w, pct_imp_rp, and pct_imp_rp_c is 0.01, but for pct_imp_c it is 0.02?
 
+Look at 2024 PowerPoint in presentations folder, and see VSCI and Impervious Cover: 4 Geographies, slide 11, and note that minimum values of impervious cover for Catchment differs from other 3 geographies.
+
 ```{r emplogit_of_impevious}
-names(DFobsz)
-summary(DFobsz$pct_imp_w_emplog)
-summary(DFobsz$pct_imp_rp_w_emplog)
-summary(DFobsz$pct_imp_c_emplog)
-summary(DFobsz$pct_imp_rp_c_emplog)
-
-str(DFobsz$pct_imp_w_emplog)
-str(DFobsz$pct_imp_rp_w_emplog)
-str(DFobsz$pct_imp_c_emplog)
-str(DFobsz$pct_imp_rp_c_emplog)
-
-zlogit <- dplyr::select(DFobsz, c(st_id_tren, pct_imp_w, pct_imp_w_emplog,pct_imp_rp_w, pct_imp_rp_w_emplog, pct_imp_c, pct_imp_c_emplog, pct_imp_rp_c, pct_imp_rp_c_emplog))
+# names(DFobsz)
+# summary(DFobsz$pct_imp_w_emplog)
+# summary(DFobsz$pct_imp_rp_w_emplog)
+# summary(DFobsz$pct_imp_c_emplog)
+# summary(DFobsz$pct_imp_rp_c_emplog)
+# 
+# str(DFobsz$pct_imp_w_emplog)
+# str(DFobsz$pct_imp_rp_w_emplog)
+# str(DFobsz$pct_imp_c_emplog)
+# str(DFobsz$pct_imp_rp_c_emplog)
+# 
+# zlogit <- dplyr::select(DFobsz, c(st_id_tren, pct_imp_w, pct_imp_w_emplog,pct_imp_rp_w, pct_imp_rp_w_emplog, pct_imp_c, pct_imp_c_emplog, pct_imp_rp_c, pct_imp_rp_c_emplog))
 
 ```
 
@@ -1191,15 +1193,12 @@ zlogit <- dplyr::select(DFobsz, c(st_id_tren, pct_imp_w, pct_imp_w_emplog,pct_im
 ```{r logit_into_ssn}
 names(DFobsz)
 
-DFobsz2 <- dplyr::select(DFobsz, c(st_id_tren, pct_for_w_emplog:pct_shrb_cr_emplog))
+DFobsz2 <- dplyr::select(DFobsz, c(station_id_2, pct_for_w_emplog:pct_shrb_cr_emplog))
 # put transformed covariates in an SF object
-DFobs2a <- full_join(DFobs2, DFobsz2, by = join_by(st_id_tren))
+DFobs2a <- full_join(DFobs2, DFobsz2, by = join_by(station_id_2))
 
 # put SF object into SSN
 j_ssn3 <-  SSN2::ssn_put_data(DFobs2a,j_ssn3)
-
-### set up a vector so we can loop through these transformed variables
-# emplog_vars_transformed <- paste0(emplog_vars,"_emplog")
 
 ## produce eda.shape plots for each of the transformed variables
 ## I got error with code below
@@ -1209,41 +1208,43 @@ j_ssn3 <-  SSN2::ssn_put_data(DFobs2a,j_ssn3)
 #   print(covariate_eda)
 # }
 
+# commented out EDA code below
 # unconvinced of impervious surface and wetland interaction
-ggplot(DFobs2a, aes(x=pct_imp_rp_c_emplog, y = vsci, colour = pct_wet_cr_f)) + geom_point() + geom_smooth()
+# ggplot(DFobs2a, aes(x=pct_imp_rp_c_emplog, y = vsci, colour = pct_wet_cr_f)) + geom_point() + geom_smooth()
 
 # interaction plots of vsci with 3 covariates having high correlations to vsci crossed with wetland factor
-ggplot(DFobs2a, aes(x=pct_imp_rp_c_emplog, y = vsci, colour = pct_wet_cr_f)) + geom_point() + geom_smooth(method = lm, se = TRUE)
+# ggplot(DFobs2a, aes(x=pct_imp_rp_c_emplog, y = vsci, colour = pct_wet_cr_f)) + geom_point() + geom_smooth(method = lm, se = TRUE)
 
-ggplot(DFobs2a, aes(x=pct_for_cr_emplog, y = vsci, colour = pct_wet_cr_f)) + geom_point() + geom_smooth(method = lm, se = TRUE)
-
-ggplot(DFobs2a, aes(x=tothab, y = vsci, colour = pct_wet_cr_f)) + geom_point() + geom_smooth(method = lm, se = TRUE)
+# ggplot(DFobs2a, aes(x=pct_for_cr_emplog, y = vsci, colour = pct_wet_cr_f)) + geom_point() + geom_smooth(method = lm, se = TRUE)
+# 
+# ggplot(DFobs2a, aes(x=tothab, y = vsci, colour = pct_wet_cr_f)) + geom_point() + geom_smooth(method = lm, se = TRUE)
 
 # perhaps interaction between shrubs and ecoregions, but recall southeastern plains has n =7, but this line is similar to Piedmont line
-ggplot(DFobs2a, aes(x=pct_shrb_cr_emplog, y = vsci, colour = eco_region)) + geom_point() +geom_smooth(method =lm, se = TRUE)
-
-ggplot(DFobs2a, aes(x=pct_shrb_cr_emplog, y = vsci, colour = eco_region)) + geom_point() +geom_smooth(method =lm, se = TRUE)
+# ggplot(DFobs2a, aes(x=pct_shrb_cr_emplog, y = vsci, colour = eco_region)) + geom_point() +geom_smooth(method =lm, se = TRUE)
+# 
+# ggplot(DFobs2a, aes(x=pct_shrb_cr_emplog, y = vsci, colour = eco_region)) + geom_point() +geom_smooth(method =lm, se = TRUE)
 
 # Golden et al. 2016 JAWRA mentioned interaction of urban areas and TP. Slopes and intercepts overlap in plots with impervious surface area and forest.
-ggplot(DFobs2a, aes(x = pct_imp_c_emplog, y = vsci, colour = vahusb)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + labs(x="Catchment Impervious (empirical logit)", y = "VSCI") + expand_limits(x=-10) + scale_colour_discrete(name="Subbasin")
-
-ggplot(DFobs2a, aes(x = pct_for_w_emplog, y = vsci, colour = tp_f)) + geom_point() + geom_smooth(method = "lm", se = TRUE)
+# ggplot(DFobs2a, aes(x = pct_imp_c_emplog, y = vsci, colour = vahusb)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + labs(x="Catchment Impervious (empirical logit)", y = "VSCI") + expand_limits(x=-10) + scale_colour_discrete(name="Subbasin")
+# 
+# ggplot(DFobs2a, aes(x = pct_for_w_emplog, y = vsci, colour = tp_f)) + geom_point() + geom_smooth(method = "lm", se = TRUE)
 
 # this plot suggested by result from WsRpWq analysis
-ggplot(DFobs2a, aes(x = pct_for_wr_emplog, y = vsci, colour = eco_region)) + geom_point() + geom_smooth(method = "lm", se = TRUE)
-
-ggplot(DFobs2a, aes(x = pct_for_wr_emplog, y = vsci, colour = vahusb)) + geom_point() + geom_smooth(method = "lm", se = TRUE)
-
-ggplot(DFobs2a, aes(x = pct_imp_w_emplog, y = vsci, colour = vahusb)) + geom_point() + geom_smooth(method = "lm", se = TRUE)
-
-ggplot(DFobs2a, aes(x = pct_imp_w_emplog, y = vscivcpmi)) + geom_point() + geom_smooth(method = "lm") + facet_wrap(vars(vahusb))
-
-ggplot(DFobs2a, aes(x = do, y = vsci, colour = vahusb)) + geom_point() + geom_smooth(method = "lm", se = TRUE)
-
-ggplot(DFobs2a, aes(x = vahusb, y = pct_imp_w_emplog)) + geom_boxplot()
+# ggplot(DFobs2a, aes(x = pct_for_wr_emplog, y = vsci, colour = eco_region)) + geom_point() + geom_smooth(method = "lm", se = TRUE)
+# 
+# ggplot(DFobs2a, aes(x = pct_for_wr_emplog, y = vsci, colour = vahusb)) + geom_point() + geom_smooth(method = "lm", se = TRUE)
+# 
+# ggplot(DFobs2a, aes(x = pct_imp_w_emplog, y = vsci, colour = vahusb)) + geom_point() + geom_smooth(method = "lm", se = TRUE)
+# 
+# ggplot(DFobs2a, aes(x = pct_imp_w_emplog, y = vscivcpmi)) + geom_point() + geom_smooth(method = "lm") + facet_wrap(vars(vahusb))
+# 
+# ggplot(DFobs2a, aes(x = do, y = vsci, colour = vahusb)) + geom_point() + geom_smooth(method = "lm", se = TRUE)
+# 
+# ggplot(DFobs2a, aes(x = vahusb, y = pct_imp_w_emplog)) + geom_boxplot()
 
 # check suggested by Mike Dumelle if y-interecept at x = 0 looks different from y-intercept when x > 0
-ggplot(DFobsz, aes(x=pct_grs_c_emplog, y = vsci)) + geom_point() + geom_smooth(method = "lm")
+# ggplot(DFobsz, aes(x=pct_grs_c_emplog, y = vsci)) + geom_point() + geom_smooth(method = "lm")
+
 ```
 
 ## 5.50 SFS StreamCat Plots
@@ -1259,78 +1260,78 @@ ggplot(DFobsz, aes(x=pct_grs_c_emplog, y = vsci)) + geom_point() + geom_smooth(m
 ```
 
 #6.0 ESDA Across Different Polygons Using vahusb as those 5 polygons are comprised of huc8s.
-
+Commented out EDA code below
 ```{r esda_polygons}
 
 #by regions
-ggplot(DFobs, aes(x=factor(vahusb), y=vscivcpmi)) + geom_boxplot(varwidth = TRUE)
-
-ggplot(DFobs, aes(x=factor(eco_region), y=vscivcpmi)) + geom_boxplot(varwidth = TRUE)
-
-ggplot(DFobs, aes(x=factor(bio_region), y=vscivcpmi)) + geom_boxplot(varwidth = TRUE)
-
-ggplot(DFobsz, aes(x=pct_imp_rp_w_emplog, y = vscivcpmi, colour = eco_region)) + geom_point() + geom_smooth(se = TRUE, method = lm)
-
-ggplot(DFobsz, aes(x = pct_imp_rp_w_emplog, y = l_tn)) + geom_point() + geom_smooth()
-
-ggplot(DFobsz, aes(x = pct_imp_w_emplog, y = l_tn)) + geom_point() + geom_smooth()
-
-ggplot(DFobsz, aes(x=tothab, y = vscivcpmi, colour = eco_region)) + geom_point() + geom_smooth(se = TRUE, method = lm)
-
-ggplot(DFobsz, aes(x = l_tn, y = vscivcpmi, colour = eco_region)) + geom_point() + geom_smooth()
-
-ggplot(DFobsz, aes(x = pct_imp_rp_w_emplog, y = l_tn)) + geom_point()
+# ggplot(DFobs, aes(x=factor(vahusb), y=vscivcpmi)) + geom_boxplot(varwidth = TRUE)
+# 
+# ggplot(DFobs, aes(x=factor(eco_region), y=vscivcpmi)) + geom_boxplot(varwidth = TRUE)
+# 
+# ggplot(DFobs, aes(x=factor(bio_region), y=vscivcpmi)) + geom_boxplot(varwidth = TRUE)
+# 
+# ggplot(DFobsz, aes(x=pct_imp_rp_w_emplog, y = vscivcpmi, colour = eco_region)) + geom_point() + geom_smooth(se = TRUE, method = lm)
+# 
+# ggplot(DFobsz, aes(x = pct_imp_rp_w_emplog, y = l_tn)) + geom_point() + geom_smooth()
+# 
+# ggplot(DFobsz, aes(x = pct_imp_w_emplog, y = l_tn)) + geom_point() + geom_smooth()
+# 
+# ggplot(DFobsz, aes(x=tothab, y = vscivcpmi, colour = eco_region)) + geom_point() + geom_smooth(se = TRUE, method = lm)
+# 
+# ggplot(DFobsz, aes(x = l_tn, y = vscivcpmi, colour = eco_region)) + geom_point() + geom_smooth()
+# 
+# ggplot(DFobsz, aes(x = pct_imp_rp_w_emplog, y = l_tn)) + geom_point()
 
 # ggplot(DFobsz, aes(x = PctImp_Ws_emplog, y = l_tn)) + geom_point() + geom_smooth(se = TRUE, method = lm)
 
-ggplot(DFobsz, aes(x=vahusb, y=vscivcpmi)) + geom_boxplot(varwidth = TRUE)
-
-mapview(DFobs2)
+# ggplot(DFobsz, aes(x=vahusb, y=vscivcpmi)) + geom_boxplot(varwidth = TRUE)
+# 
+# mapview(DFobs2)
 ```
 
 ## 7.0 Instream/Onsite Correlations
 
-Brought in Total Habitat Score.
+Commented out EDA code below.
 
 ```{r instream_onsite_corr}
-DFobs3 <- dplyr::select(DFobsz, st_id_tren, vsci, do:tss, tothab, l_no3, l_tn, l_tp, l_tds)
+# DFobs3 <- dplyr::select(DFobsz, st_id_tren, vsci, do:tss, tothab, l_no3, l_tn, l_tp, l_tds)
 
 # instream
-ggpairs(DFobs3, columns = c(2:5,8,13:15))
-ggpairs(DFobs3, columns = c(2:5,8,15,18:19))
+# ggpairs(DFobs3, columns = c(2:5,8,13:15))
+# ggpairs(DFobs3, columns = c(2:5,8,15,18:19))
 # nutrients
-ggpairs(DFobs3, columns = c(2,6:12,16:18))
+# ggpairs(DFobs3, columns = c(2,6:12,16:18))
 
 # WQ and WS variables
-DFobs4 <- dplyr::select(DFobsz, st_id_tren, vsci, do,p_h, tothab, l_no3:l_spc, pct_imp_w_emplog, pct_grs_w_emplog, pct_hay_w_emplog, pct_shrb_w_emplog, pct_for_w_emplog)
-names(DFobs4)
-
-ggpairs(DFobs4, columns = c(2:15))
-
-# WQ and WS-Riparian
-DFobs5 <- dplyr::select(DFobsz, st_id_tren, vsci, do,p_h, tothab, l_no3:l_spc, pct_imp_rp_w_emplog, pct_grs_wr_emplog, pct_hay_wr_emplog, pct_shrb_wr_emplog, pct_for_wr_emplog)
-names(DFobs5)
-ggpairs(DFobs5, columns = c(2:15))
+# DFobs4 <- dplyr::select(DFobsz, st_id_tren, vsci, do,p_h, tothab, l_no3:l_spc, pct_imp_w_emplog, pct_grs_w_emplog, pct_hay_w_emplog, pct_shrb_w_emplog, pct_for_w_emplog)
+# names(DFobs4)
+# 
+# ggpairs(DFobs4, columns = c(2:15))
+# 
+# # WQ and WS-Riparian
+# DFobs5 <- dplyr::select(DFobsz, st_id_tren, vsci, do,p_h, tothab, l_no3:l_spc, pct_imp_rp_w_emplog, pct_grs_wr_emplog, pct_hay_wr_emplog, pct_shrb_wr_emplog, pct_for_wr_emplog)
+# names(DFobs5)
+# ggpairs(DFobs5, columns = c(2:15))
 
 # WQ and Catchment
-DFobs6 <- dplyr::select(DFobsz, st_id_tren, vsci, do,p_h, tothab, l_no3:l_spc, pct_imp_c_emplog, pct_grs_c_emplog, pct_hay_c_emplog, pct_shrb_c_emplog, pct_for_c_emplog)
-
-names(DFobs6)
-
-ggpairs(DFobs6, columns = c(2:15))
+# DFobs6 <- dplyr::select(DFobsz, st_id_tren, vsci, do,p_h, tothab, l_no3:l_spc, pct_imp_c_emplog, pct_grs_c_emplog, pct_hay_c_emplog, pct_shrb_c_emplog, pct_for_c_emplog)
+# 
+# names(DFobs6)
+# 
+# ggpairs(DFobs6, columns = c(2:15))
 
 # WQ and Catchment-Riparian
-DFobs7 <- dplyr::select(DFobsz, st_id_tren, vsci, do,p_h, tothab, l_no3:l_spc, pct_imp_rp_c_emplog, pct_grs_cr_emplog, pct_hay_cr_emplog, pct_shrb_cr_emplog, pct_for_cr_emplog)
-names(DFobs7)
-
-ggpairs(DFobs7, columns = c(2:15))
-ggpairs(DFobs7, columns = c(2,11:15))
+# DFobs7 <- dplyr::select(DFobsz, st_id_tren, vsci, do,p_h, tothab, l_no3:l_spc, pct_imp_rp_c_emplog, pct_grs_cr_emplog, pct_hay_cr_emplog, pct_shrb_cr_emplog, pct_for_cr_emplog)
+# names(DFobs7)
+# 
+# ggpairs(DFobs7, columns = c(2:15))
+# ggpairs(DFobs7, columns = c(2,11:15))
 
 # Mix of Watershed, Catchment, Riparian
-DFobs8 <- dplyr::select(DFobsz, st_id_tren, vsci, pct_imp_w_emplog, pct_imp_c_emplog, pct_imp_rp_c_emplog, pct_for_wr_emplog, elev_ws, elev_cat)
-names(DFobs8)
-
-ggpairs(DFobs8, columns = c(2:8))
+# DFobs8 <- dplyr::select(DFobsz, st_id_tren, vsci, pct_imp_w_emplog, pct_imp_c_emplog, pct_imp_rp_c_emplog, pct_for_wr_emplog, elev_ws, elev_cat)
+# names(DFobs8)
+# 
+# ggpairs(DFobs8, columns = c(2:8))
 ```
 
 # ZZZ Subset Test
@@ -1339,7 +1340,7 @@ Cannot get subset working, return this later.
 
 ```{r subsetSSN_test}
 
-ssn_2018 <- ssn_subset(j_ssn3, path= "E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/subset_test" ,subset = year_ == 2018)
+# ssn_2018 <- ssn_subset(j_ssn3, path= "/ssn_objects/subset_test" ,subset = year == 2018)
 
-str(DFobs2)
+
 ```
