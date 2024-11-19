@@ -15,6 +15,7 @@ editor_options:
   chunk_output_type: console
 ---
 
+11/19/2024 trying to run TLH code chunk for prediction interval graph
 
 On 10/24/2024, went through the code with Travis and now runs without errors all chunks above Status vs Trend Predictions chunk. Pushed to repository.
 
@@ -95,7 +96,7 @@ overwrite = FALSE)
 names(j_ssn1a)
 summary(j_ssn1a)
 
-DFobs <- SSN2::ssn_get_data(j_ssn1a)
+DFobs <- SSN2::ssn_get_data(j_ssn1a) %>% clean_names(.)
 
 preds1 <- SSN2::ssn_get_data(j_ssn1a, name = "Preds_2019_2020")
 preds2 <- SSN2::ssn_get_data(j_ssn1a, name = "Preds_2021_2022")
@@ -157,7 +158,7 @@ On 03/04/2029, realized I needed to add in imputing of 2 observed sites for tota
 Note that both obs and preds need to be in the SSN object that is modeled. This results in the SSN model object having all the variables needed for the SSN predict function.
 	1. Use janitor clean_names function.
 	2. Make factors of vahusb and year.
-	3. Log total nitrogen. Do not square vsci as the response variable is not included in the preds data frame.
+	3. Log total nitrogen. 
 	4. Empirical logit transformations for impervious and forest
 	5. Dummy code transformation of factors for vahusb.
 
@@ -198,39 +199,22 @@ tothab_ds4 <- tothab_ds3|>
 # no longer any NAs
 summary(tothab_ds4$TotHab)
 
-# ggplot(tothab_ds4, aes(TotHab)) + geom_histogram()
-# 
-# ggplot(tothab_ds4, aes(TotHab)) + geom_boxplot()
-# ggplot(tothab_ds4, aes(x=TotHab)) + geom_density()
-
 tothab_ds4 <- rename(tothab_ds4,c(tothab = TotHab, st_id_tren = StationID_Trend ))
 head(tothab_ds4)
 
-# bizarre bug of having used lowercase in clean from janitor package on sf object
-# https://github.com/r-spatial/sf/issues/1891
-DFobs <- dplyr::rename(DFobs, st_id_tren = StationID_)
-
 # add tothab as new variable
-DFobs <- full_join(DFobs, tothab_ds4, by = join_by(st_id_tren))
+DFobs <- full_join(DFobs, tothab_ds4, by = join_by(station_id_2==st_id_tren))
 
-# now can put variables into lowercase
-DFobs <- clean_names(DFobs)
-# str(DFobs)
 names(DFobs)
+
+# remove datasets not needed downstream
+rm(tothab_ds1, tothab_ds2, dr_na, tothab_ds3, jr_na, tothab_ds4)
 ```
 
 # Transform Obs Covariates
 0n 06/28/20204 added for ju - yes and ju - no to test if partitioning on ju helpful first by looking at separate torgegrams and then in modeling.
 On 04/10/2024 added code for a binary presence covariate for impervious cover at watershed extent.
 ```{r transform_obs}
-
-# bizarre bug of having used lowercase in clean from janitor package on sf object
-# https://github.com/r-spatial/sf/issues/1891
-# DFobs <- dplyr::rename(DFobs, st_id_tren = StationID_)
-
-# now can put variables into lowercase
-# DFobs <- clean_names(DFobs)
-
 
 DFobs$year_f <- as.factor(DFobs$year)
 DFobs$vahusb <- factor(DFobs$vahusb, levels = c("JU", "JM", "JR", "JA", "JL"))
@@ -261,11 +245,6 @@ DFobs2 <- DFobs %>% mutate_at(c('pct_for_c', 'pct_for_w'), as.numeric)
 DFobs2$l_tn <- log(DFobs2$tn)
 
 DFobs2$vsci <- round(DFobs2$vscivcpmi,1)
-
-DFobs2$y2 <- round((DFobs2$vscivcpmi^2),1)
-# transformation suggested by Box-Cox
-# improved posterior predictive check and linearity from model_check
-
 
 names(DFobs2)
 
@@ -357,7 +336,7 @@ head(DFobsz$imp_w_pres)
 head(DFobsz$pct_imp_w)
 
 names(DFobsz)
-DFobsz2 <- dplyr::select(DFobsz, c(st_id_tren, pct_for_w_emplog:imp_w_pres))
+DFobsz2 <- dplyr::select(DFobsz, c(sstation_id_2, pct_for_w_emplog:imp_w_pres))
 # put transformed covariates in an SF object
 DFobs2a <- full_join(DFobs2, DFobsz2, by = join_by(st_id_tren))
 
@@ -383,14 +362,14 @@ DFobsz <- cbind(DFobsz,vahusb_d)
 names(DFobsz)
 
 X1 <- DFobsz|>
-   dplyr::select(st_id_tren, vahusb_JM, vahusb_JR, vahusb_JA, vahusb_JL) %>%
+   dplyr::select(station_id_2, vahusb_JM, vahusb_JR, vahusb_JA, vahusb_JL) %>%
   mutate_at(c('vahusb_JM', 'vahusb_JR', 'vahusb_JA', 'vahusb_JL'), as.numeric)
 # X1 can only contain numeric or factor
 
 str(X1)
 
 # put dummy covariates in an SF object
-DFobs3a <- full_join(DFobs2a, X1, by = join_by(st_id_tren))
+DFobs3a <- full_join(DFobs2a, X1, by = join_by(station_id_2))
 names(DFobs3a)
 
 # put SF object into SSN
