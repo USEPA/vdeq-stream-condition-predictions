@@ -836,6 +836,16 @@ a4ssn_wswq_ml1 <- ssn_lm(
   additive = "afv_area",
   partition_factor = ~ju
 )
+summary(a4ssn_wswq_ml1)
+
+# how do residuals and fitted values below compare to what comes out with augment function?
+
+aug_a4ssn_wswq_ml1 <- augment(a4ssn_wswq_ml1, drop = FALSE)
+class(aug_a4ssn_wswq_ml1)
+names(aug_a4ssn_wswq_ml1)
+
+head(aug_a4ssn_wswq_ml1$.fitted)
+
 
 # get spatial residuals from model
 spatResids<-residuals(a4ssn_wswq_ml1, cross.validation=T)
@@ -864,7 +874,7 @@ op05<-spat.Pred.pct[ox,"Q05"]
 op95 <- spat.Pred.pct[ox,"Q95"]
 
 # plot
-plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="Total Phosphorous Predicted Value",ylab="Total Phosphorous Observed Value",main="Spatial Model Observed vs. Predicted")
+plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Value",ylab="VSCI Observed Value",main="Spatial Model Observed vs. Predicted")
 abline(0,1,col="red")
 lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
 
