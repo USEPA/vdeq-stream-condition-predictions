@@ -819,9 +819,9 @@ st_write(z4rssn_wswq_reml1, dsn = file.path(getwd(), "z4rssn_wswq_reml1.gpkg"), 
 
 ```
 
-# TLH prediction interval work
+# TLH fitted to obs interval work
 
-```{r pred_interval}
+```{r fitted_interval}
 
 
 ## fit model
