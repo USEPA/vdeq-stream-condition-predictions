@@ -1336,6 +1336,12 @@ Commented out EDA code below.
 # ggpairs(DFobs8, columns = c(2:8))
 ```
 
+# 8.0 Script 03 SSN Output
+```{r script03_ssn_output}
+save(j_ssn3, file = "outputs/j_ssn3.RData")
+```
+
+
 # ZZZ Subset Test
 
 Cannot get subset working, return this later.
