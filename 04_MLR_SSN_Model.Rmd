@@ -14,6 +14,20 @@ output:
 editor_options: 
   chunk_output_type: console
 ---
+
+# OutlineThe purpose of this script is to model
+the relationship between VSCI and covariates across the 4 geographies of Watershed (Ws), Watershed-Riparian (WsRp), Catchment (Cat), and Catchment-Riparian (CatRp). For each of the 4 geographies, the modeling is done as follows:
+
+* Use besglm to select covariates 
+* Check model diagnostics of the MLR model
+* Run a SSN nugget model (SSN0), which is the equivalent to an MLR model, and check diagnostic plots
+* Run the SSN1 with covariates and spatial autocovariances. Note the spatial autocovariances are identified by running script 05.
+* Compare SSN0 to SSN1 to see if modeling spatial autocorrelation of residuals improved model fit and model prediction
+* Plot loocv observed and predicted
+* Map residuals
+* Test for random effects of trend stations versus status stations. Trends stations are sampled repeated, with station_id_2 being the identifier that distinguishes trend from status stations. Status stations are only sampled one time.
+
+Log Keeping log below for now when reach final version will delete.
 11/21/2024 Only retained modeling chunks. Loading SSN that was produced in script 03.
 
 On 10/15/2024 added waterbody data for Travis to evaluate on github.
@@ -114,7 +128,7 @@ load("outputs/j_ssn3.RData")
 ```
 
 
-# 3.0 Bestglm, Nugget and SSN Models
+# 2.0 Bestglm, Nugget and SSN Models
 
 # 3.1 Dummy Coding of Factors
 Dummy coding for ecoregions, Virginia hydrologic unit subbasins, wetlands, impervious surfaces, and total phosphorus.
@@ -344,11 +358,9 @@ alt_dat_dummy = df_dum_tp$alt_dat
 ```
 
 
-
-
-# 3.20 SSN Ws, WsRp, Cat, CatRp & Wq Models
+# 3.20 SSN Ws, WsRp, Cat, & CatRp Models
 I need Neptune to vet code below across all 4 geographies.
-## 3.21 Combined WS-Wq
+# 4.0 WS-Wq
 ### Z1 Bestglm and SSN0 Nugget Model
 On 07/12/2024 I will simply keep precip_mm and tmean in the candidate pool for all 4 geographies. No change to original selected covariates after I replaced precip_mm with d_precip_m and tmean with d_t_mean, which are deviations from 30-year normals for precip and temperature.
 On 04/22/2024 changed WsWq so that precip_mm and tmean are now included, but they were not selected by bestglm. The previous wetland factor with multiple levels was replaced with a binary absence/presence variable. 
@@ -645,7 +657,7 @@ models_rand1 <- glances(ssn0_wswq_mlr, ssn_wswq_reml1, ssn_wswq_rand1)
 
 ```
 
-## 3.22 Combined WsRp-Wq
+# 5.0 WsRp-Wq
 ### Y1
 On 04/22/2024 changes WsWq so that precip_mm and tmean are now included. The previous wetland factor with multiple levels was replaced with a binary absence/presence variable. 
 On 04/17/2024 caught typo in WsRpWQ as "pct_hay_w_emplog" listed and corrected to "pct_hay_wr_emplog".
@@ -770,7 +782,7 @@ mapview(aug_ssn_wsrpwq_reml1, zcol = ".std.resid", cex = ".std.resid", alpha.reg
 
 
 
-## 3.23 Combined Cat-Wq
+# 6.0 Cat-Wq
 ### X1
 On 04/22/2024 changes CatWq so that precip_mm and tmean are now included. The previous wetland factor with multiple levels was replaced with a binary absence/presence variable as was grass cover. VSCI values at pct_grs_c_emplog at 0 encompasses range of VSCI values at pct_grs_c_emplog > 0. 
 On 04/16/2024 running model on vsci and specifying exponential for tail down and Euclidean.
@@ -886,7 +898,7 @@ plot(ssn_catwq_rand1, which = c(1:6))
 models_rand3 <- glances(ssn0_catwq_mlr, ssn_catwq_reml1,ssn_catwq_rand1)
 ```
 
-## 3.24 Combined CatRp-Wq
+# 7.0 CatRp-Wq
 On 04/22/2024 changes CatRpWq so that precip_mm and tmean are now included. The previous wetland factor with multiple levels was replaced with a binary absence/presence variable as was grass cover.
 With this smallest geography (by extent and configuration), I have to shift some land cover from continuous to categorical. Grass at this geography has a median value of 0 so I made an absence/presence variable for grass cover so a form of that covariate is in the model.
 ### W1
