@@ -68,7 +68,6 @@ Can I use SSN2 package for some of ESDA of James River? Yes.
 # Library and Functions Load
 ```{r setup, collapse=TRUE}
 
-
 library(ggplot2)
 library(gridExtra)
 library(car)
@@ -108,6 +107,12 @@ library(plotly)
 knitr::opts_chunk$set(message=FALSE, warning=FALSE,collapse = T)
 
 ```
+
+# 1.0 Load SSN
+```{r ssn_from_script_03}
+
+```
+
 
 # 3.0 Bestglm, Nugget and SSN Models
 
