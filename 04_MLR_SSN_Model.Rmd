@@ -110,7 +110,7 @@ knitr::opts_chunk$set(message=FALSE, warning=FALSE,collapse = T)
 
 # 1.0 Load SSN
 ```{r ssn_from_script_03}
-
+load("outputs/j_ssn3.RData")
 ```
 
 
