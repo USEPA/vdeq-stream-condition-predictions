@@ -213,6 +213,7 @@ rm(tothab_ds1, tothab_ds2, dr_na, tothab_ds3, jr_na, tothab_ds4)
 ```
 
 # Transform Obs Covariates
+On 11/25/2024 added WWTP, STATSGo_Set2, and waterbody covariates.
 0n 06/28/20204 added for ju - yes and ju - no to test if partitioning on ju helpful first by looking at separate torgegrams and then in modeling.
 On 04/10/2024 added code for a binary presence covariate for impervious cover at watershed extent.
 ```{r transform_obs}
@@ -246,6 +247,71 @@ DFobs2 <- DFobs %>% mutate_at(c('pct_for_c', 'pct_for_w'), as.numeric)
 DFobs2$l_tn <- log(DFobs2$tn)
 
 DFobs2$vsci <- round(DFobs2$vscivcpmi,1)
+
+# WWTP data
+wwtp_ds1 <- read.csv("data/WWTP_VA.csv") %>% clean_names(.)
+
+DFobs2 <- left_join(DFobs2, wwtp_ds1, by = join_by(feature_id == comid))
+
+DFobs2 <- DFobs2 %>% 
+  mutate(
+    wwtp = case_when(
+      wwtp_all_dens_ws > 0 ~ "yes",
+      wwtp_all_dens_ws == 0 ~ "no"
+    )
+  )
+
+DFobs2$wwtp <- factor(DFobs2$wwtp, levels = c("yes","no"))
+summary(DFobs2$wwtp)
+
+# Statgo2 Set 2 variables, use RckDepWs
+statsgo_set2 <- read.csv("data/STATSGO_Set2_VA.csv") %>% clean_names(.)
+
+names(statsgo_set2)
+
+DFobs2 <- left_join(DFobs2, statsgo_set2, by = join_by(feature_id == comid))
+
+# Waterbody data
+wb_ds1 <- read.csv("data/ObservationPoints_DistancesUpstream_100424.csv") %>% clean_names(.)
+class(wb_ds1)
+names(wb_ds1)
+head(wb_ds1)
+str(wb_ds1)
+summary(wb_ds1$num_waterbody_up, na.rm = TRUE)
+summary(wb_ds1$dist_nearest_up_wb_km, na.rm = TRUE)
+wb_ds1$dist_nearest_up_wb_km <- round(wb_ds1$dist_nearest_up_wb_km, 1)
+
+summary(wb_ds1$dist_nearest_up_wb_km, na.rm = TRUE)
+# file below provides a link to waterbody, and subsequently to DFobs data.
+StationIDs_UniqLocIDs <- read.csv("data/StationIDs_UniqLocIDs.csv") %>% clean_names(.)
+
+names(StationIDs_UniqLocIDs)
+
+wb_ds2 <- left_join(StationIDs_UniqLocIDs, wb_ds1, by=join_by(uniq_loc_id))
+names(wb_ds2)
+
+# from help by = join_by(name == artist)
+# station_id_2 and station_id are both long station trend names
+DFobs2 <- left_join(DFobs2, wb_ds2, by = join_by(station_id_2==station_id))
+names(DFobs2)
+DFobs2 <- DFobs2 %>% 
+  mutate(
+    wbc = case_when(
+      incl_nhdwb == "yes" ~ "present",
+      incl_nhdwb != "yes" ~ "absent"
+    )
+  )
+
+class(DFobs2$wbc)
+
+DFobs2$wbc <- factor(DFobs2$wbc, levels = c("present", "absent"))
+summary(DFobs2$wbc)
+
+summary(DFobs2$dist_nearest_up_wb_km)
+
+DFobs2$dist_nearest_up_wb_km[is.na(DFobs2$dist_nearest_up_wb_km)] <- 0
+
+summary(DFobs2$dist_nearest_up_wb_km)
 
 names(DFobs2)
 
