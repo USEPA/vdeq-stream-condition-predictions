@@ -849,6 +849,8 @@ plot(res_tg1, main = "Torgegram of Residuals from Watershed SSN")
 ```
 
 # SSN Model Partitioned
+
+On 11/25/2024 why does z4ssn_wswq_ml1 model give much more reasonable range estimates than reml model?
 On 07/03/2024 need to look at diagnostic plots of partition model. Diagnostic plots are saved as Word files at E:\R_vdeq_sci\Working\Data\neptune_analysis\scripts_by_basin.
 On 06/28/2024, I coded for a partition factor base on JU subbasin versus non-JU subasins , partly because parallel coordinate plot showed JU to differ in covariates and vsci from rest of subbasins. Results from dummy coded model above match factor coded model below. Also, on 06/20/2024 compared the Watershed ssn model to a model with a random effect of year. The Watershed ssn model had a much lower AICc than the model with a random effect of year.
 ```{r wswq_ssn_factor}
@@ -968,37 +970,37 @@ loocv(z4ssn_wswq_ml1) %>% print(n = Inf)
 # TLH fitted to obs interval work
 
 ```{r fitted_interval}
-
+# z4 model was run above
 
 ## fit model
-a4ssn_wswq_ml1 <- ssn_lm(
-  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
-  ssn.object = j_ssn3,
-  tailup_type = "none",
-  taildown_type = "exponential",
-  euclid_type = "exponential",
-  nugget_type = "nugget",
-  estmethod = "ml",
-  additive = "afv_area",
-  partition_factor = ~ju
-)
-summary(a4ssn_wswq_ml1)
+# z4ssn_wswq_ml1 <- ssn_lm(
+#   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
+#   ssn.object = j_ssn3,
+#   tailup_type = "none",
+#   taildown_type = "exponential",
+#   euclid_type = "exponential",
+#   nugget_type = "nugget",
+#   estmethod = "ml",
+#   additive = "afv_area",
+#   partition_factor = ~ju
+# )
+summary(z4ssn_wswq_ml1)
 
 # how do residuals and fitted values below compare to what comes out with augment function?
 
-aug_a4ssn_wswq_ml1 <- augment(a4ssn_wswq_ml1, drop = FALSE)
-class(aug_a4ssn_wswq_ml1)
-names(aug_a4ssn_wswq_ml1)
+aug_z4ssn_wswq_ml1 <- augment(z4ssn_wswq_ml1, drop = FALSE)
+class(aug_z4ssn_wswq_ml1)
+names(aug_z4ssn_wswq_ml1)
 
-head(aug_a4ssn_wswq_ml1$.fitted)
+head(aug_z4ssn_wswq_ml1$.fitted)
 
 
 # get spatial residuals from model
-spatResids<-residuals(a4ssn_wswq_ml1, cross.validation=T)
+spatResids<-residuals(z4ssn_wswq_ml1, cross.validation=T)
 
 # pull sd of residuals and fitted values
 resid_SD = sd(spatResids)
-fitted_vals = a4ssn_wswq_ml1$fitted$response
+fitted_vals = z4ssn_wswq_ml1$fitted$response
 
 # combine to a dataframe
 spat<-cbind(fitted_vals,resid_SD^2)
@@ -1036,7 +1038,7 @@ legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y 
 ```
 
 
-# Additional Hypotheses
+# Additional Hypotheses for a4 model
 On 11/25/2024 From Miller et al. 2017's results, suggested hypotheses about WWTPs and upstream reservoirs. Also, I will test a depth to bedrock soils hypothesis. The goal of adding these covariates is to get improvements in predictions for 2019-2022 data. This is referred to as the a4 model, for additional hypotheses. Note because of new covariates using ml estimation (Ver Hoef 2014 page 23).
 ```{r hypotheses}
 
@@ -1056,7 +1058,7 @@ varcomp(a4ssn_wswq_ml1)
 loocv(a4ssn_wswq_ml1) %>% print(n = Inf)
 
 glances(z4ssn_wswq_ml1,a4ssn_wswq_ml1)
-loocv(z5ssn_wswq_ml1)
+loocv(z4ssn_wswq_ml1)
 
 plot(a4ssn_wswq_ml1, which = c(1:6))
 
@@ -1086,23 +1088,23 @@ ggplot(DFobs3a, aes(x = dist_nearest_up_wb_km, y = vsci)) + geom_point() + facet
 
 ggplot(DFobs3a, aes(x = dist_nearest_up_wb_km, y = vsci)) + geom_point() + geom_smooth(method = "lm", se =TRUE)
 
-a5ssn_wswq_reml1 <- ssn_lm(
+a5ssn_wswq_ml1 <- ssn_lm(
   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
   ssn.object = j_ssn3,
   tailup_type = "none",
   taildown_type = "exponential",
   euclid_type = "exponential",
   nugget_type = "nugget",
-  estmethod = "reml",
+  estmethod = "ml",
   additive = "afv_area",
   partition_factor = ~ju
 )
 
-summary(a5ssn_wswq_reml1)
-varcomp(a5ssn_wswq_reml1)
-loocv(a5ssn_wswq_reml1)
+summary(a5ssn_wswq_ml1)
+varcomp(a5ssn_wswq_ml1)
+loocv(a5ssn_wswq_ml1)
 
-glances(z5ssn_wswq_ml1,a5ssn_wswq_ml1)
+glances(z4ssn_wswq_ml1,a5ssn_wswq_ml1)
 
 plot(a5ssn_wswq_ml1, which = c(1:6))
 
@@ -1122,6 +1124,7 @@ avPlots(a5_mlr1)
 ```
 
 # Preds for Distance Hypothesis
+Note for predictions want estimation method to be reml.
 Looking to see if distance to nearest upstream waterbody covariate pulls outliers closer to 1:1 line, which is the a5 model.
 ```{r hypotheses_preds}
 # check stats on pred covariates to make sure corrects preds ssn data frame being used
@@ -1135,6 +1138,17 @@ summary(j_ssn3$preds$Preds_2019_2022$dist_nearest_up_wb_km)
 summary(j_ssn3)
 str(j_ssn3$obs$pct_imp_w_emplog)
 
+a5ssn_wswq_reml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area",
+  partition_factor = ~ju
+)
 
 # augment returns an sf object
 a5predict1ws_vsci <- augment(a5ssn_wswq_reml1, newdata = "Preds_2019_2022", se_fit = TRUE, interval = c("prediction"))
