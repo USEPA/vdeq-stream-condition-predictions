@@ -831,7 +831,7 @@ names(resid_ssn1)
 
 ssn_wswq_fit_reml1 <- dplyr::select(aug_ssn_wswq_reml1, c(station_id, st_id_tren, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, pct_imp_w, elev_ws, pct_imp_w_emplog, vsci, .fitted, .std.resid))
 
-saveRDS(ssn_wswq_fit_reml1, file = "ssn_wswq_fit_reml1.rds")
+saveRDS(ssn_wswq_fit_reml1, file = "outputs/ssn_wswq_fit_reml1.rds")
 
 st_write(ssn_wswq_fit_reml1, dsn = file.path(getwd(), "ssn_wswq_fit_reml1.gpkg"), layer = "ssn_wswq_fit_reml1", driver = "GPKG", quiet = FALSE, append = FALSE)
 
@@ -940,9 +940,28 @@ mapview(z4rssn_wswq_reml1, zcol = ".std.resid", cex = ".std.resid", alpha.region
 
 z4rssn_wswq_reml1 <- dplyr::select(z4rssn_wswq_reml1, c(station_id, st_id_tren, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, pct_imp_w, elev_ws, pct_imp_w_emplog, vsci, .fitted, .std.resid))
 
-saveRDS(z4rssn_wswq_reml1, file = "z4rssn_wswq_reml1.rds")
+saveRDS(z4rssn_wswq_reml1, file = "outputs/z4rssn_wswq_reml1.rds")
 
 st_write(z4rssn_wswq_reml1, dsn = file.path(getwd(), "z4rssn_wswq_reml1.gpkg"), layer = "z4rssn_wswq_reml1", driver = "GPKG", quiet = FALSE, append=FALSE)
+
+# B/c want to compare predictions from models having different covariates specifying estimation method as ml
+
+z4ssn_wswq_ml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "ml",
+  additive = "afv_area",
+  partition_factor = ~ ju
+)
+summary(z4ssn_wswq_ml1)
+varcomp(z4ssn_wswq_ml1)
+loocv(z4ssn_wswq_ml1) %>% print(n = Inf)
+
+
 
 ```
 
@@ -1017,12 +1036,12 @@ legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y 
 ```
 
 
-
 # Additional Hypotheses
+On 11/25/2024 From Miller et al. 2017's results, suggested hypotheses about WWTPs and upstream reservoirs. Also, I will test a depth to bedrock soils hypothesis. The goal of adding these covariates is to get improvements in predictions for 2019-2022 data. This is referred to as the a4 model, for additional hypotheses. Note because of new covariates using ml estimation (Ver Hoef 2014 page 23).
 ```{r hypotheses}
 
 a4ssn_wswq_ml1 <- ssn_lm(
-  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + rck_dep_ws + wwtp + wbc,
   ssn.object = j_ssn3,
   tailup_type = "none",
   taildown_type = "exponential",
@@ -1036,7 +1055,7 @@ summary(a4ssn_wswq_ml1)
 varcomp(a4ssn_wswq_ml1)
 loocv(a4ssn_wswq_ml1) %>% print(n = Inf)
 
-glances(z5ssn_wswq_ml1,a4ssn_wswq_ml1)
+glances(z4ssn_wswq_ml1,a4ssn_wswq_ml1)
 loocv(z5ssn_wswq_ml1)
 
 plot(a4ssn_wswq_ml1, which = c(1:6))
@@ -1056,6 +1075,40 @@ a4rssn_wswq_ml1 <- dplyr::select(a4rssn_wswq_ml1, c(station_id, st_id_tren, year
 # st_write(a4rssn_wswq_ml1, dsn = file.path(getwd(), "a4rssn_wswq_ml1.gpkg"), layer = "a4rssn_wswq_ml1", driver = "GPKG", quiet = FALSE)
 
 ```
+
+# Distance Hypothesis
+Run ML estimation when comparing to models with different covariates. Run with REML when comparing to models with different spatial autocovariances and for prediction. Tried running interaction of wbc*dist_nearest_up_wb_km, but got error of singular matrix. Consequently, only tested model using continuous covariate dist_nearest_up_wb_km.
+
+```{r distance_hypothesis}
+# test distance covariate in model a5
+
+ggplot(DFobs3a, aes(x = dist_nearest_up_wb_km, y = vsci)) + geom_point() + facet_wrap(vars(wbc))  + geom_smooth(method = "lm", se =TRUE)
+
+ggplot(DFobs3a, aes(x = dist_nearest_up_wb_km, y = vsci)) + geom_point() + geom_smooth(method = "lm", se =TRUE)
+
+a5ssn_wswq_reml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area",
+  partition_factor = ~ju
+)
+
+summary(a5ssn_wswq_reml1)
+varcomp(a5ssn_wswq_reml1)
+loocv(a5ssn_wswq_reml1)
+
+glances(z5ssn_wswq_ml1,a5ssn_wswq_ml1)
+
+plot(a5ssn_wswq_ml1, which = c(1:6))
+
+
+```
+
 
 # Compare SSN Models with ML
 This to compare different SSN models having different covariates and slopes from these models are used in coefficient plot.
