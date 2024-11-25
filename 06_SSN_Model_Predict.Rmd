@@ -444,19 +444,12 @@ j_ssn3 <-  SSN2::ssn_put_data(DFobs3a,j_ssn3)
 ```
 
 # Transform Pred Covariates
-Before running code below, make sure that correct preds data frame is specified and that it corresponds to Preds_YYYY_YYYY in SSN object.
-04/19/2024 using James04172024.ssn.
-On 04/042024 now using James040424.ssn.
-On 04/02/2024, discovered that preds2 was missing some variables so Pegasus is checking to the situation.
-On 04/022024 running preds2 from 2021-2022 through transformation so I can get preds2 predictions. Substitute preds2 data frame for preds1.
-Note not putting response variable y2 in preds as I think it gets created when predict SSN is used.
-```{r transform_preds}
-# bizarre bug of having used lowercase in clean from janitor package on sf object
-# https://github.com/r-spatial/sf/issues/1891
-preds3 <- dplyr::rename(preds2, st_id_tren = StationID_)
+On 11/25/2024 have to assign 0's for 31 of 48 preds that had distances of NA and additional covariates.
 
-# now can put variables into lowercase
-preds3 <- clean_names(preds3)
+
+```{r transform_preds}
+
+preds3 <- preds1
 
 # create same name as in obs models
 preds3$tothab <- preds3$tot_hab
@@ -488,9 +481,76 @@ preds3$l_tn <- log(preds3$tn)
 
 preds3$vsci <- round(preds3$vscivcpmi,1)
 
-preds3$vsci_sq <- round((preds3$vscivcpmi^2),1)
-# transformation suggested by Box-Cox
-# improved posterior predictive check and linearity from model_check
+# WWTP data loaded from obs so comment  out
+# wwtp_ds1 <- read.csv("E:/R_vdeq_nhdplus/WWTP_VA.csv") %>% clean_names(.)
+
+preds3 <- left_join(preds3, wwtp_ds1, by = join_by(feature_id == comid))
+
+preds3 <- preds3 %>% 
+  mutate(
+    wwtp = case_when(
+      wwtp_all_dens_ws > 0 ~ "yes",
+      wwtp_all_dens_ws == 0 ~ "no"
+    )
+  )
+
+preds3$wwtp <- factor(preds3$wwtp, levels = c("yes","no"))
+summary(preds3$wwtp)
+
+# loaded from obs so commented out
+# Statgo2 Set 2 variables, use RckDepWs
+#statsgo_set2 <- read.csv("E:/R_vdeq_nhdplus/STATSGO_Set2_VA.csv") %>% clean_names(.)
+
+names(statsgo_set2)
+
+preds3 <- left_join(preds3, statsgo_set2, by = join_by(feature_id == comid))
+
+# Preds Waterbody data
+preds1wb_ds1 <- read.csv("data/PredictionPoints_2019_2020_DistancesUpstream_091924.csv") %>% clean_names(.)
+
+preds2wb_ds1 <- read.csv("data/PredictionPoints_2021_2022_DistancesUpstream_091924.csv") %>% clean_names(.)
+
+predsallwb_ds1 <- bind_rows(preds1wb_ds1, preds2wb_ds1)
+
+class(predsallwb_ds1)
+names(predsallwb_ds1)
+head(predsallwb_ds1)
+str(predsallwb_ds1)
+summary(predsallwb_ds1$num_waterbody_up, na.rm = TRUE)
+summary(predsallwb_ds1$dist_nearest_up_wb_km, na.rm = TRUE)
+predsallwb_ds1$dist_nearest_up_wb_km <- round(predsallwb_ds1$dist_nearest_up_wb_km, 1)
+
+summary(predsallwb_ds1$dist_nearest_up_wb_km, na.rm = TRUE)
+
+summary(predsallwb_ds1$dist_nearest_up_wb_km)
+
+predsallwb_ds1$dist_nearest_up_wb_km[is.na(predsallwb_ds1$dist_nearest_up_wb_km)] <- 0
+
+summary(predsallwb_ds1$dist_nearest_up_wb_km)
+
+# file below provides a link to waterbody, and subsequently to DFobs data so commented out for pred
+# StationIDs_UniqLocIDs <- read.csv("E:/R_vdeq_sci/Working/StationIDs_UniqLocIDs.csv") %>% clean_names(.)
+# 
+# names(StationIDs_UniqLocIDs)
+# 
+# wb_ds2 <- left_join(StationIDs_UniqLocIDs, wb_ds1, by=join_by(uniq_loc_id))
+# names(wb_ds2)
+
+# from help by = join_by(name == artist)
+# station_id_2 and station_id are both long station trend names
+preds3 <- left_join(preds3, predsallwb_ds1, by = join_by(station_id_2 == station_id))
+names(preds3)
+
+preds3 <- preds3 %>% 
+  mutate(
+    wbc = case_when(
+      incl_nhdwb == "yes" ~ "present",
+      incl_nhdwb != "yes" ~ "absent"
+    )
+  )
+
+preds3$wbc <- factor(preds3$wbc, levels = c("present", "absent"))
+summary(preds3$wbc)
 
 names(preds3)
 
@@ -591,8 +651,8 @@ class(preds3a)
 # saveRDS(preds3a, file = "preds3a.rds")
 
 # put SF object into SSN
-j_ssn3 <-  SSN2::ssn_put_data(preds3a,j_ssn3, name = "Preds_2021_2022", resize_data = FALSE)
-summary(j_ssn3$preds$Preds_2021_2022$pct_imp_w_emplog)
+j_ssn3 <-  SSN2::ssn_put_data(preds3a,j_ssn3, name = "Preds_2019_2022", resize_data = FALSE)
+summary(j_ssn3$preds$Preds_2019_2022$pct_imp_w_emplog)
 
 
 # dummy code 5 vahusb with base being JU, James Upper
@@ -625,12 +685,12 @@ preds3b <- full_join(preds3a, P1, by = join_by(st_id_tren))
 names(preds3b)
 
 # put SF object into SSN
-j_ssn3 <-  SSN2::ssn_put_data(preds3b,j_ssn3, "Preds_2021_2022", resize_data = FALSE)
+j_ssn3 <-  SSN2::ssn_put_data(preds3b,j_ssn3, "Preds_2019_2022", resize_data = FALSE)
 
 summary(j_ssn3)
 
 # Check that afv_area is in SSN object
-str(j_ssn3$preds$Preds_2021_2022$afv_area)
+str(j_ssn3$preds$Preds_2019_2022$afv_area)
 ```
 
 # Create Distance Matrix
