@@ -556,7 +556,7 @@ names(preds3)
 
 class(preds3)
 # note ssn_put_data requires sf object and SSN2 object
-j_ssn3 <-  SSN2::ssn_put_data(preds3,j_ssn3, name = "Preds_2021_2022", resize_data = FALSE)
+j_ssn3 <-  SSN2::ssn_put_data(preds3,j_ssn3, name = "Preds_2019_2022", resize_data = FALSE)
 summary(j_ssn3)
 
 # saveRDS(j_ssn3, file = "j_ssn3.rds")
@@ -642,9 +642,9 @@ predsz <- predsz %>%
 head(predsz$imp_w_pres)
 head(predsz$pct_imp_w)
 names(predsz)
-predsz2 <- dplyr::select(predsz, c(st_id_tren, pct_for_w_emplog:imp_w_pres))
+predsz2 <- dplyr::select(predsz, c(station_id_2, pct_for_w_emplog:imp_w_pres))
 # put transformed covariates in an SF object
-preds3a <- full_join(preds3, predsz2, by = join_by(st_id_tren))
+preds3a <- full_join(preds3, predsz2, by = join_by(station_id_2))
 summary(preds3a$pct_imp_w_emplog)
 class(preds3a)
 
@@ -674,14 +674,14 @@ predsz <- cbind(predsz,vahusb_d)
 names(predsz)
 
 P1 <- predsz|>
-   dplyr::select(st_id_tren, vahusb_JM, vahusb_JR, vahusb_JA, vahusb_JL) %>%
+   dplyr::select(station_id_2, vahusb_JM, vahusb_JR, vahusb_JA, vahusb_JL) %>%
   mutate_at(c('vahusb_JM', 'vahusb_JR', 'vahusb_JA', 'vahusb_JL'), as.numeric)
 str(P1)
 
 # P1 can only contain numeric or factor for 22 preds
 
 # put dummy covariates in an SF object
-preds3b <- full_join(preds3a, P1, by = join_by(st_id_tren))
+preds3b <- full_join(preds3a, P1, by = join_by(station_id_2))
 names(preds3b)
 
 # put SF object into SSN
@@ -694,8 +694,8 @@ str(j_ssn3$preds$Preds_2019_2022$afv_area)
 ```
 
 # Create Distance Matrix
-When using a new SSN object, such as James_071024.ssn have to create distance matrices. Ran first set of code and now see a distance matrix folder in where the SSN object is stored at:
-E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/James_071224.ssn and see sub folders for obs and Preds_2019_2020. Ran second set of code and now see Preds_2021_2022 subfolder.
+When using a new SSN object, such as James_071024_pluspreds.ssn have to create distance matrices. Ran first set of code and now see a distance matrix folder in where the SSN object is stored at:
+ssn_object/James_071024_pluspreds.ssn and see sub folders for obs and Preds_2019_2022 subfolder.
 
 ```{r distance_matrix}
 
