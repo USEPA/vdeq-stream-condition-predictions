@@ -1109,6 +1109,90 @@ plot(a5ssn_wswq_ml1, which = c(1:6))
 
 ```
 
+# Check Nonspatial Diagnostics on a5 model
+Get checks on collinearity, added variable plots and other diagnostics.
+Diagnostics look good.
+```{r a5_mlr_diagnostics}
+a5_mlr1 <- lm(vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
+  data = DFobs3a)
+
+summary(a5_mlr1)
+check_model(a5_mlr1)
+avPlots(a5_mlr1)
+```
+
+# Preds for Distance Hypothesis
+Looking to see if distance to nearest upstream waterbody covariate pulls outliers closer to 1:1 line, which is the a5 model.
+```{r hypotheses_preds}
+# check stats on pred covariates to make sure corrects preds ssn data frame being used
+summary(j_ssn3$preds$Preds_2019_2022$pct_imp_w_emplog)
+summary(j_ssn3$preds$Preds_2019_2022$elev_ws)
+summary(j_ssn3$preds$Preds_2019_2022$do)
+summary(j_ssn3$preds$Preds_2019_2022$vahusb_JL)
+summary(j_ssn3$preds$Preds_2019_2022$dist_nearest_up_wb_km)
+
+
+summary(j_ssn3)
+str(j_ssn3$obs$pct_imp_w_emplog)
+
+
+# augment returns an sf object
+a5predict1ws_vsci <- augment(a5ssn_wswq_reml1, newdata = "Preds_2019_2022", se_fit = TRUE, interval = c("prediction"))
+# class(predict1ws_vsci)
+# names(predict1ws_vsci)
+a5predict1ws_vsci$vsci_pred <- round(a5predict1ws_vsci$.fitted,1)
+a5predict1ws_vsci$vsci_lwr <- round(a5predict1ws_vsci$.lower,1)
+a5predict1ws_vsci$vsci_upr <- round(a5predict1ws_vsci$.upper,1)
+
+# Pineiro 2008 put observed on y and predict on x
+# label specific points
+# https://stackoverflow.com/questions/15624656/label-points-in-geom-point
+
+# plotting without 1:1 abline shows how weak correlation is.
+ggplot(a5predict1ws_vsci, aes(x = vsci_pred, y = vsci)) + geom_point() + geom_abline()
+
+a5preds2019_2022_v1 <- ggplot(a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_text(aes(label =ifelse(vsci<45, as.character(station_id_2), '')), hjust = -0.1, vjust = 0)+ labs(x = "Predicted VSCI", y = "Observed VSCI, 2019-2022", title = "a5reml Watershed SSN JU Partitioned") + xlim(35,80) + ylim(35,80)
+
+png(file="figures_sfs/a5preds2019_2022_v1.png",width=6,height=3,units="in",res=150)
+  a5preds2019_2022_v1
+dev.off()
+
+cor(a5predict1ws_vsci$vsci_pred,a5predict1ws_vsci$vsci, method = "pearson")
+
+#2019-2022 a5reml correlation with partition factor of ju and distance covariate is 0.57
+
+# 2019-2022 correlation w/partition factor of ju and additional covariates was 0.54
+as.data.frame(a5predict1ws_vsci)|>
+  dplyr::select(vsci_pred,vsci)|>
+  correlate()
+
+#check as outlier differs in 2019-20, 2-BSC001.58, vs 2021-22, 2-WPK002.93
+as.data.frame(a5predict1ws_vsci)|>
+  dplyr::filter(station_id_2 != "2-WPK002.93" & station_id_2 != "2-BSC001.58") |>
+  dplyr::select(vsci_pred,vsci)|>
+  correlate()
+# dropping outliers a5reml gives corr 0.49 for 2019-2022
+
+ggplot(a5predict1ws_vsci, aes(x = vsci_pred, y = vsci)) + geom_point() + geom_abline() + geom_errorbar(aes(xmax = vsci_upr, xmin = vsci_lwr)) + labs(x = "Predicted VSCI", y = "Observed VSCI, 2019-2022")
+
+mapview(a5predict1ws_vsci)
+
+# gather covariates, preds, write out geopackage for 2 prediction datasets. Comment out code based if preds1 or preds2 is used
+
+# a4preds_cov_19_20 <- dplyr::select(a4predict1ws_vsci, c(station_id, st_id_tren, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, elev_ws, pct_imp_w_emplog, vsci, vahusb, vsci_pred, .se.fit, vsci_lwr,vsci_upr))
+# 
+# saveRDS(a4preds_cov_19_20, file = "a4preds_cov_19_20.rds")
+# 
+# st_write(a4preds_cov_19_20, dsn = file.path(getwd(), "a4preds_cov_1920.gpkg"), layer = "a4preds_cov_1920", driver = "GPKG", quiet = FALSE)
+
+# a4preds_cov_19_22 <- dplyr::select(a4predict1ws_vsci, c(station_id, st_id_tren, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, elev_ws, pct_imp_w_emplog, vahusb, vsci, vsci_pred, .se.fit, vsci_lwr,vsci_upr))
+# 
+# saveRDS(a4preds_cov_19_22, file = "a4preds_cov_19_22.rds")
+# 
+# st_write(a4preds_cov_19_22, dsn = file.path(getwd(), "preds_cov_19_22.gpkg"), layer = "preds_cov_1922", driver = "GPKG", quiet = FALSE)
+
+```
+
 
 # Compare SSN Models with ML
 This to compare different SSN models having different covariates and slopes from these models are used in coefficient plot.
