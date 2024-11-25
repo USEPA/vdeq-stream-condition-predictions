@@ -15,6 +15,8 @@ editor_options:
   chunk_output_type: console
 ---
 
+11/25/2024 using James_071024_pluspreds as ssn object as has all 46 prediction points in one shapefile. And bringing additional covariates. Needing to assign 0's to preds_2019_2022 that initially had dist_nearest_up_wb_km set to NA for 31 of 48 prediction points.
+
 11/19/2024 trying to run TLH code chunk for prediction interval graph
 
 On 10/24/2024, went through the code with Travis and now runs without errors all chunks above Status vs Trend Predictions chunk. Pushed to repository.
@@ -82,9 +84,9 @@ knitr::opts_chunk$set(message=FALSE, warning=FALSE,collapse = T)
 
 # SSN Observations and Preds
 ```{r ssn_obs_preds}
-# now bringing two predpts
+# now bringing predpts 2019-2022 combined
 # current ssn
-j_ssn1a <- SSN2::ssn_import("ssn_object/James_071024.ssn", predpts = c("Preds_2019_2020", "Preds_2021_2022"),
+j_ssn1a <- SSN2::ssn_import("E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/James_071024_pluspreds.ssn", predpts = c("Preds_2019_2022"),
 overwrite = FALSE)
 
 # previous ssn
@@ -98,8 +100,7 @@ summary(j_ssn1a)
 
 DFobs <- SSN2::ssn_get_data(j_ssn1a) %>% clean_names(.)
 
-preds1 <- SSN2::ssn_get_data(j_ssn1a, name = "Preds_2019_2020")
-preds2 <- SSN2::ssn_get_data(j_ssn1a, name = "Preds_2021_2022")
+preds1 <- SSN2::ssn_get_data(j_ssn1a, name = "Preds_2019_2022") %>% clean_names(.)
 
 # str(preds1)
 # str(preds2)
