@@ -696,14 +696,13 @@ str(j_ssn3$preds$Preds_2019_2022$afv_area)
 # Create Distance Matrix
 When using a new SSN object, such as James_071024_pluspreds.ssn have to create distance matrices. Ran first set of code and now see a distance matrix folder in where the SSN object is stored at:
 ssn_object/James_071024_pluspreds.ssn and see sub folders for obs and Preds_2019_2022 subfolder.
-
+Already run so commented out.
 ```{r distance_matrix}
 
-# Distance matrix for obs and first set of prediction points from 2019 and 2020
-SSN2::ssn_create_distmat(j_ssn3, predpts = "Preds_2019_2020", overwrite = TRUE)
+# Distance matrix for obs and first set of prediction points from 2019-2022
+# SSN2::ssn_create_distmat(j_ssn3, predpts = "Preds_2019_2022", overwrite = TRUE)
 
-# Distance matrix for second set of prediction points
-SSN2::ssn_create_distmat(j_ssn3, predpts = "Preds_2021_2022", overwrite = TRUE, among_predpt = TRUE, only_predpts = TRUE)
+
 ```
 
 
