@@ -823,12 +823,12 @@ ggplot(aug_ssn_wswq_reml1, aes(x = vahusb, y = .fitted)) + geom_boxplot()
 names(aug_ssn_wswq_reml1)
 
 resid_ssn1 <- as.data.frame(aug_ssn_wswq_reml1)|>
-   dplyr::select(st_id_tren, .fitted, .resid, .std.resid)
+   dplyr::select(station_id_2, .fitted, .resid, .std.resid)
 
 class(resid_ssn1)
 names(resid_ssn1)
 
-ssn_wswq_fit_reml1 <- dplyr::select(aug_ssn_wswq_reml1, c(station_id, st_id_tren, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, pct_imp_w, elev_ws, pct_imp_w_emplog, vsci, .fitted, .std.resid))
+ssn_wswq_fit_reml1 <- dplyr::select(aug_ssn_wswq_reml1, c(station_id, station_id_2, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, pct_imp_w, elev_ws, pct_imp_w_emplog, vsci, .fitted, .std.resid))
 
 saveRDS(ssn_wswq_fit_reml1, file = "outputs/ssn_wswq_fit_reml1.rds")
 
@@ -837,7 +837,7 @@ st_write(ssn_wswq_fit_reml1, dsn = file.path(getwd(), "ssn_wswq_fit_reml1.gpkg")
 
 
 # put dummy covariates in an SF object
-DFobs4 <- full_join(DFobs3a, resid_ssn1, by = join_by(st_id_tren))
+DFobs4 <- full_join(DFobs3a, resid_ssn1, by = join_by(station_id_2))
 names(DFobs4)
 
 # put SF object into SSN
@@ -939,7 +939,7 @@ z4rssn_wswq_reml1 <- augment(z4ssn_wswq_reml1, drop = FALSE)
 summary(z4rssn_wswq_reml1$.std.resid)
 mapview(z4rssn_wswq_reml1, zcol = ".std.resid", cex = ".std.resid", alpha.regions = .8, legend = TRUE, popup = popupTable(aug_ssn_wswq_reml1, zcol = c(".std.resid"))) 
 
-z4rssn_wswq_reml1 <- dplyr::select(z4rssn_wswq_reml1, c(station_id, st_id_tren, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, pct_imp_w, elev_ws, pct_imp_w_emplog, vsci, .fitted, .std.resid))
+z4rssn_wswq_reml1 <- dplyr::select(z4rssn_wswq_reml1, c(station_id, station_id_2, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, pct_imp_w, elev_ws, pct_imp_w_emplog, vsci, .fitted, .std.resid))
 
 saveRDS(z4rssn_wswq_reml1, file = "outputs/z4rssn_wswq_reml1.rds")
 
@@ -1069,7 +1069,7 @@ a4rssn_wswq_ml1 <- augment(a4ssn_wswq_ml1, drop = FALSE)
 summary(a4rssn_wswq_ml1$.std.resid)
 mapview(a4rssn_wswq_ml1, zcol = ".std.resid", cex = ".std.resid", alpha.regions = .8, legend = TRUE, popup = popupTable(a4rssn_wswq_ml1, zcol = c(".std.resid"))) 
 
-a4rssn_wswq_ml1 <- dplyr::select(a4rssn_wswq_ml1, c(station_id, st_id_tren, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, pct_imp_w, elev_ws, pct_imp_w_emplog, vsci, .fitted, .std.resid))
+a4rssn_wswq_ml1 <- dplyr::select(a4rssn_wswq_ml1, c(station_id, station_id_2, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, pct_imp_w, elev_ws, pct_imp_w_emplog, vsci, .fitted, .std.resid))
 
 # saveRDS(a4rssn_wswq_ml1, file = "a4rssn_wswq_ml1.rds")
 # 
@@ -1383,31 +1383,20 @@ ggpairs(corr_cov1, columns = c(1:9))
 ```
 
 
-# Watershed Predictions 2019-20 and 2021-22
-Have to ensure that all transformations done on obs have been done on preds. On 06/17/2024 I wrote out a geopackage for Preds 2019-2020 that I can map and graph in QGIS. On 05/23/2024 I wrote out a geopackage for Preds 2021-2022 that I can map and graph in QGIS.
+# Watershed Predictions 2019-22
+Commented out as a5 distance model had better predictive performance than the z4 partitioned model.
 ```{r predictions}
 # check stats on pred covariates to make sure corrects preds ssn data frame being used
-summary(j_ssn3$preds$Preds_2021_2022$pct_imp_w_emplog)
-summary(j_ssn3$preds$Preds_2021_2022$elev_ws)
-summary(j_ssn3$preds$Preds_2021_2022$do)
-summary(j_ssn3$Preds_2021_2022$vahusb_JL)
+summary(j_ssn3$preds$Preds_2019_2022$pct_imp_w_emplog)
+summary(j_ssn3$preds$Preds_2019_2022$elev_ws)
+summary(j_ssn3$preds$Preds_2019_2022$do)
+summary(j_ssn3$Preds_2019_2022$vahusb_JL)
 
 summary(j_ssn3)
 str(j_ssn3$obs$pct_imp_w_emplog)
 
-# pred_vsci <- predict(ssn_wswq_reml1, "Wadeable_PredictionPts_snapped", interval = "prediction")
-# # predict returns a matrix, not that helpful
-# class(pred_vsci)
-# head(pred_vsci)
-# 
-# pred_vsci <- as.data.frame(pred_vsci)
-# 
-# pred_vsci$vsci_bktr <- sqrt(pred_vsci$fit)
-# pred_vsci$vsci_lwr <- sqrt(pred_vsci$lwr)
-# pred_vsci$vsci_upr <- sqrt(pred_vsci$upr)
-
 # augment returns an sf object
-z4predict1ws_vsci <- augment(z4ssn_wswq_reml1, newdata = "Preds_2021_2022", se_fit = TRUE, interval = c("prediction"))
+z4predict1ws_vsci <- augment(z4ssn_wswq_reml1, newdata = "Preds_2019_2022", se_fit = TRUE, interval = c("prediction"))
 class(z4predict1ws_vsci)
 names(z4predict1ws_vsci)
 z4predict1ws_vsci$vsci_pred <- round(z4predict1ws_vsci$.fitted,1)
@@ -1421,10 +1410,10 @@ z4predict1ws_vsci$vsci_upr <- round(z4predict1ws_vsci$.upper,1)
 # plotting without 1:1 abline shows how weak correlation is.
 ggplot(z4predict1ws_vsci, aes(x = vsci_pred, y = vsci)) + geom_point() + geom_abline()
 
-preds2021_2022_v1 <- ggplot(z4predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = st_id_tren)) + geom_point() + geom_abline() + geom_text(aes(label =ifelse(vsci<40, as.character(st_id_tren), '')), hjust = -0.1, vjust = 0)+ labs(x = "Predicted VSCI", y = "Observed VSCI, 2021-2022", title = "Watershed SSN") + xlim(35,80) + ylim(35,80)
+preds2019_2022_v1 <- ggplot(z4predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = st_id_tren)) + geom_point() + geom_abline() + geom_text(aes(label =ifelse(vsci<40, as.character(st_id_tren), '')), hjust = -0.1, vjust = 0)+ labs(x = "Predicted VSCI", y = "Observed VSCI, 2019-2022", title = "Watershed SSN z4 partitioned") + xlim(35,80) + ylim(35,80)
 
-png(file="figures_sfs/preds2021_2022_v1.png",width=6,height=3,units="in",res=150)
-  preds2021_2022_v1
+png(file="figures_sfs/preds2091_2022_v1.png",width=6,height=3,units="in",res=150)
+  preds2019_2022_v1
 dev.off()
 
 cor(z4predict1ws_vsci$vsci_pred,z4predict1ws_vsci$vsci, method = "pearson")
@@ -1458,9 +1447,9 @@ mapview(z4predict1ws_vsci)
 # 
 # saveRDS(z4preds_cov_19_20, file = "z4preds_cov_19_20.rds")
 
-z4preds_cov_21_22 <- dplyr::select(z4predict1ws_vsci, c(station_id, st_id_tren, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, elev_ws, pct_imp_w_emplog, vsci, vsci_pred, .se.fit, vsci_lwr,vsci_upr))
+z4preds_cov_19_22 <- dplyr::select(z4predict1ws_vsci, c(station_id, station_id_2, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, elev_ws, pct_imp_w_emplog, vsci, vsci_pred, .se.fit, vsci_lwr,vsci_upr))
 
-saveRDS(z4preds_cov_21_22, file = "z4preds_cov_21_22.rds")
+saveRDS(z4preds_cov_19_22, file = "z4preds_cov_19_22.rds")
 
 # commented out below b/c those assignments are for preds1, 2019-2020 points
 #st_write(preds_cov_1920, dsn = file.path(getwd(), "preds_cov_1920.gpkg"), layer = "preds_cov_1920", driver = "GPKG", quiet = FALSE, append = FALSE)
