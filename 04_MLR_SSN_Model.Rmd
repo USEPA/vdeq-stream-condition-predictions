@@ -131,7 +131,7 @@ load("outputs/j_ssn3.RData")
 # 2.0 Bestglm, Nugget and SSN Models
 
 # 3.1 Dummy Coding of Factors
-Dummy coding for ecoregions, Virginia hydrologic unit subbasins, wetlands, impervious surfaces, and total phosphorus.
+Dummy coding for ecoregions, Virginia hydrologic unit subbasins, wetlands, impervious surfaces, and total phosphorus. See the description of dummy coding at <https://stats.oarc.ucla.edu/r/library/r-library-contrast-coding-systems-for-categorical-variables/>.
 ```{r dummy_code}
 # select just X continuous covariates for watershed
 # remove geometry as bestglm does not want it
