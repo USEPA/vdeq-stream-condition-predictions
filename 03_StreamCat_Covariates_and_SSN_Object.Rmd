@@ -1,7 +1,7 @@
 ---
 title:  "James EDA StreamCat Covariates"
 author: "Michael McManus & Travis Linscome-Hatfield"
-date: "12/20/2023"
+date: "12/03/2024"
 output:
   html_document:
     fig_caption: yes
@@ -146,7 +146,7 @@ Pulling out DFobs gives an sf and data frame object in which variables can be ad
 
 Also, get some summary stats on the VDEQ stations.
 ```{r load data}
-j_ssn1a <- SSN2::ssn_import("ssn_object/James_071024.ssn", predpts = "sites")
+j_ssn1a <- SSN2::ssn_import("ssn_object/James_071024_pluspreds.ssn", predpts = "sites")
 
 
 names(j_ssn1a)
