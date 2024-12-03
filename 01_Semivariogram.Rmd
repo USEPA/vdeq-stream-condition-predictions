@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Outline
 
-The first dataset we are using is from the data paper <https://esajournals.onlinelibrary.wiley.com/doi/abs/10.1890/14-1345.1> by Stallings et al. We will use salinity data collected at 80 sites in the Gulf of Mexico from the Big Bend down to the Springs Coast of Florida. In the code chunks below we will cover the first bullet using the salinity data. For the remaining 3 bullets we will use the James River Spatial Stream Network (SSN) object. The James River SSN contains data from VDEQ's spatially balanced stream survey (ProbMon), the USFS's National Stream Internet (NSI), which has flowlines conditioned for SSN analysis, and EPA's Stream Catchment dataset (StreamCat), which can be assoicated to the NSI by a common COMID. Our exploratory spatial data analysis here will only use Euclidean distance.
+The first dataset we are using is from the data paper <https://esajournals.onlinelibrary.wiley.com/doi/abs/10.1890/14-1345.1> by Stallings et al. We will use salinity data collected at 80 sites in the Gulf of Mexico from the Big Bend down to the Springs Coast of Florida. In the code chunks below we will cover the first bullet using the salinity data. For the remaining 3 bullets we will use the James River Spatial Stream Network (SSN) object. The James River SSN contains data from VDEQ's spatially balanced stream survey (ProbMon), the USFS's National Stream Internet (NSI), which has flowlines conditioned for SSN analysis, and EPA's Stream Catchment dataset (StreamCat), which can be associated to the NSI by a common COMID. Our exploratory spatial data analysis here will only use Euclidean distance.
 
 * Reading and Writing Spatial Data
 * Summarizing Distances
