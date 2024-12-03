@@ -1,7 +1,7 @@
 ---
 title: "R_vdeq_toregram"
 author: "Michael McManus, US EPA/ORD"
-date: "10/23/2024"
+date: "12/03/2024"
 output:
   html_document: default
   pdf_document: default
@@ -46,8 +46,7 @@ Ideally for an SSN analysis, the data set has these 3 characteristics:
 * Spatial Clustering:  around confluences.
 
 ```{r ssn_import}
-j_ssn1a <- SSN2::ssn_import("E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/James_071024.ssn", predpts = "sites")
-
+j_ssn1a <- SSN2::ssn_import("ssn_object/James_071024_pluspreds.ssn", predpts = "sites")
 class(j_ssn1a)
 
 names(j_ssn1a)
@@ -61,7 +60,9 @@ names(DFobs)
 
 # this shows that DFobs is both an sf and data.frame
 class(DFobs)
+
 # note ssn_put_data requires sf object and SSN2 object
+# this is putting cleaned names of DFobs back into SSN2 object
 j_ssn1a <-  SSN2::ssn_put_data(DFobs,j_ssn1a)
 
 ```
