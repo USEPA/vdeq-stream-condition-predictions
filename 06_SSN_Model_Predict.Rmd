@@ -1,7 +1,7 @@
 ---
 title: "James SSN Predictions"
 author: "Michael McManus, Travis Linscome-Hatfield"
-date: "02/26/2024"
+date: "12/03/2024"
 output:
   html_document:
     fig_caption: yes
@@ -15,8 +15,11 @@ editor_options:
   chunk_output_type: console
 ---
 
+The purpose of this script is to make sure both obs and preds have the same covariates. This is required so that the SSN model built from the obs can then applied to make predictions at the preds. The 46 preds where withheld from from the SSN model building to provide an independent data set for measuring the predictive performance of the SSN model the The 46 preds were collected from spatially balanced probabilistic surveys collected from 2019-2022.
+
 11/25/2024 using James_071024_pluspreds as ssn object as has all 46 prediction points in one shapefile. And bringing additional covariates. Needing to assign 0's to preds_2019_2022 that initially had dist_nearest_up_wb_km set to NA for 31 of 48 prediction points.
 
+Keep logging going below and will delete when get final version of script.
 11/19/2024 trying to run TLH code chunk for prediction interval graph
 
 On 10/24/2024, went through the code with Travis and now runs without errors all chunks above Status vs Trend Predictions chunk. Pushed to repository.
@@ -86,7 +89,7 @@ knitr::opts_chunk$set(message=FALSE, warning=FALSE,collapse = T)
 ```{r ssn_obs_preds}
 # now bringing predpts 2019-2022 combined
 # current ssn
-j_ssn1a <- SSN2::ssn_import("E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/James_071024_pluspreds.ssn", predpts = c("Preds_2019_2022"),
+j_ssn1a <- SSN2::ssn_import("ssn_objects/James_071024_pluspreds.ssn", predpts = c("Preds_2019_2022"),
 overwrite = FALSE)
 
 # previous ssn
