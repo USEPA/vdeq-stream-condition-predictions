@@ -142,7 +142,7 @@ knitr::opts_chunk$set(message=FALSE, warning=FALSE,collapse = T)
 # 1.0 SSN and Initial Covariates
 
 Bring in the SSN object.
-Pulling out DFobs gives an sf and data frame object in which variables can be added, edited, modified, transformed, etc. and then put back into the SSN object.
+Pulling out DFobs gives an sf and data frame object in which variables can be added, edited, modified, transformed, etc. to the obs and preds and then put back into the SSN object.
 
 Also, get some summary stats on the VDEQ stations.
 ```{r load data}
@@ -338,11 +338,14 @@ Based on EDA decided not include ws_sand as covariate.
 ```
 
 ## 2.03 Explore STATSGO_Set2 Variables
-
+Mean seasonal water table depth (cm) of soils within within a wateshed is abbreviated as wt_dep_ws.
 wt_dep_ws values decrease going from west to east.
 JU, JM, and JR all have about same median, and much lower medians in JR and JL.
+Mean organic matter content (% by weight) of soils within a watershed is abbreviated as om_ws.
 om_ws shows west to east gradient on map, but lot of overlap among boxplots by vAHUSB.
+Mean permeability (cm/hour) of soils within a watershed is abbreviated as perm_ws.
 perm_ws spatially variable as highest medians in JU and JL and lower medians in JM, JR, and JA.
+Mean depth (cm) to bedrock of soils within watershed is abbreviated as rck_dep_ws.
 rck_dep_ws increases as go from west to east.
 rck_dep_ws has the largest correlation, -0.5, with VSCICPMI so likely only use that as covariate from STATSGO data.
 JL and JA have largest rck_dep_ws but with very little variation.
@@ -600,7 +603,7 @@ ggcorr(., method=c("pairwise", "spearman"), label = TRUE)
 
 ## 3.30 Factors: Ecoregion, Bioregion, VAHUSB, Year, Status and Trend Stations
 
-Based on parallel coordinate plots I made in step4_james_predict_v1.Rmd I made ju as yes/no factor to use in SSN partition factor argument.
+Based on parallel coordinate plots I made in 06_SSN Model_Predict.Rmd I made ju as yes/no factor to use in SSN partition factor argument.
 Emma Jones on 02/05/2024 sent shapefiles for VAHUSB polygons, Virginia hydrologic unit subbasins.
 These 5 polygons from West to East are: JU James River Upper, (Mountain) n = 71; JM James River Middle, (Piedmont) n = 79; JR James River - Rivanna River n = 12; JA James River - Appomattox River n = 29; and JL James River Lower, (Tidal) n = 8.
 I created a station type (st_type) factor to indicate a status or trend station.
