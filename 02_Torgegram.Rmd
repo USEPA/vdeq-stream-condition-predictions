@@ -68,7 +68,7 @@ j_ssn1a <-  SSN2::ssn_put_data(DFobs,j_ssn1a)
 ```
 
 ## Create Distance Matrix
-SSN2 creates a distance folder where distance R object stored. Look where the SSN object is located in File Explorer. In our case we are looking for the James_071024.ssn folder and within that is the distance folder. The creation of the distance matrix to calculate all three distant types only needs to be done once as long as the geography of points (observation or sites, and prediction points) and flowlines (edges) have not been altered. The function has already been run so it is commented out. Note that this distance matrix only contains distances for obs. When we go to make predictions with an SSN model we need to make sure and run the distance matrix and specify that is also to include distances for preds.
+SSN2 creates a distance folder where distance R object stored. Look where the SSN object is located in File Explorer. In our case we are looking for the James_071024_pluspreds.ssn folder and within that is the distance folder. The creation of the distance matrix to calculate all three distant types only needs to be done once as long as the geography of points (observation or sites, and prediction points) and flowlines (edges) have not been altered. The function has already been run so it is commented out. Note that this distance matrix only contains distances for obs. When we go to make predictions with an SSN model we need to make sure and run the distance matrix and specify that is also to include distances for preds.
 ```{r distance_matrix}
 ## Create distance matrices for observed sites
 # SSN2::ssn_create_distmat(j_ssn2, overwrite = TRUE)
