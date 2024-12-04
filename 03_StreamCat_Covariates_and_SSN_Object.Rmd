@@ -1067,8 +1067,7 @@ Scatter plots used in SFS 2024 talk.
 
 This code came from Travis Linscome-Hatfield at Neptune. Applying empirical logit only to obs.
 
-Another transformation explored is the empirical logit for the covariates "PctNat_W", "PctImp_Ws", "PctCrop_W", "PctHay_W", "PctGrs_W" as explained below I need to make a data frame without any geometry with st_set_geometry(DFobs2, NULL).
-Then join data frame to sf object and put the sf object into the SSN.
+Another transformation explored is the empirical logit for the covariates "pct_for_W", "pct_imp_w", "pct_crop_w", "pct_hay_w", "pct_grs_w", etc. The empirical logit code needs to be applied to a data frame without any geometry attached. This means using with st_set_geometry(DFobs2, NULL) to make that data frame. After empirical logit transformation is done, then join data frame to sf object and put the sf object into the SSN.
 
 $$ 
 \begin{eqnarray}
@@ -1340,6 +1339,7 @@ Commented out EDA code below.
 ```
 
 # 8.0 Script 03 SSN Output
+The ssn object with new covariates and transformed covariates is saved so it can be load into Script 04.
 ```{r script03_ssn_output}
 save(j_ssn3, file = "outputs/j_ssn3.RData")
 ```
