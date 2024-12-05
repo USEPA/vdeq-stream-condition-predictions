@@ -40,9 +40,9 @@ library(janitor) # clean_names function
 
 A spatial stream network object is needed to evaluate semivariance in the response variable as a function of Euclidean and stream network distances, flow-connected and flow-unconnected. 
 
-Ideally for an SSN analysis, the data set has these 3 characteristics:
+Ideally for an SSN analysis, the data set has these 3 characteristics of monitoring sites:
 * Sample size:  minimum of 50, maximum of 2,000
-* Spatial Configuration:  headwaters to outlet
+* Spatial Configuration:  spans headwaters to outlet
 * Spatial Clustering:  around confluences.
 
 ```{r ssn_import}
