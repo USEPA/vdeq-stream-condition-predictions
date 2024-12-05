@@ -109,4 +109,10 @@ ggplot(torg_fu, aes(x=dist, y=gamma,size=np)) + geom_point() + ggtitle("VSCI Flo
 
 The Euclidean semivariogram suggest some spatial structure at distances up to 75 km apart. As noted, the flow-connected Torgegram does not look spatially interpretable. How did the manner in which the sites were selected likely affect the wonky flow-connected pattern? The flow-unconnected Torgegram suggests some spatial structure as well.
 
-We have evidence of spatial autocorrelation in VSCI. But, what we want to know is after we have accounted for variation in VSCI by modeling using covariates, is there leftover, or residual, spatial autocorrelation. If that's the case, then we want to model that residual spatial autocorrelation, which can often result in getting better spatial predictions and a better fitting model than a non-spatial model. After ESDA, we have to decide 1) what covariates to use, and 2) what spatial covariance functions, Euclidean, tail-up, and tail-down to use.
+We have evidence of spatial autocorrelation in VSCI. But, what we want to know is after we have accounted for variation in VSCI by modeling using covariates, is there leftover, or residual, spatial autocorrelation. If that's the case, then we want to model that residual spatial autocorrelation, which can often result in getting better spatial predictions and a better fitting model than a non-spatial model. After ESDA, we have to decide 1) what covariates to use, and 2) what spatial covariance functions, Euclidean, tail-up, and tail-down to use, and 3) what shapes of the spatial covariance functions to use. The shapes, or forms, of spatial covariance functions are described using terms such as nugget, exponential, spherical, or Gaussian, etc. Examples of those shapes are shown below.
+
+```{r shapes}
+show.vgms()
+```
+
+At the Geospatial Data Science in R site <https://zia207.github.io/geospatial-r-github.io/index.html> see the section on spatial interpolation.
