@@ -89,7 +89,7 @@ knitr::opts_chunk$set(message=FALSE, warning=FALSE,collapse = T)
 ```{r ssn_obs_preds}
 # now bringing predpts 2019-2022 combined
 # current ssn
-j_ssn1a <- SSN2::ssn_import("ssn_objects/James_071024_pluspreds.ssn", predpts = c("Preds_2019_2022"),
+j_ssn1a <- SSN2::ssn_import("ssn_object/James_071024_pluspreds.ssn", predpts = c("Preds_2019_2022"),
 overwrite = FALSE)
 
 # previous ssn
@@ -1064,7 +1064,7 @@ loocv(z4ssn_wswq_ml1)
 
 # plot(a4ssn_wswq_ml1, which = c(1:6))
 
-tidy(a4ssn_wswq_reml1)
+# tidy(a4ssn_wswq_reml1)
 
 # inserted r in file name to indicate residuals now included
 a4rssn_wswq_ml1 <- augment(a4ssn_wswq_ml1, drop = FALSE)
@@ -1109,6 +1109,14 @@ loocv(a5ssn_wswq_ml1)
 glances(z4ssn_wswq_ml1,a5ssn_wswq_ml1)
 
 plot(a5ssn_wswq_ml1, which = c(1:6))
+
+
+#### TLH lm discussion
+
+test = ssn_get_data(j_ssn3)
+fit = lm(vsci ~pct_imp_w_emplog + elev_ws + do + vahusb_JL + wbc*dist_nearest_up_wb_km - dist_nearest_up_wb_km,data = test)
+summary(fit)
+### as you can see we get a nice output with wbcabsent:dist_nearest_up_wb_km NA'd out. So this is what I'm trying to replicate in the ssn2 formulation. 
 
 
 ```
@@ -1208,6 +1216,51 @@ mapview(a5predict1ws_vsci)
 # st_write(a4preds_cov_19_22, dsn = file.path(getwd(), "preds_cov_19_22.gpkg"), layer = "preds_cov_1922", driver = "GPKG", quiet = FALSE)
 
 ```
+
+### TLH Fitted interval preds
+
+```{r fitted_interval_preds}
+
+# get spatial residuals from model
+spatResids_preds<-residuals(a5ssn_wswq_reml1, cross.validation=T)
+
+# pull sd of residuals and fitted values
+resid_SD = sd(spatResids_preds)
+fitted_vals = a5predict1ws_vsci$.fitted
+
+# combine to a dataframe
+spat<-cbind(fitted_vals,resid_SD^2)
+
+# spatial prediction percentiles
+(spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
+
+spat.Pred.median = spat.Pred.pct[,4]
+
+# make sure I've got the right obj
+DFpreds<-ssn_get_data(j_ssn3,name = "Preds_2019_2022")
+# observed and median of our prediction intervals
+ty<-DFpreds$vsci
+tx<-spat.Pred.median
+
+#percentiles
+ox<-order(tx)
+op05<-spat.Pred.pct[ox,"Q05"]
+op95 <- spat.Pred.pct[ox,"Q95"]
+
+# plot
+plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Value",ylab="VSCI Observed Value",main="Spatial Model Observed vs. Predicted")
+abline(0,1,col="red")
+lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
+
+# 5th percentile of predictive distribution
+lines(tx[ox],op05,lty=2,col='black')
+# 95th percentile of predictive distribution
+lines(tx[ox],op95,lty=2,col='black')
+#legend
+legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
+
+```
+
 
 
 # Compare SSN Models with ML
