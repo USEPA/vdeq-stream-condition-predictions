@@ -98,6 +98,7 @@ mapview(hab_sf1) + mapview(bigbend_seagrass)
 
 ## Writing sf objects to shapefiles and geopackage geodatabase
 A sf object can be written out as an ESRI shapefile. If you have several sf objects, such as points for sites and polygons of seagrass areas, you can keep them together by writing them out as a geopackage geodatabase. The output from this code will appear under File Explorer where your working directory is located and will include a shapefile and geopackage that we wrote to that location.
+Note that geopackage is the default spatial format for QGIS. The R package SSNbler <https://cran.r-project.org/package=SSNbler> can be used with QGIS, or ArcGIS Pro, to build a spatial stream network (SSN) object.
 ```{r geopackage, eval=FALSE}
 
 # Writing a single shapefile to the working directory
