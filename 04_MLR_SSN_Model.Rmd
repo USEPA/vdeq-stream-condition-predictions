@@ -15,9 +15,9 @@ editor_options:
   chunk_output_type: console
 ---
 
-# OutlineThe purpose of this script is to model the relationship between VSCI and covariates across the 4 geographies of Watershed (Ws), Watershed-Riparian (WsRp), Catchment (Cat), and Catchment-Riparian (CatRp). For each of the 4 geographies, the modeling is done as follows:
+# Outline The purpose of this script is to model the relationship between VSCI and covariates across the 4 geographies of Watershed (Ws), Watershed-Riparian (WsRp), Catchment (Cat), and Catchment-Riparian (CatRp). For each of the 4 geographies, the modeling is done as follows:
 
-* Use besglm to select covariates 
+* Use bestglm to select covariates 
 * Check model diagnostics of the MLR model
 * Run a SSN nugget model (SSN0), which is the equivalent to an MLR model, and check diagnostic plots
 * Run the SSN1 with covariates and spatial autocovariances. Note the spatial autocovariances are identified by running script 05.
