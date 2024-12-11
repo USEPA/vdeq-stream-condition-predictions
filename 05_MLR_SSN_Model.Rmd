@@ -15,17 +15,20 @@ editor_options:
   chunk_output_type: console
 ---
 
-# Outline The purpose of this script is to model the relationship between VSCI and covariates across the 4 geographies of Watershed (Ws), Watershed-Riparian (WsRp), Catchment (Cat), and Catchment-Riparian (CatRp). For each of the 4 geographies, the modeling is done as follows:
+# Outline
+The purpose of this script is to model the relationship between VSCI and covariates across the 4 geographies of Watershed (Ws), Watershed-Riparian (WsRp), Catchment (Cat), and Catchment-Riparian (CatRp). For each of the 4 geographies, the modeling is done as follows:
 
 * Use bestglm to select covariates 
 * Check model diagnostics of the MLR model
 * Run a SSN nugget model (SSN0), which is the equivalent to an MLR model, and check diagnostic plots
-* Run the SSN1 with covariates and spatial autocovariances. Note the spatial autocovariances are identified by running script 05.
+* Run the SSN1 with covariates and spatial autocovariances. Note the spatial autocovariances are identified by running script 03_Y_Intercept_SSN_Model.
 * Compare SSN0 to SSN1 to see if modeling spatial autocorrelation of residuals improved model fit and model prediction
 * Plot loocv observed and predicted
 * Map residuals
 * Test for random effects of trend stations versus status stations. Trends stations are sampled repeated, with station_id_2 being the identifier that distinguishes trend from status stations. Status stations are only sampled one time.
 * Compare SSN models across the 4 geographies using ML estimation method as the models have different covariates.
+
+Portions of this analysis are summarized in the Presentation folder, specifically 20204_sfc_philadelphia_bioassessment_session_mcmanus.pdf. That presentation provides an overview of the detailed analysis presented below.
 
 Log Keeping log below for now when reach final version will delete.
 11/21/2024 Only retained modeling chunks. Loading SSN that was produced in script 03.
@@ -131,12 +134,13 @@ names(DFobs)
 ```
 
 
-# 2.0 Bestglm, Nugget and SSN Models
+# 2.0 Dummy Coding for Bestglm Models
+The bestglm function only accepts dummy coding for factors.
 
-# 3.1 Dummy Coding of Factors
+# 2.1 Dummy Coding of Factors
 Dummy coding for ecoregions, Virginia hydrologic unit subbasins, wetlands, impervious surfaces, and total phosphorus. See the description of dummy coding at <https://stats.oarc.ucla.edu/r/library/r-library-contrast-coding-systems-for-categorical-variables/>.
 ```{r dummy_code}
-# select just X continuous covariates for watershed
+
 # remove geometry as bestglm does not want it
 DFobsz <- st_set_geometry(DFobs, NULL)
 
@@ -252,8 +256,8 @@ names(DFobsz)
 rm(eco_d, eco_r, imp_cr_d, imp_cr_f, tp_d, tp_f, vahusb, vahusb_d, wet_c_d, wet_c_f, wet_cr_d, wet_cr_f, wet_w_d, wet_w_f, wet_wr_d, wet_wr_f)
 ```
 
-# 3.15 Dummy Coded to SF to SSN
-The 22 dummy coded variables just created need to be put into an SF object and then, later, into an SSN object. 
+# 2.15 Dummy Coded to SF to SSN
+The 23 dummy coded variables just created need to be put into an SF object and then, later, into an SSN object. 
 ```{r dummy_sf_ssn}
 names(DFobsz)
 
@@ -269,7 +273,7 @@ names(DFobs2)
 
 
 
-# 3.1T Dummy Coding of Factors-Travis
+# 2.1T Dummy Coding of Factors-Travis
 Travis Linscome-Hatfield at Neptune provide the code chunk below to see if changing the reference group altered the analysis results and conclusions. This evaluation was motivated by the observation that the default reference group for the Virginia hydrologic unit subbasins was JU, the upper James.
 Dummy coding for ecoregions, Virginia hydrologic unit subbasins, wetlands, impervious surfaces, and total phosphorus.
 ```{r dummy_code-Travis}
@@ -342,7 +346,7 @@ df_dum_wet = category_break(dat = df_dum_vahusb$dat,
                             alt_dat = df_dum_vahusb$alt_dat,
                             variable = "pct_wet_w_f",
                             base1 = "none")
-# dummy data for watershed-riperian wetland (pct_wet_wr_f)
+# dummy data for watershed-ripeaian wetland (pct_wet_wr_f)
 levels(DFobsz$pct_wet_wr_f)
 df_dum_wet_wr = category_break(df_dum_wet$dat,
                                df_dum_wet$alt_dat,
@@ -354,7 +358,7 @@ df_dum_wet_c = category_break(df_dum_wet_wr$dat,
                               df_dum_wet_wr$alt_dat,
                               "pct_wet_c_f",
                               base1 = "none")
-# dummy data for catchment-riperian wetland levels (pct_wet_cr_f)
+# dummy data for catchment-riparian wetland levels (pct_wet_cr_f)
 levels(DFobsz$pct_wet_cr_f)
 df_dum_wet_cr = category_break(df_dum_wet_c$dat,
                                df_dum_wet_c$alt_dat,
@@ -381,13 +385,20 @@ alt_dat_dummy = df_dum_tp$alt_dat
 ```
 
 
-# 3.20 SSN Ws, WsRp, Cat, & CatRp Models
-I need Neptune to vet code below across all 4 geographies. Before run check_model function have Plots tab fully expanded vertically.
+# 3.0 SSN Ws, WsRp, Cat, & CatRp Models
+I need Neptune to vet code below across all 4 geographies. Before run check_model function have Plots tab fully expanded vertically. The check_model functions provides sisual check of various model assumptions. The added variable plots, also called partial regression plots, are made using the avPlots function and give a visualization of the slope estimates.
+
+The candidate pool of 21 covariates came from these categories:  1) climate 2) landcover, 3) instream measurements, and 4) geophysical or hydrologic units.
+
+
+
 # 4.0 WS-Wq
-### Z1 Bestglm and SSN0 Nugget Model
+### 4.1 Bestglm and SSN0 Nugget Model
 On 07/12/2024 I will simply keep precip_mm and tmean in the candidate pool for all 4 geographies. No change to original selected covariates after I replaced precip_mm with d_precip_m and tmean with d_t_mean, which are deviations from 30-year normals for precip and temperature.
 On 04/22/2024 changed WsWq so that precip_mm and tmean are now included, but they were not selected by bestglm. The previous wetland factor with multiple levels was replaced with a binary absence/presence variable. 
 The X1 matrix below includes that dummy factors with the station_id_2 enables the join the dummy factor to an sf object and then to the SSN. 
+
+The maximum number of covariates to be retained during bestglm selection was set to 4 before any modeling was done. This was done to produce a conservative model based on the number of observations relative to the number of parameters estimated in the model. Four slopes and 1 y-intercept are estimated with nvmax = 4. Then, a spatial stream network model could include up to 7 additional parameters, with 2 parameters estimated each for Euclidean, Tail Up, and Tail down autocovariances plus an independent error, or nugget, parameter. For 199 observations, there could be 12 model parameters or ~ 17 observations/parameter, and that seemed a good way to avoid overfitting the model.
 
 ```{r ws_bestglm}
 # candidate covariates
@@ -397,6 +408,7 @@ str(WsWq)
 # X can only contain numeric or factor
 WsWq<- WsWq %>% mutate_at(c('vahusb_JM', 'vahusb_JR', 'vahusb_JA', 'vahusb_JL','tp_f_medium', 'tp_f_high'), as.numeric)
 
+# bind matrix of covariates to response variable
 WsWqy<-cbind.data.frame(WsWq,y=DFobsz$vsci)
 ASRcum_wswq1.best<-bestglm(WsWqy,IC = "AIC", nvmax =4, TopModels=15)
 
@@ -426,7 +438,7 @@ names(DFobs3a)
 # put SF object into SSN
 j_ssn3 <-  SSN2::ssn_put_data(DFobs3a,j_ssn3)
 
-# Watershed
+# ssn0 Watershed
 ssn0_wswq_mlr <- ssn_lm(
   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
   ssn.object = j_ssn3,
@@ -441,11 +453,12 @@ varcomp(ssn0_wswq_mlr)
 loocv(ssn0_wswq_mlr)
 
 # if want to run script continuously from top to bottom comment out plot statement below as requires repeated hitting of enter key
-plot(ssn0_wswq_mlr, which = c(1:6))
+
+# plot(ssn0_wswq_mlr, which = c(1:6))
 ```
 
 
-### Z1T Bestglm and SSN0 Nugget Model-Travis
+### 4.15T Bestglm and SSN0 Nugget Model-Travis
 The code below evaluates if a different reference group was chosen would a qualitatively different model result from the best glm selection. For example, if the reference watershed used was vahusb_JM instead of vahusb_JU.
 
 ```{r ws_bestglm-Travis}
@@ -524,7 +537,11 @@ plot(ssn0_wswq_mlr, which = c(1:6))
 
 
 
-### Z2 SSN0 Nugget vs SSN1
+### 4.2 SSN0 Nugget vs SSN1
+This chunk compares nugget model, typical nonspatial MLR or SSN0, to the SSN1 model that specifies the spatial autocovariances that were identified in script 03_Y-Intercept_SSN_Model. The comparison is made using model fit diagnostics, AICc, and leave-one-out-cross-validation (LOOCV) metrics of the root mean squared prediction error (RMSPE) and the squared correlation between the observed value and its leave-one-out prediction (cor2).
+
+Is Torgegram on flow-unconnected standardized residuals telling me that still some structured spatial autocorrelation left?
+
 On 04/16/2024, re-ran R_vdeq_tutdeu_comparison.Rmd and models_yintercept AICc statistic and loocv(tdExp_eu_exp) RMSPE and cor2 showed that tail down exponential and Euclidean exponential was the best of the 15 spatial autocovariance models compared. For some reason I had been specifying tail down exponential and Euclidean Gaussian. I corrected so both TD and EU are exponential. The R_vdeq_tutdeu_comparison.Rmd file is at E:\R_vdeq_sci.
 ```{r nugget_vs_spatial_ws}
 ssn_wswq_reml1 <- ssn_lm(
@@ -541,10 +558,13 @@ summary(ssn_wswq_reml1)
 varcomp(ssn_wswq_reml1)
 loocv(ssn_wswq_reml1)
 
-plot(ssn_wswq_reml1, which = c(1:6))
+# if want to run script continuously from top to bottom comment out plot statement below as requires repeated hitting of enter key
+
+# plot(ssn_wswq_reml1, which = c(1:6))
 
 models_ssn0_ssn1 <- glances(ssn0_wswq_mlr, ssn_wswq_reml1)
 
+# check with Travis if code below can be dropped. Not sure it is showing me much
 aug_ssn_wswq_reml1 <- augment(ssn_wswq_reml1, drop = FALSE)
 class(aug_ssn_wswq_reml1)
 mapview(aug_ssn_wswq_reml1)
@@ -556,20 +576,20 @@ ggplot(aug_ssn_wswq_reml1, aes(x = vahusb, y = .fitted)) + geom_boxplot()
 names(aug_ssn_wswq_reml1)
 
 resid_ssn1 <- as.data.frame(aug_ssn_wswq_reml1)|>
-   dplyr::select(st_id_tren, .fitted, .resid, .std.resid)
+   dplyr::select(station_id_2, .fitted, .resid, .std.resid)
 
 class(resid_ssn1)
 names(resid_ssn1)
 # put dummy covariates in an SF object
-DFobs4 <- full_join(DFobs3a, resid_ssn1, by = join_by(st_id_tren))
+DFobs4 <- full_join(DFobs3a, resid_ssn1, by = join_by(station_id_2))
 names(DFobs4)
 
 # put SF object into SSN
 j_ssn4 <-  SSN2::ssn_put_data(DFobs4,j_ssn3)
 
-ztg <- SSN2::Torgegram(.resid ~ 1, j_ssn4, type = c("flowuncon", "euclid"))
+ztg <- SSN2::Torgegram(.std.resid ~ 1, j_ssn4, type = c("flowuncon", "euclid"))
 
-plot(zztg)
+plot(ztg, main = "Torgegram Standardized Residuals")
 class(ztg)
 names(ztg)
 ztg[["flowuncon"]]
@@ -579,66 +599,36 @@ summary(ztg$flowuncon)
 summary(ztg$euclid)
 plot(ztg)
 # plot(ztg, type = "flowcon", main="Residuals")
-plot(ztg, type = "flowuncon", main = "Residuals")
-plot(ztg, type = "euclid", main = "Residuals")
+plot(ztg, type = "flowuncon", main = "Torgegram Standardized Residuals")
+plot(ztg, type = "euclid", main = "Torgegram Standardized Residuals")
 class(ztg)
 # plot(ztg, separate = TRUE, main = "TotHab")
 
 
 ```
 
-### Observed vs Predicted
-```{r}
-loocv_ssn <- loocv(ssn_wswq_reml1, cv_predict = TRUE, se.fit = TRUE)
-names(loocv_ssn)
-head(loocv_ssn$cv_predict)
-print(loocv_ssn$cv_predict)
-
-cv_predict <- bind_cols(loocv_ssn$cv_predict, loocv_ssn$se.fit)
-colnames(cv_predict) <- c("cv_predict", "se.fit")
-names(cv_predict)
-head(cv_predict)
-
-# make ssn a df
-# dfobs <- SSN2::ssn_get_data(mf04p)
-
-DFobs4 <- bind_cols(DFobs3a,cv_predict)
-
-# Pineiro 2008 put observed on y and predict on x
-ggplot(DFobs4, aes(x = cv_predict, y = y2)) + geom_point() + geom_abline()
-
-ggpairs(DFobs4, columns = c(206,172))
-
-
-cor(DFobs4$cv_predict,DFobs4$y2, method = "pearson")
-
-# if I square 0.666 I get COR2 value of 0.443
-
-ggplot(DFobs4, aes(x = y2, y = se.fit)) + geom_point()
-
-ggplot(DFobs4, aes(x = cv_predict, y = se.fit)) + geom_point()
-
-```
-
 
 
 ### ssn_wswq_reml1 Mapview residuals 
+Other than showing this can be done, why are these maps helpful?
 ```{r}
-edges <- sf::st_read("E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/James.ssn/edges.shp")
+# edges <- sf::st_read("ssn_object/James_071024_pluspreds.ssn/edges.shp")
 
-mapview(aug_ssn_wswq_reml1, zcol = ".std.resid", cex = ".std.resid", alpha.regions = .8, legend = TRUE, layer.name = 'Standardized Residuals', popup = popupTable(aug_ssn_wswq_reml1, zcol = c("y2", ".fitted", ".resid", ".std.resid"))) + mapview(edges)
+mapview(aug_ssn_wswq_reml1, zcol = ".std.resid", cex = ".std.resid", alpha.regions = .8, legend = TRUE, layer.name = 'Standardized Residuals', popup = popupTable(aug_ssn_wswq_reml1, zcol = c("vsci", ".fitted", ".resid", ".std.resid")))
 
+# observed vsci
+obs1 <- mapview(aug_ssn_wswq_reml1, zcol = "vsci", cex = "vsci", alpha.regions = .8, legend = TRUE, layer.name = 'VSCI', popup = popupTable(aug_ssn_wswq_reml1, zcol = c("vsci", ".fitted", ".resid", ".std.resid"))) 
 
-obs1 <- mapview(aug_ssn_wswq_reml1, zcol = "vsci", cex = "vsci", alpha.regions = .8, legend = TRUE, layer.name = 'VSCI', popup = popupTable(aug_ssn_wswq_reml1, zcol = c("vsci", "y2", ".fitted", ".resid", ".std.resid"))) + mapview(edges)
+fit1 <- mapview(aug_ssn_wswq_reml1, zcol = ".fitted", cex = ".fitted", alpha.regions = .8, legend = TRUE, layer.name = 'Fitted', popup = popupTable(aug_ssn_wswq_reml1, zcol = c("vsci", ".fitted", ".resid", ".std.resid")))
 
-
-fit1 <- mapview(aug_ssn_wswq_reml1, zcol = ".fitted", cex = ".fitted", alpha.regions = .8, legend = TRUE, layer.name = 'Fitted', popup = popupTable(aug_ssn_wswq_reml1, zcol = c("vsci", "y2", ".fitted", ".resid", ".std.resid"))) + mapview(edges)
+stdres1 <- mapview(aug_ssn_wswq_reml1, zcol = ".std.resid", cex = ".std.resid", alpha.regions = .8, legend = TRUE, layer.name = 'Std. Residual', popup = popupTable(aug_ssn_wswq_reml1, zcol = c("vsci", ".fitted", ".resid", ".std.resid")))
 
 sync(obs1,fit1, ncol=1) # obs & predicted
-
+sync(fit1, stdres1, ncol=1)
+sync(obs1, fit1, stdres1, ncol=1)
 ```
 
-### Z3 Random Effects
+### 4.3 Random Effects
 I want Neptune to check this code.
 I believe the the random effect for station_id is coded correctly as it recognizes that there are 8 stations with repeated 4 to 5 observations whereas all the other stations have single observation. The st_type, for study type, I believe is not coded correctly as it only recognizes two groups, status or trend, stations so that code is commented out. Based on AICc and cor2, ssn_wswq_reml1 is still a better model. 
 ```{r year_f_and_st_type}
@@ -683,7 +673,7 @@ models_rand1 <- glances(ssn0_wswq_mlr, ssn_wswq_reml1, ssn_wswq_rand1)
 ```
 
 # 5.0 WsRp-Wq
-### Y1
+### 5.1
 On 04/22/2024 changes WsWq so that precip_mm and tmean are now included. The previous wetland factor with multiple levels was replaced with a binary absence/presence variable. 
 On 04/17/2024 caught typo in WsRpWQ as "pct_hay_w_emplog" listed and corrected to "pct_hay_wr_emplog".
 On 04/16/2024 running models on vsci, and pct_imp_rp_w_emplog, elev_ws, do, and tothab selected.
@@ -739,7 +729,7 @@ loocv(ssn0_wsrpwq_mlr)
 plot(ssn0_wsrpwq_mlr, which = c(1:6))
 ```
 
-### Y2
+### 5.2
 ```{r nugget_vs_spatial_wsriparian}
 ssn_wsrpwq_reml1 <- ssn_lm(
   formula = vsci ~ pct_imp_rp_w_emplog + elev_ws + do + tothab,
@@ -774,7 +764,7 @@ ggplot(aug_ssn_wsrpwq_reml1, aes(x = vahusb, y = pct_for_wr_emplog)) + geom_boxp
 ```
 
 
-### Y3 Random Effects: Ws_Riparian
+### 5.3 Random Effects: Ws_Riparian
 ```{r wsrpwq_random}
 ssn_wsrpwq_rand1 <- ssn_lm(
   formula = vsci ~ pct_imp_rp_w_emplog + elev_ws + do + tothab,
@@ -808,7 +798,7 @@ mapview(aug_ssn_wsrpwq_reml1, zcol = ".std.resid", cex = ".std.resid", alpha.reg
 
 
 # 6.0 Cat-Wq
-### X1
+### 6.1
 On 04/22/2024 changes CatWq so that precip_mm and tmean are now included. The previous wetland factor with multiple levels was replaced with a binary absence/presence variable as was grass cover. VSCI values at pct_grs_c_emplog at 0 encompasses range of VSCI values at pct_grs_c_emplog > 0. 
 On 04/16/2024 running model on vsci and specifying exponential for tail down and Euclidean.
 ```{r cat_bestglm}
@@ -866,7 +856,7 @@ loocv(ssn0_catwq_mlr)
 plot(ssn0_catwq_mlr, which = c(1:6))
 ```
 
-### X2
+### 6.2
 ```{r nugget_vs_spatial_cat}
 ssn_catwq_reml1 <- ssn_lm(
   formula = vsci ~ pct_imp_c_emplog + elev_cat + tothab + l_tn,
@@ -900,7 +890,7 @@ ggplot(aug_ssn_catwq_reml1, aes(x = tothab, y = .fitted)) + geom_point() + geom_
 ggplot(aug_ssn_catwq_reml1, aes(x = l_tn, y = .fitted)) + geom_point() + geom_smooth(method = "lm")
 ```
 
-### X3 Random Effects: Cat-Wq
+### 6.3 Random Effects: Cat-Wq
 Still need to check random effects of station_id on ssn_catwq_rand1.
 ```{r catwq_random}
 ssn_catwq_rand1 <- ssn_lm(
@@ -926,7 +916,7 @@ models_rand3 <- glances(ssn0_catwq_mlr, ssn_catwq_reml1,ssn_catwq_rand1)
 # 7.0 CatRp-Wq
 On 04/22/2024 changes CatRpWq so that precip_mm and tmean are now included. The previous wetland factor with multiple levels was replaced with a binary absence/presence variable as was grass cover.
 With this smallest geography (by extent and configuration), I have to shift some land cover from continuous to categorical. Grass at this geography has a median value of 0 so I made an absence/presence variable for grass cover so a form of that covariate is in the model.
-### W1
+### 7.1
 ```{r catriparian_bestglm}
 CatRpWq <- DFobsz|>
   dplyr::select(precip_mm, tmean, pct_imp_rp_c_emplog, pct_for_cr_emplog, pct_hay_cr_emplog, bin_grs_cr, elev_cat, do, p_h, tothab, l_spc, l_tds, l_turb, l_tn,  vahusb_JM, vahusb_JR, vahusb_JA, vahusb_JL, bin_wet_cr, tp_f_medium, tp_f_high)
@@ -984,7 +974,7 @@ plot(ssn0_catrpwq_mlr, which = c(1:6))
 
 ```
 
-### W2
+### 7.2
 ```{r nugget_vs_spatial_catriparian}
 ssn_catrpwq_reml1 <- ssn_lm(
   formula = vsci ~ pct_imp_rp_c_emplog + elev_cat + tothab + l_tn,
@@ -1018,7 +1008,7 @@ ggplot(aug_ssn_catrpwq_reml1, aes(x = tothab, y = .fitted)) + geom_point() + geo
 ggplot(aug_ssn_catrpwq_reml1, aes(x = l_tn, y = .fitted)) + geom_point() + geom_smooth(method = "lm")
 ```
 
-### W3 Random Effects: CatRp-Wq
+### 7.3 Random Effects: CatRp-Wq
 ```{r catrpwq_random}
 ssn_catrpwq_rand1 <- ssn_lm(
   formula = vsci ~ pct_imp_rp_c_emplog + elev_cat + tothab + l_tn,
@@ -1040,7 +1030,7 @@ plot(ssn_catrpwq_rand1, which = c(1:6))
 models_rand4 <- glances(ssn0_catrpwq_mlr, ssn_catrpwq_reml1, ssn_catrpwq_rand1)
 ```
 
-## 4.00 Compare SSN Models with ML
+# 8.0 Compare SSN Models with ML
 This to compare different SSN models having different covariates.
 ```{r ssn_ml}
 ssn_wswq_ml1 <- ssn_lm(
