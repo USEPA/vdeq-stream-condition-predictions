@@ -11,7 +11,7 @@ The purpose of this script is to compare 15 spatial autocovariances for a y-inte
 td_exp_eu_exp model was selected.
 
 This approach is saying "space is so important, I am going to model the residual spatial autocorrelation without any covariates". Based on the y-intercept only SSN model, I will
-compare the forms, Euclidean, Tail Up, and Tail Down, and shapes of the autocovariances. See section 4.1.1 Model Summaries about different ways to compare SSN models.
+compare the forms, Euclidean, Tail Up, and Tail Down, and shapes of the autocovariances. See section 4.1.1 Model Summaries in the SSN2 vignette about different ways to compare SSN models.
 
 
 ```{r setup, include=FALSE}
@@ -242,7 +242,7 @@ ggplot(tu_td_eu_exp_res, aes(x=standardized)) + geom_boxplot()
 ggplot(tu_td_eu_exp_res, aes(x=standardized)) + geom_density()
 # maximum stream and Euclidean distances
 tu_td_eu_exp$euclid_max # this matches my Euclid max
-tu_td_eu_exp$tail_max # this is much larger than my stream max
+tu_td_eu_exp$tail_max 
 
 models_yintercept <- glances(tu_exp, tu_lin, td_exp, td_lin, eu_exp, eu_gau, tu_exp_td_exp, tu_exp_td_lin, tu_lin_td_exp, tu_lin_td_lin, td_exp_eu_exp, td_exp_eu_gau, td_lin_eu_exp, td_lin_eu_gau, tu_td_eu_exp)
 
