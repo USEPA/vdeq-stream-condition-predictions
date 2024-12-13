@@ -15,6 +15,8 @@ editor_options:
   chunk_output_type: console
 ---
 
+Here's what I added in this script for the example!
+
 The purpose of this script is to make sure both obs and preds have the same covariates. This is required so that the SSN model built from the obs can then applied to make predictions at the preds. The 46 preds where withheld from from the SSN model building to provide an independent data set for measuring the predictive performance of the SSN model the The 46 preds were collected from spatially balanced probabilistic surveys collected from 2019-2022.
 
 11/25/2024 using James_071024_pluspreds as ssn object as has all 46 prediction points in one shapefile. And bringing additional covariates. Needing to assign 0's to preds_2019_2022 that initially had dist_nearest_up_wb_km set to NA for 31 of 48 prediction points.
