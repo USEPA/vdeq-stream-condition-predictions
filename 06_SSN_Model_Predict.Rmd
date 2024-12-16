@@ -17,11 +17,13 @@ editor_options:
 
 Here's what I added in this script for the example!
 
-The purpose of this script is to make sure both obs and preds have the same covariates. This is required so that the SSN model built from the obs can then applied to make predictions at the preds. The 46 preds where withheld from from the SSN model building to provide an independent data set for measuring the predictive performance of the SSN model the The 46 preds were collected from spatially balanced probabilistic surveys collected from 2019-2022.
+The purpose of this script is to make sure both obs and preds have the same covariates. This is required so that the SSN model built from the obs can then applied to make predictions at the preds. The 48 preds where withheld from from the SSN model building to provide an independent data set for measuring the predictive performance of the SSN model. The 48 preds were collected from spatially balanced probabilistic surveys done from 2019-2022.
 
 11/25/2024 using James_071024_pluspreds as ssn object as has all 46 prediction points in one shapefile. And bringing additional covariates. Needing to assign 0's to preds_2019_2022 that initially had dist_nearest_up_wb_km set to NA for 31 of 48 prediction points.
 
 Keep logging going below and will delete when get final version of script.
+12/16/2024 trying to run distance hypothesis using binomial, numerically coded waterbody upstream, 0 is absent and 1 is present, and distance upstream to nearest waterbody as continuous covariate. 
+
 11/19/2024 trying to run TLH code chunk for prediction interval graph
 
 On 10/24/2024, went through the code with Travis and now runs without errors all chunks above Status vs Trend Predictions chunk. Pushed to repository.
@@ -65,6 +67,7 @@ library(fitdistrplus)
 library(mapview)
 library(leaflet)
 library(leafpop) # for popups in mapview
+library(leafsync) # sync mapview maps
 library(units)
 library(janitor)
 library(dummy)
@@ -88,6 +91,7 @@ knitr::opts_chunk$set(message=FALSE, warning=FALSE,collapse = T)
 ```
 
 # SSN Observations and Preds
+Notice this import explicitly brings in the prediction points. Also, this version of the SSN requires that both the obs and predpts to have the same covariates.
 ```{r ssn_obs_preds}
 # now bringing predpts 2019-2022 combined
 # current ssn
@@ -218,6 +222,8 @@ rm(tothab_ds1, tothab_ds2, dr_na, tothab_ds3, jr_na, tothab_ds4)
 ```
 
 # Transform Obs Covariates
+On 12/16/2025 added binomial wbc, wbc_bin, coded as numeric 0 or 1 similar to Dumelle et al. 2023 coding in National Lake assessment conductivity paper.
+ 
 On 11/25/2024 added WWTP, STATSGo_Set2, and waterbody covariates.
 0n 06/28/20204 added for ju - yes and ju - no to test if partitioning on ju helpful first by looking at separate torgegrams and then in modeling.
 On 04/10/2024 added code for a binary presence covariate for impervious cover at watershed extent.
@@ -311,6 +317,20 @@ class(DFobs2$wbc)
 
 DFobs2$wbc <- factor(DFobs2$wbc, levels = c("present", "absent"))
 summary(DFobs2$wbc)
+
+# adding binomial wbc, wbc_bin, coded as numeric 0 or 1 similar to Dumelle et al. 2023 coding in National Lake assessment conductivity paper.
+
+DFobs2 <- DFobs2 %>% 
+  mutate(
+    wbc_bin = case_when(
+      incl_nhdwb == "yes" ~ 1,
+      incl_nhdwb != "yes" ~ 0
+    )
+  )
+
+class(DFobs2$wbc_bin)
+DFbos2 <- as.numeric(DFobs2$wbc_bin)
+class(DFobs2$bin_wbc)
 
 summary(DFobs2$dist_nearest_up_wb_km)
 
@@ -449,6 +469,8 @@ j_ssn3 <-  SSN2::ssn_put_data(DFobs3a,j_ssn3)
 ```
 
 # Transform Pred Covariates
+On 12/16/2025 added binomial wbc, wbc_bin, coded as numeric 0 or 1 similar to Dumelle et al. 2023 coding in National Lake assessment conductivity paper.
+
 On 11/25/2024 have to assign 0's for 31 of 48 preds that had distances of NA and additional covariates.
 
 
@@ -556,6 +578,16 @@ preds3 <- preds3 %>%
 
 preds3$wbc <- factor(preds3$wbc, levels = c("present", "absent"))
 summary(preds3$wbc)
+
+preds3 <- preds3 %>% 
+  mutate(
+    wbc_bin = case_when(
+      incl_nhdwb == "yes" ~ 1,
+      incl_nhdwb != "yes" ~ 0
+    )
+  )
+
+preds3$wbc_bin <- as.numeric(preds3$wbc_bin)
 
 names(preds3)
 
@@ -782,7 +814,7 @@ On 05/03/2024, not seeing that much spatial structure in DO or Log(TN). On 07/12
 
 # SSN Watershed WQ Model
 On 04/19/2024 kept tail down exponential and changed Euclidean to exponential based on models_yintercept.csv table.
-On 04/10/2023 evaluated model using vsci, untransformed, and added imp_w_pres, a binary presence indicator of impervious cover. This was approach was used by Dumelle et al. 2024 in their spatial modeling of NLA conductivity.
+On 04/10/2023 evaluated model using vsci, untransformed, and added imp_w_pres, a binary presence indicator of impervious cover. This was approach was used by Dumelle et al. 2023 in their spatial modeling of NLA conductivity.
 ```{r wswq_ssn_obs_preds}
 ssn_wswq_reml1 <- ssn_lm(
   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
@@ -972,8 +1004,8 @@ loocv(z4ssn_wswq_ml1) %>% print(n = Inf)
 ```
 
 # TLH fitted to obs interval work
-
-```{r fitted_interval}
+On 12/16/2024 first using a4 reml model and will compare to z5 reml model with distance covariate as tht provides a better fit based on smaller AICc value.
+```{r fitted_interval_plot}
 # z4 model was run above
 
 ## fit model
@@ -988,23 +1020,23 @@ loocv(z4ssn_wswq_ml1) %>% print(n = Inf)
 #   additive = "afv_area",
 #   partition_factor = ~ju
 # )
-summary(z4ssn_wswq_ml1)
+summary(z4ssn_wswq_reml1)
 
 # how do residuals and fitted values below compare to what comes out with augment function?
 
-aug_z4ssn_wswq_ml1 <- augment(z4ssn_wswq_ml1, drop = FALSE)
-class(aug_z4ssn_wswq_ml1)
-names(aug_z4ssn_wswq_ml1)
+aug_z4ssn_wswq_reml1 <- augment(z4ssn_wswq_reml1, drop = FALSE)
+class(aug_z4ssn_wswq_reml1)
+names(aug_z4ssn_wswq_reml1)
 
-head(aug_z4ssn_wswq_ml1$.fitted)
+head(aug_z4ssn_wswq_reml1$.fitted)
 
 
 # get spatial residuals from model
-spatResids<-residuals(z4ssn_wswq_ml1, cross.validation=T)
+spatResids<-residuals(z4ssn_wswq_reml1, cross.validation=T)
 
 # pull sd of residuals and fitted values
 resid_SD = sd(spatResids)
-fitted_vals = z4ssn_wswq_ml1$fitted$response
+fitted_vals = z4ssn_wswq_reml1$fitted$response
 
 # combine to a dataframe
 spat<-cbind(fitted_vals,resid_SD^2)
@@ -1026,7 +1058,7 @@ op05<-spat.Pred.pct[ox,"Q05"]
 op95 <- spat.Pred.pct[ox,"Q95"]
 
 # plot
-plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Value",ylab="VSCI Observed Value",main="Spatial Model Observed vs. Predicted")
+plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value",ylab="VSCI Observed Value",main="Spatial Model Observed vs. Predicted z4 reml")
 abline(0,1,col="red")
 lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
 
@@ -1043,8 +1075,10 @@ legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y 
 
 
 # Additional Hypotheses for a4 model
+On 12/16/2024 in near future will likely comment out this code chunk as no support found for including these additional covariates.
+
 On 11/25/2024 From Miller et al. 2017's results, suggested hypotheses about WWTPs and upstream reservoirs. Also, I will test a depth to bedrock soils hypothesis. The goal of adding these covariates is to get improvements in predictions for 2019-2022 data. This is referred to as the a4 model, for additional hypotheses. Note because of new covariates using ml estimation (Ver Hoef 2014 page 23). Commented out SSN diagnostic plot which statement as seemed cause error with following residual assignment.
-```{r hypotheses}
+```{r additional_hypotheses}
 
 a4ssn_wswq_ml1 <- ssn_lm(
   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + rck_dep_ws + wwtp + wbc,
@@ -1083,8 +1117,16 @@ a4rssn_wswq_ml1 <- dplyr::select(a4rssn_wswq_ml1, c(station_id, station_id_2, ye
 ```
 
 # Distance Hypothesis
-Run ML estimation when comparing to models with different covariates. Run with REML when comparing to models with different spatial autocovariances and for prediction. Tried running interaction of wbc*dist_nearest_up_wb_km, but got error of singular matrix. Consequently, only tested model using continuous covariate dist_nearest_up_wb_km.
-Again, commented out plot(a5ssn_wswq_ml1, which = c(1:6)) as seems to prevent code running straight through.
+On 12/16/2024 testing distance hypothesis of upstream waterbodies by now using wbc_bin and 
+dist_nearest_up_wb_km with those covariates entered into the model as 
+wbc_bin
+wbc_bin:dist_nearest_up_wb_km.
+This follows coding as used in Dumelle et al. 2023 paper. Using that coding produced a poorer fitting more complicated model than z4. Using just the continuous covariate of distance, as done on 11/19/2024, produces a better fitting model. What does added variable plot of that model look like?
+
+
+Run ML estimation when comparing to models with different covariates. Run with REML when comparing to models with different spatial autocovariances and for prediction.
+On 11/19/2024 Tried running interaction of wbc*dist_nearest_up_wb_km, but got error of singular matrix. Consequently, only tested model using continuous covariate dist_nearest_up_wb_km.
+Again, commented out plot(a5ssn_wswq_ml1, which = c(1:6)) as seems to prevent code running straight through. The a5ssn_wswq_ml1 model with only continuous covariate dist_nearest_up_wb_km has smaller AICc than z4 model.
 ```{r distance_hypothesis}
 # test distance covariate in model a5
 
@@ -1118,9 +1160,16 @@ plot(a5ssn_wswq_ml1, which = c(1:6))
 test = ssn_get_data(j_ssn3)
 fit = lm(vsci ~pct_imp_w_emplog + elev_ws + do + vahusb_JL + wbc*dist_nearest_up_wb_km - dist_nearest_up_wb_km,data = test)
 summary(fit)
+check_model(fit)
+avPlots(fit)
 ### as you can see we get a nice output with wbcabsent:dist_nearest_up_wb_km NA'd out. So this is what I'm trying to replicate in the ssn2 formulation. 
 
-
+# I added test1 code with only distance covariate
+test = ssn_get_data(j_ssn3)
+fit1 = lm(vsci ~pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,data = test)
+summary(fit1)
+check_model(fit1)
+avPlots(fit1)
 ```
 
 # Check Nonspatial Diagnostics on a5 model
@@ -1161,6 +1210,7 @@ a5ssn_wswq_reml1 <- ssn_lm(
   additive = "afv_area",
   partition_factor = ~ju
 )
+summary(a5ssn_wswq_reml1)
 
 # augment returns an sf object
 a5predict1ws_vsci <- augment(a5ssn_wswq_reml1, newdata = "Preds_2019_2022", se_fit = TRUE, interval = c("prediction"))
@@ -1220,8 +1270,8 @@ mapview(a5predict1ws_vsci)
 ```
 
 ### TLH Fitted interval preds
-
-```{r fitted_interval_preds}
+I believe this coding is fitting to 199 obs because using a5ssn_wswq_reml1. I think it should be using a5 predict1ws_vsci as it has 48 predicted sites from 2019-2022.
+```{r fitted_interval_preds_plot}
 
 # get spatial residuals from model
 spatResids_preds<-residuals(a5ssn_wswq_reml1, cross.validation=T)
@@ -1250,7 +1300,7 @@ op05<-spat.Pred.pct[ox,"Q05"]
 op95 <- spat.Pred.pct[ox,"Q95"]
 
 # plot
-plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Value",ylab="VSCI Observed Value",main="Spatial Model Observed vs. Predicted")
+plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value 2019-2022",ylab="VSCI Observed Value 2019-2022",main="Spatial Model Observed vs. Predicted a5 reml")
 abline(0,1,col="red")
 lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
 
