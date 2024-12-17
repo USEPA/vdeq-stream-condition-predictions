@@ -16,7 +16,7 @@ editor_options:
 ---
 
 Here's what I added in this script for the example!
-
+# Outline
 The purpose of this script is to make sure both obs and preds have the same covariates. This is required so that the SSN model built from the obs can then applied to make predictions at the preds. The 48 preds where withheld from from the SSN model building to provide an independent data set for measuring the predictive performance of the SSN model. The 48 preds were collected from spatially balanced probabilistic surveys done from 2019-2022.
 
 Three modifications were made to the SSN WS-WQ model, ssn_wswq_reml1, from script 05 in attempts to get a better predictive model. Those modifications included:
@@ -26,11 +26,11 @@ Three modifications were made to the SSN WS-WQ model, ssn_wswq_reml1, from scrip
 
 With those modification evaluated, then the final model, which included the partition factor and the nearest distance to upstream waterbody covariate, was evaluated by comparing observed vsci to predicted vsci, first, for the 199 observations from 2001-2018 using leave-one-out-cross-validation (loocv). The second evaluation used the 48 predictions sites from 2019-2022 with their observed vsci compared to the predicted vsci from the SSN model. Both of those evaluations were done graphs of the observed values on the y-axis and predicted values on the x-axis.
 
+Log Keeping log below for now when reach final version will delete.
 
-11/25/2024 using James_071024_pluspreds as ssn object as has all 46 prediction points in one shapefile. And bringing additional covariates. Needing to assign 0's to preds_2019_2022 that initially had dist_nearest_up_wb_km set to NA for 31 of 48 prediction points.
-
-Keep logging going below and will delete when get final version of script.
 12/16/2024 trying to run distance hypothesis using binomial, numerically coded waterbody upstream, 0 is absent and 1 is present, and distance upstream to nearest waterbody as continuous covariate. 
+
+11/25/2024 using James_071024_pluspreds as ssn object as has all 48 prediction points in one shapefile. And bringing additional covariates. Needing to assign 0's to preds_2019_2022 that initially had dist_nearest_up_wb_km set to NA for 31 of 48 prediction points.
 
 11/19/2024 trying to run TLH code chunk for prediction interval graph
 
@@ -61,7 +61,7 @@ On 04/09/2024 Mike Dumelle recommended:  1) use untransformed vsci, 2) include a
 
 On 04/04/2024 now using James040424.ssn as Ellen D'Amico from Pegasus updated Preds_2021_2022 points.
 
-On 03/272024, Using code from step1_james_eda_v1.Rmd, but now specifying preds1 to bring in 22 points from 2019-2020 VDEQ monitoring and preds2 to bring in 26 points from 2021-2022 VDEQ monitoring using current SSN from James.ssn_032224.zip.
+On 03/27/2024, Using code from step1_james_eda_v1.Rmd, but now specifying preds1 to bring in 22 points from 2019-2020 VDEQ monitoring and preds2 to bring in 26 points from 2021-2022 VDEQ monitoring using current SSN from James.ssn_032224.zip.
 # Libraries
 ```{r setup,message=FALSE, warning=FALSE, collapse=TRUE}
 
@@ -171,14 +171,15 @@ preds1 <- SSN2::ssn_get_data(j_ssn1a, name = "Preds_2019_2022") %>% clean_names(
 
 
 ## Steps for working with preds based on obs
-On 03/04/2029, realized I needed to add in imputing of 2 observed sites for total habitat scores. I need tot_hab for catchment and catchment-riparian in the mixed geographies SSN analysis. Saw this when I made scatter plot of covariates.
 
 Note that both obs and preds need to be in the SSN object that is modeled. This results in the SSN model object having all the variables needed for the SSN predict function.
-	1. Use janitor clean_names function.
-	2. Make factors of vahusb and year.
-	3. Log total nitrogen. 
+	1. Make factors of vahusb and year.
+	2. Log total nitrogen. 
+	3. Include additional covariates of wastewater treatment plant, depth to bedrock, upstream waterbody as categorical absent or present, and continuous covariate of distance to nearest upstream waterbody.
 	4. Empirical logit transformations for impervious and forest
 	5. Dummy code transformation of factors for vahusb.
+
+On 03/04/2029, realized I needed to add in imputing of 2 observed sites for total habitat scores. I need tot_hab for catchment and catchment-riparian in the mixed geographies SSN analysis. Saw this when I made scatter plot of covariates.
 
 ## 1.20 Total Habitat (RBP) score
 Bring Total Habitat Score (TotHab) in from Wadeable_ProbMon_2001-2018_Final_Final.xslx spreadsheet so it can be joined to DFobs and then j_ssn1a. These 2 stations:  2-JKS070.97 and 2-DDY000.75_2017 do not have tothab as Emma confirmed in her 11/24/2023 email. Both sites are in Central Appalachian Ridges and Valleys. Both have high VSCI scores of 73.8 and 84.5 (the latter is max VSCI), respectively. I will impute their tothab scores. For trend station 2-DDY000.75_2017, I will average the scores of 172.5, 173.5, and 178 from 2011, 2013, and 2015, respectively. For  2-JKS070.97 on 3rd order, I averaged nearby sites 2-JKS076.16, has tothab of 162.0 on 3rd order, is upstream of 2-JKS070.97, about 16 km apart. Also used Back Creek site, 2-BCC001.90 (has tothab of 189.0 on 2nd order),  that flows parallel to Jackson River, where the 2 sites are, and Back Creek site is near confluence to Jackson River.  2-BCC001.90 is about 9 stream km from 2-JKS070.97. Added new variable tothab.
@@ -230,7 +231,7 @@ rm(tothab_ds1, tothab_ds2, dr_na, tothab_ds3, jr_na, tothab_ds4)
 ```
 
 # Transform Obs Covariates
-On 12/16/2025 added binomial wbc, wbc_bin, coded as numeric 0 or 1 similar to Dumelle et al. 2023 coding in National Lake assessment conductivity paper.
+On 12/16/2024 added binomial wbc, wbc_bin, coded as numeric 0 or 1 similar to Dumelle et al. 2023 coding in National Lake assessment conductivity paper.
  
 On 11/25/2024 added WWTP, STATSGo_Set2, and waterbody covariates.
 0n 06/28/20204 added for ju - yes and ju - no to test if partitioning on ju helpful first by looking at separate torgegrams and then in modeling.
@@ -477,13 +478,13 @@ j_ssn3 <-  SSN2::ssn_put_data(DFobs3a,j_ssn3)
 ```
 
 # Transform Pred Covariates
-On 12/16/2025 added binomial wbc, wbc_bin, coded as numeric 0 or 1 similar to Dumelle et al. 2023 coding in National Lake assessment conductivity paper.
+On 12/16/2024 added binomial wbc, wbc_bin, coded as numeric 0 or 1 similar to Dumelle et al. 2023 coding in National Lake assessment conductivity paper.
 
 On 11/25/2024 have to assign 0's for 31 of 48 preds that had distances of NA and additional covariates.
 
 
 ```{r transform_preds}
-
+# did this assignment so would not have to change all the object names below
 preds3 <- preds1
 
 # create same name as in obs models
@@ -820,10 +821,12 @@ On 05/03/2024, not seeing that much spatial structure in DO or Log(TN). On 07/12
 ```
 
 
-# SSN Watershed WQ Model
+# SSN Ws-Wq Model
+This is the SSN Ws-Wq model that was evaluated in script 05. Here is it run again and augmented with diagnostic and fitted values. The parallel coordinate plot of the augmented data frame was grouped by the 5 vahusb. The clustering of the JU variables in that plot is what suggested using the partition factor. See the description of partition factor under section 4.1.3 Advanced Features in An Introduction to Spatial Stream Network Modeling in R using SSN2.
+
 On 04/19/2024 kept tail down exponential and changed Euclidean to exponential based on models_yintercept.csv table.
 On 04/10/2023 evaluated model using vsci, untransformed, and added imp_w_pres, a binary presence indicator of impervious cover. This was approach was used by Dumelle et al. 2023 in their spatial modeling of NLA conductivity.
-```{r wswq_ssn_obs_preds}
+```{r wswq_ssn_obs_fitted}
 ssn_wswq_reml1 <- ssn_lm(
   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
   ssn.object = j_ssn3,
@@ -850,22 +853,14 @@ mapview(aug_ssn_wswq_reml1)
 
 mapview(aug_ssn_wswq_reml1, zcol = ".std.resid", cex = ".std.resid", alpha.regions = .8, legend = TRUE, popup = popupTable(aug_ssn_wswq_reml1, zcol = c(".std.resid")))# + mapview(stream)
 
-# Semivariogram Cloud
-ssn_cloud =  variogram(.std.resid ~ 1, aug_ssn_wswq_reml1, cloud = TRUE)
-class(ssn_cloud)
-plot(ssn_cloud)
-
-# commented out b/c identify not work in RStudio
-# plot(plot(ssn_cloud, identify = TRUE), aug_ssn_wswq_reml1)
-
-#parallel coordinate plot
-pcpobs <- ggparcoord(data = aug_ssn_wswq_reml1, columns = c(136,155,38,159,163,160,191), groupColumn = "vahusb", scale = "std", showPoint = TRUE, title = "Observed Sites", alphaLines = 0.6, boxplot = TRUE)
+# parallel coordinate plot
+# names(aug_ssn_wswq_reml1)
+pcpobs <- ggparcoord(data = aug_ssn_wswq_reml1, columns = c(136,155,38,161,165,204,166,232), groupColumn = "vahusb", scale = "std", showPoint = TRUE, title = "Observed Sites", alphaLines = 0.8, boxplot = FALSE)
+pcpobs
 
 ggplot(aug_ssn_wswq_reml1, aes(x = pct_imp_w_emplog, y = .fitted, colour = vahusb)) + geom_point() + geom_smooth(method = "lm")
 
 ggplot(aug_ssn_wswq_reml1, aes(x = vahusb, y = .fitted)) + geom_boxplot()
-
-names(aug_ssn_wswq_reml1)
 
 resid_ssn1 <- as.data.frame(aug_ssn_wswq_reml1)|>
    dplyr::select(station_id_2, .fitted, .resid, .std.resid)
@@ -879,20 +874,19 @@ saveRDS(ssn_wswq_fit_reml1, file = "outputs/ssn_wswq_fit_reml1.rds")
 
 st_write(ssn_wswq_fit_reml1, dsn = file.path(getwd(), "ssn_wswq_fit_reml1.gpkg"), layer = "ssn_wswq_fit_reml1", driver = "GPKG", quiet = FALSE, append = FALSE)
 
-
-
-# put dummy covariates in an SF object
+# put selected covariates in an SF object
 DFobs4 <- full_join(DFobs3a, resid_ssn1, by = join_by(station_id_2))
 names(DFobs4)
 
 # put SF object into SSN
 j_ssn4 <-  SSN2::ssn_put_data(DFobs4,j_ssn3)
 
-res_tg1 <- SSN2::Torgegram(.resid ~ 1, j_ssn4, type = c("flowuncon", "euclid"))
-plot(res_tg1, main = "Torgegram of Residuals from Watershed SSN")
+res_tg1 <- SSN2::Torgegram(.std.resid ~ 1, j_ssn4, type = c("flowuncon", "euclid"))
+plot(res_tg1, main = "Torgegram of Standardized Residuals from Watershed SSN")
 ```
 
 # SSN Model Partitioned
+The z4 model below has the partitioned factor of ju, Upper James. The models z1-z3 tested different coding and how different fixed and random effects compared to ssn_wswq_reml1. Finally, z4 model had a better fit, based on AIcc, than ssn_wswq_reml1.
 
 On 11/25/2024 why does z4ssn_wswq_ml1 model give much more reasonable range estimates than reml model?
 On 07/03/2024 need to look at diagnostic plots of partition model. Diagnostic plots are saved as Word files at E:\R_vdeq_sci\Working\Data\neptune_analysis\scripts_by_basin.
@@ -951,12 +945,11 @@ loocv(z3ssn_wswq_reml1)
 
 #plot(z3ssn_wswq_reml1, which = c(1:6))
 
-
 glances(ssn_wswq_reml1,z2ssn_wswq_reml1,z3ssn_wswq_reml1)
 # AICc ssn_ws_reml1 1415 vs. AICc z2ssn_wswq_reml1 1423 vs AICc z3ssn 1327
 # RMSPE/cor2 ssn_ws_reml1 8/38/0.41 vs. RMSPE/cor2 z2ssn_wswq_reml1 8.46/0.40 vs RMSPE/cor2 z3ssn 8.70/0.378
 
-# On 06/28/2024 partition factor on ju motivated by parallel coordinate plots of obs and preds.  Partition factor, from help, affects covariance matrix so I think I can compare 2 models based on AICc derived from reml. 
+# On 06/28/2024 partition factor on ju motivated by parallel coordinate plots of obs and preds.  Partition factor, from help, affects covariance portion of the model while fixed effects affect the mean portion. Therefore I think I can compare 2 models based on AICc derived from reml. 
 
 z4ssn_wswq_reml1 <- ssn_lm(
   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
