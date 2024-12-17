@@ -889,7 +889,7 @@ plot(res_tg1, main = "Torgegram of Residuals from Watershed SSN")
 On 11/25/2024 why does z4ssn_wswq_ml1 model give much more reasonable range estimates than reml model?
 On 07/03/2024 need to look at diagnostic plots of partition model. Diagnostic plots are saved as Word files at E:\R_vdeq_sci\Working\Data\neptune_analysis\scripts_by_basin.
 On 06/28/2024, I coded for a partition factor base on JU subbasin versus non-JU subasins , partly because parallel coordinate plot showed JU to differ in covariates and vsci from rest of subbasins. Results from dummy coded model above match factor coded model below. Also, on 06/20/2024 compared the Watershed ssn model to a model with a random effect of year. The Watershed ssn model had a much lower AICc than the model with a random effect of year.
-```{r wswq_ssn_factor}
+```{r wswq_ssn_partition}
 # z1 model shows that jl as factor gives same results at dummy coded vahusb_JL
 z1ssn_wswq_reml1 <- ssn_lm(
   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + jl,
