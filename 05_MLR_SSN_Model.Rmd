@@ -392,7 +392,7 @@ The candidate pool of 21 covariates came from these categories:  1) climate 2) l
 
 The maximum number of covariates to be retained during bestglm selection was set to 4 before any modeling was done. This was done to produce a conservative model based on the number of observations relative to the number of parameters estimated in the model. Four slopes and 1 y-intercept are estimated with nvmax = 4. Then, a spatial stream network model could include up to 7 additional parameters, with 2 parameters estimated each for Euclidean, Tail Up, and Tail down autocovariances plus an independent error, or nugget, parameter. For 199 observations, there could be 12 model parameters or ~ 17 observations/parameter, and that seemed a good way to avoid overfitting the model as a rule of thumb is to have 10 observations/parameter.
 
-# 4.0 WS-Wq
+# 4.0 Ws-Wq
 Analysis done at watershed extent.
 ### 4.1 Bestglm and SSN0 Nugget Model
 On 07/12/2024 I will simply keep precip_mm and tmean in the candidate pool for all 4 geographies. No change to original selected covariates after I replaced precip_mm with d_precip_m and tmean with d_t_mean, which are deviations from 30-year normals for precip and temperature.
