@@ -123,35 +123,6 @@ preds1 <- SSN2::ssn_get_data(j_ssn1a, name = "Preds_2019_2022") %>% clean_names(
 # str(preds2)
 
 
-## SFS Torgegram
-# ztg <- SSN2::Torgegram(VSCIVCPMI ~1, j_ssn1a, type = c("flowcon", "flowuncon", "euclid"))
-# plot(ztg, main = "Torgegram VSCI")
-# plot(ztg, type = "flowcon", main = "Torgegram VSCI")
-# plot(ztg, type = "flowuncon", main = "Torgegram VSCI")
-# plot(ztg, type = "euclid", main = "Torgegram VSCI")
-# plot(ztg, separate = TRUE, main = "Torgegram VSCI")
-# 
-# flowcon <- ztg[["flowcon"]]
-# ggplot(flowcon, aes(x=dist, y=gamma)) + geom_point()
-# flowcon$dist_type <- "flow_conn"
-# 
-# flowuncon <- ztg[["flowuncon"]]
-# names(flowuncon)
-# class(flowuncon)
-# ggplot(flowuncon, aes(x=dist, y=gamma)) + geom_point()
-# flowuncon$dist_type <- "flow_unconn"
-# 
-# euclid <- ztg[["euclid"]]
-# names(euclid)
-# class(euclid)
-# ggplot(euclid, aes(x=dist, y=gamma)) + geom_point()
-# euclid$dist_type <- "euclid"
-# 
-# torg <- bind_rows(flowuncon,euclid)
-# ggplot(torg, aes(x=dist, y=gamma, colour = dist_type)) + geom_point()
-
-
-
 ```
 
 ## SFS Meeting Torgegram
@@ -821,7 +792,7 @@ On 05/03/2024, not seeing that much spatial structure in DO or Log(TN). On 07/12
 ```
 
 
-# SSN Ws-Wq Model
+# Ws-Wq Model
 This is the SSN Ws-Wq model that was evaluated in script 05. Here is it run again and augmented with diagnostic and fitted values. The parallel coordinate plot of the augmented data frame was grouped by the 5 vahusb. The clustering of the JU variables in that plot is what suggested using the partition factor. See the description of partition factor under section 4.1.3 Advanced Features in An Introduction to Spatial Stream Network Modeling in R using SSN2.
 
 On 04/19/2024 kept tail down exponential and changed Euclidean to exponential based on models_yintercept.csv table.
@@ -885,8 +856,8 @@ res_tg1 <- SSN2::Torgegram(.std.resid ~ 1, j_ssn4, type = c("flowuncon", "euclid
 plot(res_tg1, main = "Torgegram of Standardized Residuals from Watershed SSN")
 ```
 
-# SSN Model Partitioned
-The z4 model below has the partitioned factor of ju, Upper James. The models z1-z3 tested different coding and how different fixed and random effects compared to ssn_wswq_reml1. Finally, z4 model had a better fit, based on AIcc, than ssn_wswq_reml1.
+# Ws-Wq Partitioned
+The z4 model below has the partitioned factor of ju, Upper James. The models z1-z3 tested different coding and how different fixed and random effects compared to ssn_wswq_reml1. Finally, z4 model had a better fit, based on AIcc, than ssn_wswq_reml1. Also, the RMSPE is slightly smaller for the z4 model, and its cor2 is slightly larger.
 
 On 11/25/2024 why does z4ssn_wswq_ml1 model give much more reasonable range estimates than reml model?
 On 07/03/2024 need to look at diagnostic plots of partition model. Diagnostic plots are saved as Word files at E:\R_vdeq_sci\Working\Data\neptune_analysis\scripts_by_basin.
@@ -972,16 +943,15 @@ glances(ssn_wswq_reml1,z4ssn_wswq_reml1)
 
 tidy(z4ssn_wswq_reml1)
 
+aug_z4_wswq_reml1 <- augment(z4ssn_wswq_reml1, drop = FALSE)
+summary(aug_z4_wswq_reml1$.std.resid)
+mapview(aug_z4_wswq_reml1, zcol = ".std.resid", cex = ".std.resid", alpha.regions = .8, legend = TRUE, popup = popupTable(aug_ssn_wswq_reml1, zcol = c(".std.resid"))) 
 
-z4rssn_wswq_reml1 <- augment(z4ssn_wswq_reml1, drop = FALSE)
-summary(z4rssn_wswq_reml1$.std.resid)
-mapview(z4rssn_wswq_reml1, zcol = ".std.resid", cex = ".std.resid", alpha.regions = .8, legend = TRUE, popup = popupTable(aug_ssn_wswq_reml1, zcol = c(".std.resid"))) 
+aug_z4_wswq_reml1 <- dplyr::select(aug_z4_wswq_reml1, c(station_id, station_id_2, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, pct_imp_w, elev_ws, pct_imp_w_emplog, vsci, .fitted, .std.resid))
 
-z4rssn_wswq_reml1 <- dplyr::select(z4rssn_wswq_reml1, c(station_id, station_id_2, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, pct_imp_w, elev_ws, pct_imp_w_emplog, vsci, .fitted, .std.resid))
+saveRDS(aug_z4_wswq_reml1, file = "outputs/aug_z4_wswq_reml1.rds")
 
-saveRDS(z4rssn_wswq_reml1, file = "outputs/z4rssn_wswq_reml1.rds")
-
-st_write(z4rssn_wswq_reml1, dsn = file.path(getwd(), "z4rssn_wswq_reml1.gpkg"), layer = "z4rssn_wswq_reml1", driver = "GPKG", quiet = FALSE, append=FALSE)
+st_write(aug_z4_wswq_reml1, dsn = file.path(getwd(), "aug_z4_wswq_reml1.gpkg"), layer = "aug_z4_wswq_reml1", driver = "GPKG", quiet = FALSE, append=FALSE)
 
 # B/c want to compare predictions from models having different covariates specifying estimation method as ml
 
@@ -1004,8 +974,10 @@ loocv(z4ssn_wswq_ml1) %>% print(n = Inf)
 
 ```
 
-# TLH fitted to obs interval work
-On 12/16/2024 first using a4 reml model and will compare to z5 reml model with distance covariate as tht provides a better fit based on smaller AICc value.
+# TLH fitted to obs interval plot
+
+
+On 12/16/2024 first using a4 reml model and will compare to z5 reml model with distance covariate as that provides a better fit based on smaller AICc value.
 ```{r fitted_interval_plot}
 # z4 model was run above
 
@@ -1021,19 +993,21 @@ On 12/16/2024 first using a4 reml model and will compare to z5 reml model with d
 #   additive = "afv_area",
 #   partition_factor = ~ju
 # )
-summary(z4ssn_wswq_reml1)
+# summary(z4ssn_wswq_reml1)
 
 # how do residuals and fitted values below compare to what comes out with augment function?
 
-aug_z4ssn_wswq_reml1 <- augment(z4ssn_wswq_reml1, drop = FALSE)
 class(aug_z4ssn_wswq_reml1)
 names(aug_z4ssn_wswq_reml1)
 
-head(aug_z4ssn_wswq_reml1$.fitted)
-
+head(round(aug_z4ssn_wswq_reml1$.fitted))
+head(round(aug_z4ssn_wswq_reml1$vsci))
 
 # get spatial residuals from model
 spatResids<-residuals(z4ssn_wswq_reml1, cross.validation=T)
+# zspatResids<-residuals(z4ssn_wswq_reml1)
+# head(aug_z4ssn_wswq_reml1$.resid)
+# the three statements above all return same results
 
 # pull sd of residuals and fitted values
 resid_SD = sd(spatResids)
@@ -1041,11 +1015,13 @@ fitted_vals = z4ssn_wswq_reml1$fitted$response
 
 # combine to a dataframe
 spat<-cbind(fitted_vals,resid_SD^2)
+head(spat)
 
 # spatial prediction percentiles
 (spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
 
 spat.Pred.median = spat.Pred.pct[,4]
+head(spat.Pred.median)
 
 # make sure I've got the right obj
 DFobs<-ssn_get_data(j_ssn3)
