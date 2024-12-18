@@ -1253,8 +1253,10 @@ mapview(aug_a5predict1ws_vsci)
 ```
 
 ### TLH Fitted interval preds
-I believe this coding is fitting to 199 obs because using a5ssn_wswq_reml1. I think it should be using a5 predict1ws_vsci as it has 48 predicted sites from 2019-2022.
+I believe this coding is fitting to 199 obs because using a5ssn_wswq_reml1. I think it should be using aug_a5predict1ws_vsci as it has 48 predicted sites from 2019-2022.
 ```{r fitted_interval_preds_plot}
+
+names(aug_a5predict1ws_vsci)
 
 # get spatial residuals from model
 spatResids_preds<-residuals(a5ssn_wswq_reml1, cross.validation=T)
