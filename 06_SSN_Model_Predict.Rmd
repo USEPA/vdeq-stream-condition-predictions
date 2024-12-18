@@ -1046,13 +1046,16 @@ lines(tx[ox],op95,lty=2,col='black')
 #legend
 legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
 
+cor(tx,ty, method = "pearson")
 
+# these object names are used again downstream for preds so remove here
 
+rm(spatResids,resid_SD,fitted_vals,spat,spat.Pred.pct,spat.Pred.median,ty,tx,ox,op05,op95)
 ```
 
 
 # Additional Hypotheses for a4 model
-On 12/16/2024 in near future will likely comment out this code chunk as no support found for including these additional covariates.
+On 12/16/2024 in near future will likely comment out this code chunk as no support found for including these additional covariates, which are included in model a4ssn_wswq_ml1.
 
 On 11/25/2024 From Miller et al. 2017's results, suggested hypotheses about WWTPs and upstream reservoirs. Also, I will test a depth to bedrock soils hypothesis. The goal of adding these covariates is to get improvements in predictions for 2019-2022 data. This is referred to as the a4 model, for additional hypotheses. Note because of new covariates using ml estimation (Ver Hoef 2014 page 23). Commented out SSN diagnostic plot which statement as seemed cause error with following residual assignment.
 ```{r additional_hypotheses}
@@ -1098,7 +1101,7 @@ On 12/16/2024 testing distance hypothesis of upstream waterbodies by now using w
 dist_nearest_up_wb_km with those covariates entered into the model as 
 wbc_bin
 wbc_bin:dist_nearest_up_wb_km.
-This follows coding as used in Dumelle et al. 2023 paper. Using that coding produced a poorer fitting more complicated model than z4. Using just the continuous covariate of distance, as done on 11/19/2024, produces a better fitting model. What does added variable plot of that model look like?
+This follows coding as used in Dumelle et al. 2023 paper. Using that coding produced a poorer fitting more complicated model than z4. Using just the continuous covariate of distance, as done on 11/19/2024, produces a better fitting model a5ssn_wswq_ml1. Model a5ssn_wswq_ml1 has slightly better values for RMSPE and cor2 than z4ssn_wswq_ml1. What does added variable plot of that model look like?
 
 
 Run ML estimation when comparing to models with different covariates. Run with REML when comparing to models with different spatial autocovariances and for prediction.
@@ -1188,47 +1191,49 @@ a5ssn_wswq_reml1 <- ssn_lm(
   partition_factor = ~ju
 )
 summary(a5ssn_wswq_reml1)
+varcomp(a5ssn_wswq_reml1)
+loocv(a5ssn_wswq_reml1)
 
 # augment returns an sf object
-a5predict1ws_vsci <- augment(a5ssn_wswq_reml1, newdata = "Preds_2019_2022", se_fit = TRUE, interval = c("prediction"))
+aug_a5predict1ws_vsci <- augment(a5ssn_wswq_reml1, newdata = "Preds_2019_2022", se_fit = TRUE, interval = c("prediction"))
 # class(predict1ws_vsci)
 # names(predict1ws_vsci)
-a5predict1ws_vsci$vsci_pred <- round(a5predict1ws_vsci$.fitted,1)
-a5predict1ws_vsci$vsci_lwr <- round(a5predict1ws_vsci$.lower,1)
-a5predict1ws_vsci$vsci_upr <- round(a5predict1ws_vsci$.upper,1)
+aug_a5predict1ws_vsci$vsci_pred <- round(aug_a5predict1ws_vsci$.fitted,1)
+aug_a5predict1ws_vsci$vsci_lwr <- round(aug_a5predict1ws_vsci$.lower,1)
+aug_a5predict1ws_vsci$vsci_upr <- round(aug_a5predict1ws_vsci$.upper,1)
 
 # Pineiro 2008 put observed on y and predict on x
 # label specific points
 # https://stackoverflow.com/questions/15624656/label-points-in-geom-point
 
 # plotting without 1:1 abline shows how weak correlation is.
-ggplot(a5predict1ws_vsci, aes(x = vsci_pred, y = vsci)) + geom_point() + geom_abline()
+ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci)) + geom_point() + geom_abline()
 
-a5preds2019_2022_v1 <- ggplot(a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_text(aes(label =ifelse(vsci<45, as.character(station_id_2), '')), hjust = -0.1, vjust = 0)+ labs(x = "Predicted VSCI", y = "Observed VSCI, 2019-2022", title = "a5reml Watershed SSN JU Partitioned") + xlim(35,80) + ylim(35,80)
+a5preds2019_2022_v1 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_text(aes(label =ifelse(vsci<45, as.character(station_id_2), '')), hjust = -0.1, vjust = 0)+ labs(x = "Predicted VSCI", y = "Observed VSCI, 2019-2022", title = "a5reml Watershed SSN JU Partitioned & Upstream Waterbody Distance") + xlim(35,80) + ylim(35,80)
 
 png(file="figures_sfs/a5preds2019_2022_v1.png",width=6,height=3,units="in",res=150)
-  a5preds2019_2022_v1
+a5preds2019_2022_v1
 dev.off()
 
-cor(a5predict1ws_vsci$vsci_pred,a5predict1ws_vsci$vsci, method = "pearson")
+cor(aug_a5predict1ws_vsci$vsci_pred,aug_a5predict1ws_vsci$vsci, method = "pearson")
 
 #2019-2022 a5reml correlation with partition factor of ju and distance covariate is 0.57
 
 # 2019-2022 correlation w/partition factor of ju and additional covariates was 0.54
-as.data.frame(a5predict1ws_vsci)|>
+as.data.frame(aug_a5predict1ws_vsci)|>
   dplyr::select(vsci_pred,vsci)|>
   correlate()
 
 #check as outlier differs in 2019-20, 2-BSC001.58, vs 2021-22, 2-WPK002.93
-as.data.frame(a5predict1ws_vsci)|>
+as.data.frame(aug_a5predict1ws_vsci)|>
   dplyr::filter(station_id_2 != "2-WPK002.93" & station_id_2 != "2-BSC001.58") |>
   dplyr::select(vsci_pred,vsci)|>
   correlate()
 # dropping outliers a5reml gives corr 0.49 for 2019-2022
 
-ggplot(a5predict1ws_vsci, aes(x = vsci_pred, y = vsci)) + geom_point() + geom_abline() + geom_errorbar(aes(xmax = vsci_upr, xmin = vsci_lwr)) + labs(x = "Predicted VSCI", y = "Observed VSCI, 2019-2022")
+ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci)) + geom_point() + geom_abline() + geom_errorbar(aes(xmax = vsci_upr, xmin = vsci_lwr)) + labs(x = "Predicted VSCI", y = "Observed VSCI, 2019-2022")
 
-mapview(a5predict1ws_vsci)
+mapview(aug_a5predict1ws_vsci)
 
 # gather covariates, preds, write out geopackage for 2 prediction datasets. Comment out code based if preds1 or preds2 is used
 
@@ -1244,6 +1249,7 @@ mapview(a5predict1ws_vsci)
 # 
 # st_write(a4preds_cov_19_22, dsn = file.path(getwd(), "preds_cov_19_22.gpkg"), layer = "preds_cov_1922", driver = "GPKG", quiet = FALSE)
 
+
 ```
 
 ### TLH Fitted interval preds
@@ -1255,11 +1261,11 @@ spatResids_preds<-residuals(a5ssn_wswq_reml1, cross.validation=T)
 
 # pull sd of residuals and fitted values
 resid_SD = sd(spatResids_preds)
-fitted_vals = a5predict1ws_vsci$.fitted
+fitted_vals = aug_a5predict1ws_vsci$.fitted
 
 # combine to a dataframe
 spat<-cbind(fitted_vals,resid_SD^2)
-
+head(spat)
 # spatial prediction percentiles
 (spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
 
@@ -1277,7 +1283,7 @@ op05<-spat.Pred.pct[ox,"Q05"]
 op95 <- spat.Pred.pct[ox,"Q95"]
 
 # plot
-plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value 2019-2022",ylab="VSCI Observed Value 2019-2022",main="Spatial Model Observed vs. Predicted a5 reml")
+plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value 2019-2022",ylab="VSCI Observed Value 2019-2022",main="Spatial Model Observed vs. Predicted a5 reml JU Partitioned & Upstream Waterbody Distance")
 abline(0,1,col="red")
 lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
 
@@ -1287,6 +1293,8 @@ lines(tx[ox],op05,lty=2,col='black')
 lines(tx[ox],op95,lty=2,col='black')
 #legend
 legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
+
+cor(tx,ty, method = "pearson")
 
 ```
 
