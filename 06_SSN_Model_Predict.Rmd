@@ -997,11 +997,11 @@ On 12/16/2024 first using a4 reml model and will compare to z5 reml model with d
 
 # how do residuals and fitted values below compare to what comes out with augment function?
 
-class(aug_z4ssn_wswq_reml1)
-names(aug_z4ssn_wswq_reml1)
+class(aug_z4_wswq_reml1)
+names(aug_z4_wswq_reml1)
 
-head(round(aug_z4ssn_wswq_reml1$.fitted))
-head(round(aug_z4ssn_wswq_reml1$vsci))
+head(round(aug_z4_wswq_reml1$.fitted))
+head(round(aug_z4_wswq_reml1$vsci))
 
 # get spatial residuals from model
 spatResids<-residuals(z4ssn_wswq_reml1, cross.validation=T)
@@ -1035,7 +1035,7 @@ op05<-spat.Pred.pct[ox,"Q05"]
 op95 <- spat.Pred.pct[ox,"Q95"]
 
 # plot
-plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value",ylab="VSCI Observed Value",main="Spatial Model Observed vs. Predicted z4 reml")
+plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value",ylab="VSCI Observed Value",main="Spatial Model Observed vs. Predicted z4 reml n = 199")
 abline(0,1,col="red")
 lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
 
@@ -1137,19 +1137,19 @@ plot(a5ssn_wswq_ml1, which = c(1:6))
 
 #### TLH lm discussion
 
-test = ssn_get_data(j_ssn3)
-fit = lm(vsci ~pct_imp_w_emplog + elev_ws + do + vahusb_JL + wbc*dist_nearest_up_wb_km - dist_nearest_up_wb_km,data = test)
-summary(fit)
-check_model(fit)
-avPlots(fit)
+# test = ssn_get_data(j_ssn3)
+# fit = lm(vsci ~pct_imp_w_emplog + elev_ws + do + vahusb_JL + wbc*dist_nearest_up_wb_km - dist_nearest_up_wb_km,data = test)
+# summary(fit)
+# check_model(fit)
+# avPlots(fit)
 ### as you can see we get a nice output with wbcabsent:dist_nearest_up_wb_km NA'd out. So this is what I'm trying to replicate in the ssn2 formulation. 
 
 # I added test1 code with only distance covariate
-test = ssn_get_data(j_ssn3)
-fit1 = lm(vsci ~pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,data = test)
-summary(fit1)
-check_model(fit1)
-avPlots(fit1)
+# test = ssn_get_data(j_ssn3)
+# fit1 = lm(vsci ~pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,data = test)
+# summary(fit1)
+# check_model(fit1)
+# avPlots(fit1)
 ```
 
 # Check Nonspatial Diagnostics on a5 model
@@ -1169,15 +1169,15 @@ Note for predictions want estimation method to be reml.
 Looking to see if distance to nearest upstream waterbody covariate pulls outliers closer to 1:1 line, which is the a5 model.
 ```{r hypotheses_preds}
 # check stats on pred covariates to make sure corrects preds ssn data frame being used
-summary(j_ssn3$preds$Preds_2019_2022$pct_imp_w_emplog)
-summary(j_ssn3$preds$Preds_2019_2022$elev_ws)
-summary(j_ssn3$preds$Preds_2019_2022$do)
-summary(j_ssn3$preds$Preds_2019_2022$vahusb_JL)
-summary(j_ssn3$preds$Preds_2019_2022$dist_nearest_up_wb_km)
-
-
-summary(j_ssn3)
-str(j_ssn3$obs$pct_imp_w_emplog)
+# summary(j_ssn3$preds$Preds_2019_2022$pct_imp_w_emplog)
+# summary(j_ssn3$preds$Preds_2019_2022$elev_ws)
+# summary(j_ssn3$preds$Preds_2019_2022$do)
+# summary(j_ssn3$preds$Preds_2019_2022$vahusb_JL)
+# summary(j_ssn3$preds$Preds_2019_2022$dist_nearest_up_wb_km)
+# 
+# 
+# summary(j_ssn3)
+# str(j_ssn3$obs$pct_imp_w_emplog)
 
 a5ssn_wswq_reml1 <- ssn_lm(
   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
@@ -1253,13 +1253,16 @@ mapview(aug_a5predict1ws_vsci)
 ```
 
 ### TLH Fitted interval preds
+On 12/19/2025 removed a5ssn_wswq_reml1 and replaced with aug_a5predict1ws_vsci, with that SSN model based on the 48 pred sites.
 I believe this coding is fitting to 199 obs because using a5ssn_wswq_reml1. I think it should be using aug_a5predict1ws_vsci as it has 48 predicted sites from 2019-2022.
 ```{r fitted_interval_preds_plot}
 
 names(aug_a5predict1ws_vsci)
 
 # get spatial residuals from model
-spatResids_preds<-residuals(a5ssn_wswq_reml1, cross.validation=T)
+# code for residuals function on augment predicted SSN did not work
+# testing if 
+#spatResids_preds<-residuals(aug_a5predict1ws_vsci, cross.validation=T)
 
 # pull sd of residuals and fitted values
 resid_SD = sd(spatResids_preds)
