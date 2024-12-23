@@ -1174,8 +1174,8 @@ avPlots(a5_mlr1)
 
 # TLH fitted to obs interval plot for a5 model
 
-Now that diagnostics checked out make an observed to fitted interval plot on model a5ssn_wswq_reml1.
-```{r}
+Now that diagnostics checked out make an observed to fitted interval plot on model a5ssn_wswq_reml1 by augmenting to get diagonstics.
+```{r fitted_interval_obs_plot}
 # z4 model was run above
 
 a5ssn_wswq_reml1 <- ssn_lm(
@@ -1237,7 +1237,7 @@ op05<-spat.Pred.pct[ox,"Q05"]
 op95 <- spat.Pred.pct[ox,"Q95"]
 
 # plot
-plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value",ylab="VSCI Observed Value",main="Spatial Model Observed vs. Predicted z4 reml n = 199")
+plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value",ylab="VSCI Observed Value",main="Spatial Model Observed vs. Predicted a5 reml n = 199")
 abline(0,1,col="red")
 lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
 
