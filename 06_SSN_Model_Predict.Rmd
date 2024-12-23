@@ -28,6 +28,9 @@ With those modification evaluated, then the final model, which included the part
 
 Log Keeping log below for now when reach final version will delete.
 
+12/23/2024 Travis walked me through merging his interval_pred_upd branch with main repository on GitHub. Once that was done I pulled that from main repository to my local repository.
+
+
 12/16/2024 trying to run distance hypothesis using binomial, numerically coded waterbody upstream, 0 is absent and 1 is present, and distance upstream to nearest waterbody as continuous covariate. 
 
 11/25/2024 using James_071024_pluspreds as ssn object as has all 48 prediction points in one shapefile. And bringing additional covariates. Needing to assign 0's to preds_2019_2022 that initially had dist_nearest_up_wb_km set to NA for 31 of 48 prediction points.
@@ -975,10 +978,10 @@ loocv(z4ssn_wswq_ml1) %>% print(n = Inf)
 ```
 
 # TLH fitted to obs interval plot
-
+On 12/23/2024 commenting this code out b/c this is not the model I need for fitted interval obs plot.
 
 On 12/16/2024 first using a4 reml model and will compare to z5 reml model with distance covariate as that provides a better fit based on smaller AICc value.
-```{r fitted_interval_plot}
+```{r fitted_interval_obs_plot}
 # z4 model was run above
 
 ## fit model
@@ -999,61 +1002,61 @@ On 12/16/2024 first using a4 reml model and will compare to z5 reml model with d
 
 
 
-class(aug_z4_wswq_reml1)
-names(aug_z4_wswq_reml1)
-
-head(round(aug_z4_wswq_reml1$.fitted))
-head(round(aug_z4_wswq_reml1$vsci))
+# class(aug_z4_wswq_reml1)
+# names(aug_z4_wswq_reml1)
+# 
+# head(round(aug_z4_wswq_reml1$.fitted))
+# head(round(aug_z4_wswq_reml1$vsci))
 
 
 # get spatial residuals from model
-spatResids<-residuals(z4ssn_wswq_reml1)
+# spatResids<-residuals(z4ssn_wswq_reml1)
 # zspatResids<-residuals(z4ssn_wswq_reml1)
 # head(aug_z4ssn_wswq_reml1$.resid)
 # the three statements above all return same results
 
 # pull sd of residuals and fitted values
-resid_SD = sd(spatResids)
-fitted_vals = z4ssn_wswq_reml1$fitted$response
+# resid_SD = sd(spatResids)
+# fitted_vals = z4ssn_wswq_reml1$fitted$response
 
 # combine to a dataframe
-spat<-cbind(fitted_vals,resid_SD^2)
-head(spat)
+# spat<-cbind(fitted_vals,resid_SD^2)
+# head(spat)
 
 # spatial prediction percentiles
-(spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
+# (spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
 
-spat.Pred.median = spat.Pred.pct[,4]
-head(spat.Pred.median)
+# spat.Pred.median = spat.Pred.pct[,4]
+# head(spat.Pred.median)
 
 # make sure I've got the right obj
-DFobs<-ssn_get_data(j_ssn3)
+# DFobs<-ssn_get_data(j_ssn3)
 # observed and median of our prediction intervals
-ty<-DFobs$vsci
-tx<-spat.Pred.median
+# ty<-DFobs$vsci
+# tx<-spat.Pred.median
 
 #percentiles
-ox<-order(tx)
-op05<-spat.Pred.pct[ox,"Q05"]
-op95 <- spat.Pred.pct[ox,"Q95"]
+# ox<-order(tx)
+# op05<-spat.Pred.pct[ox,"Q05"]
+# op95 <- spat.Pred.pct[ox,"Q95"]
 
 # plot
-plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value",ylab="VSCI Observed Value",main="Spatial Model Observed vs. Predicted z4 reml n = 199")
-abline(0,1,col="red")
-lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
+# plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value",ylab="VSCI Observed Value",main="Spatial Model Observed vs. Predicted z4 reml n = 199")
+# abline(0,1,col="red")
+# lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
 
 # 5th percentile of predictive distribution
-lines(tx[ox],op05,lty=2,col='black')
+# lines(tx[ox],op05,lty=2,col='black')
 # 95th percentile of predictive distribution
-lines(tx[ox],op95,lty=2,col='black')
+# lines(tx[ox],op95,lty=2,col='black')
 #legend
-legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
+# legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
 
-cor(tx,ty, method = "pearson")
+# cor(tx,ty, method = "pearson")
 
 # these object names are used again downstream for preds so remove here
 
-rm(spatResids,resid_SD,fitted_vals,spat,spat.Pred.pct,spat.Pred.median,ty,tx,ox,op05,op95)
+# rm(spatResids,resid_SD,fitted_vals,spat,spat.Pred.pct,spat.Pred.median,ty,tx,ox,op05,op95)
 ```
 
 
@@ -1166,13 +1169,99 @@ a5_mlr1 <- lm(vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_
 
 summary(a5_mlr1)
 check_model(a5_mlr1)
-# avPlots(a5_mlr1)
+avPlots(a5_mlr1)
 ```
+
+# TLH fitted to obs interval plot for a5 model
+
+Now that diagnostics checked out make an observed to fitted interval plot on model a5ssn_wswq_reml1.
+```{r}
+# z4 model was run above
+
+a5ssn_wswq_reml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area",
+  partition_factor = ~ju
+)
+
+summary(a5ssn_wswq_reml1)
+varcomp(a5ssn_wswq_reml1)
+loocv(a5ssn_wswq_reml1)
+
+# how do residuals and fitted values below compare to what comes out with augment function?
+
+aug_a5obs1ws_vsci <- augment(a5ssn_wswq_reml1, drop = FALSE)
+
+class(aug_a5obs1ws_vsci)
+names(aug_a5obs1ws_vsci)
+
+head(round(aug_a5obs1ws_vsci$.fitted))
+head(round(aug_a5obs1ws_vsci$vsci))
+
+
+# get spatial residuals from model
+spatResids<-residuals(a5ssn_wswq_reml1)
+# zspatResids<-residuals(a5ssn_wswq_reml1)
+# head(aug_a5obs1ws_vsci$.resid)
+# the three statements above all return same results
+
+# pull sd of residuals and fitted values
+resid_SD = sd(spatResids)
+fitted_vals = a5ssn_wswq_reml1$fitted$response
+
+# combine to a dataframe
+spat<-cbind(fitted_vals,resid_SD^2)
+head(spat)
+
+# spatial prediction percentiles
+(spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
+
+spat.Pred.median = spat.Pred.pct[,4]
+head(spat.Pred.median)
+
+# make sure I've got the right obj
+DFobs<-ssn_get_data(j_ssn3)
+# observed and median of our prediction intervals
+ty<-DFobs$vsci
+tx<-spat.Pred.median
+
+#percentiles
+ox<-order(tx)
+op05<-spat.Pred.pct[ox,"Q05"]
+op95 <- spat.Pred.pct[ox,"Q95"]
+
+# plot
+plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value",ylab="VSCI Observed Value",main="Spatial Model Observed vs. Predicted z4 reml n = 199")
+abline(0,1,col="red")
+lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
+
+# 5th percentile of predictive distribution
+lines(tx[ox],op05,lty=2,col='black')
+# 95th percentile of predictive distribution
+lines(tx[ox],op95,lty=2,col='black')
+#legend
+legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
+
+cor(tx,ty, method = "pearson")
+
+# these object names are used again downstream for preds so remove here
+
+rm(spatResids,resid_SD,fitted_vals,spat,spat.Pred.pct,spat.Pred.median,ty,tx,ox,op05,op95)
+
+```
+
+
 
 # Preds for Distance Hypothesis
 Note for predictions want estimation method to be reml.
 Looking to see if distance to nearest upstream waterbody covariate pulls outliers closer to 1:1 line, which is the a5 model.
-```{r hypotheses_preds}
+```{r distance_hypothesis_preds}
 # check stats on pred covariates to make sure corrects preds ssn data frame being used
 # summary(j_ssn3$preds$Preds_2019_2022$pct_imp_w_emplog)
 # summary(j_ssn3$preds$Preds_2019_2022$elev_ws)
@@ -1224,21 +1313,20 @@ cor(aug_a5predict1ws_vsci$vsci_pred,aug_a5predict1ws_vsci$vsci, method = "pearso
 
 #2019-2022 a5reml correlation with partition factor of ju and distance covariate is 0.57
 
-# 2019-2022 correlation w/partition factor of ju and additional covariates was 0.54
 as.data.frame(aug_a5predict1ws_vsci)|>
   dplyr::select(vsci_pred,vsci)|>
   correlate()
 
 #check as outlier differs in 2019-20, 2-BSC001.58, vs 2021-22, 2-WPK002.93
-as.data.frame(aug_a5predict1ws_vsci)|>
-  dplyr::filter(station_id_2 != "2-WPK002.93" & station_id_2 != "2-BSC001.58") |>
-  dplyr::select(vsci_pred,vsci)|>
-  correlate()
+# as.data.frame(aug_a5predict1ws_vsci)|>
+#   dplyr::filter(station_id_2 != "2-WPK002.93" & station_id_2 != "2-BSC001.58") |>
+#   dplyr::select(vsci_pred,vsci)|>
+#   correlate()
 # dropping outliers a5reml gives corr 0.49 for 2019-2022
 
-ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci)) + geom_point() + geom_abline() + geom_errorbar(aes(xmax = vsci_upr, xmin = vsci_lwr)) + labs(x = "Predicted VSCI", y = "Observed VSCI, 2019-2022")
-
-mapview(aug_a5predict1ws_vsci)
+# ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci)) + geom_point() + geom_abline() + geom_errorbar(aes(xmax = vsci_upr, xmin = vsci_lwr)) + labs(x = "Predicted VSCI", y = "Observed VSCI, 2019-2022")
+# 
+# mapview(aug_a5predict1ws_vsci)
 
 # gather covariates, preds, write out geopackage for 2 prediction datasets. Comment out code based if preds1 or preds2 is used
 
@@ -1258,6 +1346,7 @@ mapview(aug_a5predict1ws_vsci)
 ```
 
 ### TLH Fitted interval preds
+On 12/23/2024, merged Travis' code so that predictions from 48 pred sites also used residuals from the 48 predictions to build the fitted interval.
 On 12/19/2025 removed a5ssn_wswq_reml1 and replaced with aug_a5predict1ws_vsci, with that SSN model based on the 48 pred sites.
 I believe this coding is fitting to 199 obs because using a5ssn_wswq_reml1. I think it should be using aug_a5predict1ws_vsci as it has 48 predicted sites from 2019-2022.
 ```{r fitted_interval_preds_plot}
@@ -1280,7 +1369,7 @@ head(spat)
 spat.Pred.median = spat.Pred.pct[,4]
 
 # observed and median of our prediction intervals
-ty<-a5predict1ws_vsci$vsci
+ty<-aug_a5predict1ws_vsci$vsci
 tx<-spat.Pred.median
 
 #percentiles
@@ -1289,7 +1378,7 @@ op05<-spat.Pred.pct[ox,"Q05"]
 op95 <- spat.Pred.pct[ox,"Q95"]
 
 # plot
-plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value 2019-2022",ylab="VSCI Observed Value 2019-2022",main="Spatial Model Observed vs. Predicted a5 reml JU Partitioned & Upstream Waterbody Distance")
+plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value 2019-2022",ylab="VSCI Observed Value 2019-2022",main="SSN Obs vs. Pred a5 reml JU Partitioned & Upstream Waterbody Distance n =48")
 abline(0,1,col="red")
 lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
 
