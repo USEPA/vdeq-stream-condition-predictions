@@ -844,9 +844,9 @@ names(resid_ssn1)
 
 ssn_wswq_fit_reml1 <- dplyr::select(aug_ssn_wswq_reml1, c(station_id, station_id_2, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, pct_imp_w, elev_ws, pct_imp_w_emplog, vsci, .fitted, .std.resid))
 
-saveRDS(ssn_wswq_fit_reml1, file = "outputs/ssn_wswq_fit_reml1.rds")
+# saveRDS(ssn_wswq_fit_reml1, file = "outputs/ssn_wswq_fit_reml1.rds")
 
-st_write(ssn_wswq_fit_reml1, dsn = file.path(getwd(), "ssn_wswq_fit_reml1.gpkg"), layer = "ssn_wswq_fit_reml1", driver = "GPKG", quiet = FALSE, append = FALSE)
+# st_write(ssn_wswq_fit_reml1, dsn = file.path(getwd(), "ssn_wswq_fit_reml1.gpkg"), layer = "ssn_wswq_fit_reml1", driver = "GPKG", quiet = FALSE, append = FALSE)
 
 # put selected covariates in an SF object
 DFobs4 <- full_join(DFobs3a, resid_ssn1, by = join_by(station_id_2))
@@ -952,9 +952,9 @@ mapview(aug_z4_wswq_reml1, zcol = ".std.resid", cex = ".std.resid", alpha.region
 
 aug_z4_wswq_reml1 <- dplyr::select(aug_z4_wswq_reml1, c(station_id, station_id_2, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, pct_imp_w, elev_ws, pct_imp_w_emplog, vsci, .fitted, .std.resid))
 
-saveRDS(aug_z4_wswq_reml1, file = "outputs/aug_z4_wswq_reml1.rds")
+# saveRDS(aug_z4_wswq_reml1, file = "outputs/aug_z4_wswq_reml1.rds")
 
-st_write(aug_z4_wswq_reml1, dsn = file.path(getwd(), "aug_z4_wswq_reml1.gpkg"), layer = "aug_z4_wswq_reml1", driver = "GPKG", quiet = FALSE, append=FALSE)
+# st_write(aug_z4_wswq_reml1, dsn = file.path(getwd(), "aug_z4_wswq_reml1.gpkg"), layer = "aug_z4_wswq_reml1", driver = "GPKG", quiet = FALSE, append=FALSE)
 
 # B/c want to compare predictions from models having different covariates specifying estimation method as ml
 
