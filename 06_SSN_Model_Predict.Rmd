@@ -1012,47 +1012,47 @@ On 12/16/2024 first using a4 reml model and will compare to z5 reml model with d
 
 
 # get spatial residuals from model
-spatResids<-residuals(z4ssn_wswq_reml1)
+# spatResids<-residuals(z4ssn_wswq_reml1)
 # zspatResids<-residuals(z4ssn_wswq_reml1)
 # head(aug_z4ssn_wswq_reml1$.resid)
 # the three statements above all return same results
 
 # pull sd of residuals and fitted values
-resid_SD = sd(spatResids)
-fitted_vals = z4ssn_wswq_reml1$fitted$response
+# resid_SD = sd(spatResids)
+# fitted_vals = z4ssn_wswq_reml1$fitted$response
 
 # combine to a dataframe
-spat<-cbind(fitted_vals,resid_SD^2)
+# spat<-cbind(fitted_vals,resid_SD^2)
 # head(spat)
 
 # spatial prediction percentiles
-(spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
+# (spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
 
-spat.Pred.median = spat.Pred.pct[,4]
+# spat.Pred.median = spat.Pred.pct[,4]
 # head(spat.Pred.median)
 
 # make sure I've got the right obj
-DFobs<-ssn_get_data(j_ssn3)
+# DFobs<-ssn_get_data(j_ssn3)
 # observed and median of our prediction intervals
-ty<-DFobs$vsci
-tx<-spat.Pred.median
+# ty<-DFobs$vsci
+# tx<-spat.Pred.median
 
 #percentiles
-ox<-order(tx)
-op05<-spat.Pred.pct[ox,"Q05"]
-op95 <- spat.Pred.pct[ox,"Q95"]
+# ox<-order(tx)
+# op05<-spat.Pred.pct[ox,"Q05"]
+# op95 <- spat.Pred.pct[ox,"Q95"]
 
 # plot
-plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value",ylab="VSCI Observed Value",main="Spatial Model Observed vs. Predicted z4 reml n = 199")
-abline(0,1,col="red")
-lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
+# plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value",ylab="VSCI Observed Value",main="Spatial Model Observed vs. Predicted z4 reml n = 199")
+# abline(0,1,col="red")
+# lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
 
 # 5th percentile of predictive distribution
-lines(tx[ox],op05,lty=2,col='black')
+# lines(tx[ox],op05,lty=2,col='black')
 # 95th percentile of predictive distribution
-lines(tx[ox],op95,lty=2,col='black')
-#legend
-legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
+# lines(tx[ox],op95,lty=2,col='black')
+ #legend
+# legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
 
 # cor(tx,ty, method = "pearson")
 
@@ -1062,64 +1062,65 @@ legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y 
 ```
 
 # TLH fitted to obs interval plot (LOOCV method)
-
+On 12/26/2024 commenting this code because this is not the model I need for fitted interval obs plot.
 ```{r fitted_interval_plot_loocv}
 # Alrighty, so this method mimics John's method
 # which gives a loocv estimate of fitted value an se.
 # This results in the squiggly lines because he's giving that 
 # se at each individual value.
-cv_resids = loocv(z4ssn_wswq_reml1,
-                  cv_predict = T,
-                  se.fit = T)
+# cv_resids = loocv(z4ssn_wswq_reml1,
+ #                 cv_predict = T,
+#                  se.fit = T)
 # pull sd of residuals and fitted values
-resid_Se = cv_resids$se.fit
-fitted_vals = cv_resids$cv_predict
+# resid_Se = cv_resids$se.fit
+# fitted_vals = cv_resids$cv_predict
 
 # combine to a dataframe
-spat<-cbind(fitted_vals,resid_Se^2)
-head(spat)
+# spat<-cbind(fitted_vals,resid_Se^2)
+# head(spat)
 
 # spatial prediction percentiles
-(spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
+# (spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
 
-spat.Pred.median = spat.Pred.pct[,4]
-head(spat.Pred.median)
+# spat.Pred.median = spat.Pred.pct[,4]
+# head(spat.Pred.median)
 
 # make sure I've got the right obj
-DFobs<-ssn_get_data(j_ssn3)
+# DFobs<-ssn_get_data(j_ssn3)
 # observed and median of our prediction intervals
-ty<-DFobs$vsci
-tx<-spat.Pred.median
+# ty<-DFobs$vsci
+# tx<-spat.Pred.median
 
 #percentiles
-ox<-order(tx)
-op05<-spat.Pred.pct[ox,"Q05"]
-op95 <- spat.Pred.pct[ox,"Q95"]
+# ox<-order(tx)
+# op05<-spat.Pred.pct[ox,"Q05"]
+# op95 <- spat.Pred.pct[ox,"Q95"]
 
 # plot
-plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value",ylab="VSCI Observed Value",main="LOOCV Spatial Model Observed vs. Predicted z4 reml")
-abline(0,1,col="red")
-lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
+# plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value",ylab="VSCI Observed Value",main="LOOCV Spatial Model Observed vs. Predicted z4 reml")
+# abline(0,1,col="red")
+# lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
 
 # 5th percentile of predictive distribution
-lines(tx[ox],op05,lty=2,col='black')
+# lines(tx[ox],op05,lty=2,col='black')
 # 95th percentile of predictive distribution
-lines(tx[ox],op95,lty=2,col='black')
+# lines(tx[ox],op95,lty=2,col='black')
 #legend
-legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
+# legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
 
 ```
 
 # Carson Code Points Outside LOOCV 90% Prediction Limit for n=199 Obs
+Added this code on 12/24/2024 and commented out because this is not the final SSN model.
 This code comes from local_SSN_FINAL_20160126_modelling.html 
 ```{r loocv_pts_outside}
 # number of points outside 90% prediction limits
-os90pl.sp <-(ty < spat.Pred.pct[,"Q05"]) |  (ty > spat.Pred.pct[,"Q95"]) 
-summary(os90pl.sp)
+# os90pl.sp <-(ty < spat.Pred.pct[,"Q05"]) |  (ty > spat.Pred.pct[,"Q95"]) 
+# summary(os90pl.sp)
 
 # which observations are outside [5%, 95%] prediction limits?
 # these are the Site IDs of the unusual values
-DFobsz[which(os90pl.sp),"station_id_2"]
+# DFobsz[which(os90pl.sp),"station_id_2"]
 ```
 
 
