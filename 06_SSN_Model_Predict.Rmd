@@ -1564,7 +1564,7 @@ head(spat.Pred.median)
 
 # observed and median of our prediction intervals
 ty<-aug_a5predict1ws_vsci$vsci
-tx<-spat.Pred.median
+tx<-round(spat.Pred.median,1)
 
 #percentiles
 ox<-order(tx)
