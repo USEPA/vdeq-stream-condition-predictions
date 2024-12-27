@@ -1167,6 +1167,8 @@ a4rssn_wswq_ml1 <- dplyr::select(a4rssn_wswq_ml1, c(station_id, station_id_2, ye
 ```
 
 # Distance Hypothesis
+On 12/26/2024 used geom_ribbon to make prediction interval.
+
 On 12/16/2024 testing distance hypothesis of upstream waterbodies by now using wbc_bin and 
 dist_nearest_up_wb_km with those covariates entered into the model as 
 wbc_bin
@@ -1415,13 +1417,13 @@ varcomp(a5ssn_wswq_reml1)
 loocv(a5ssn_wswq_reml1)
 
 # augment returns an sf object
-aug_a5predict1ws_vsci <- augment(a5ssn_wswq_reml1, newdata = "Preds_2019_2022", se_fit = TRUE, interval = c("prediction"))
-# class(predict1ws_vsci)
-# names(predict1ws_vsci)
+aug_a5predict1ws_vsci <- augment(a5ssn_wswq_reml1, newdata = "Preds_2019_2022", se_fit = TRUE, interval = c("prediction"), level = 0.95)
+# class(aug_a5predict1ws_vsci)
+# names(aug_a5predict1ws_vsci)
 aug_a5predict1ws_vsci$vsci_pred <- round(aug_a5predict1ws_vsci$.fitted,1)
 aug_a5predict1ws_vsci$vsci_lwr <- round(aug_a5predict1ws_vsci$.lower,1)
 aug_a5predict1ws_vsci$vsci_upr <- round(aug_a5predict1ws_vsci$.upper,1)
-
+head(aug_a5predict1ws_vsci$.se.fit)
 # Pineiro 2008 put observed on y and predict on x
 # label specific points
 # https://stackoverflow.com/questions/15624656/label-points-in-geom-point
@@ -1431,16 +1433,9 @@ ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci)) + geom_point() + geo
 
 a5preds2019_2022_v1 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_text(aes(label =ifelse(vsci<45, as.character(station_id_2), '')), hjust = -0.1, vjust = 0)+ labs(x = "Predicted VSCI", y = "Observed VSCI, 2019-2022", title = "a5reml Watershed SSN JU Partitioned & Upstream Waterbody Distance") + xlim(35,80) + ylim(35,80)
 
-png(file="figures_sfs/a5preds2019_2022_v1.png",width=6,height=3,units="in",res=150)
+# png(file="figures_sfs/a5preds2019_2022_v1.png",width=6,height=3,units="in",res=150)
 a5preds2019_2022_v1
-dev.off()
-
-ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_ribbon(aes(ymin = vsci_pred - (1.96*.se.fit), ymax = vsci_pred + (1.96*.se.fit)), fill = "grey", alpha = .8) + geom_line(aes( y = vsci_pred))
-  
-  
-  geom_text(aes(label =ifelse(vsci<45, as.character(station_id_2), '')), hjust = -0.1, vjust = 0)+ labs(x = "Predicted VSCI", y = "Observed VSCI, 2019-2022", title = "a5reml Watershed SSN JU Partitioned & Upstream Waterbody Distance") + xlim(35,80) + ylim(35,80)
-
-
+# dev.off()
 
 cor(aug_a5predict1ws_vsci$vsci_pred,aug_a5predict1ws_vsci$vsci, method = "pearson")
 
@@ -1478,7 +1473,27 @@ as.data.frame(aug_a5predict1ws_vsci)|>
 
 ```
 
-### TLH Fitted interval preds
+# Ribbon Prediction Interval
+Is this producing a 95% or 90% prediction interval? Is the spatial prediction percentiles using qnorm from JC and TLH code more accurate? The ribbon prediction interval identifies only 1 point outside the interval whereas spatial prediction percentiles identified 5.
+```{r ribbon_pred_interval}
+# ribbon prediction interval
+ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_ribbon(aes(ymin = vsci_pred - (1.96*.se.fit), ymax = vsci_pred + (1.96*.se.fit)), fill = "grey", alpha = .8) + geom_line(aes( y = vsci_pred)) + labs(x = "VSCI Predicted 2019-2022", y = "VSCI Observed 2019-2022", title = "SSN Withheld Obs vs Pred a5 reml n=48")
+
+# ribbon using lower and upper SSN prediction intervals
+# seems to give same results as 1.96*.se.fit above
+ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_ribbon(aes(ymin = vsci_lwr, ymax = vsci_upr), fill = "grey", alpha = .8) + geom_line(aes( y = vsci_pred)) + labs(x = "VSCI Predicted 2019-2022", y = "VSCI Observed 2019-2022", title = "zSSN Withheld Obs vs Pred a5 reml n=48")
+
+  
+# number of points outside 90% prediction limits
+opl_stations1 <- filter(aug_a5predict1ws_vsci, vsci < (vsci_pred - (1.96*.se.fit)) | vsci > (vsci_pred + (1.96*.se.fit)))
+
+opl_stations2 <- filter(aug_a5predict1ws_vsci, vsci < vsci_lwr | vsci > vsci_upr)
+
+
+```
+
+
+# TLH Fitted interval preds
 Based on 12/24/2024 email this graph of preds is using standard error of model so that gives straight prediction interval lines
 On 12/23/2024, merged Travis' code so that predictions from 48 pred sites also used residuals from the 48 predictions to build the fitted interval.
 On 12/19/2025 removed a5ssn_wswq_reml1 and replaced with aug_a5predict1ws_vsci, with that SSN model based on the 48 pred sites.
@@ -1524,6 +1539,8 @@ rm(cv_resids, resid_Se, fitted_vals, spat, spat.Pred.pct, spat.Pred.median, ty, 
 ```
 
 # TLH Fitted interval preds (quasi-LOOCV method)
+On 12/27/2024, is ribbon prediction interval in chunk 20, Preds for Distance Hypothesis, equivalent to chunk 22, fitted_interval_plot_loocv-preds, below? Doing head(aug_a5predict1ws_vsci$vsci_lwr) and same to vsci_upr show ribbon prediction intervals wider than Q05 and Q95. Consequently, the narrower Q05 and Q95 prediction intervals identify more points outside the intervals.
+
 Based on 12/24/2024 email from Travis this uses standard error of each prediction point so get squiggly lines.
 ```{r fitted_interval_plot_loocv-preds}
 # Alrighty, so this method mimics John's method
@@ -1566,7 +1583,7 @@ lines(tx[ox],op95,lty=2,col='black')
 #legend
 legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
 
-cor(tx,ty, method = "pearson")
+# cor(tx,ty, method = "pearson")
 
 ```
 
