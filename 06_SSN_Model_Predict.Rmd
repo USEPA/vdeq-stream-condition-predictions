@@ -1385,6 +1385,32 @@ DFobsz[which(os90pl.sp),"station_id_2"]
 rm(cv_resids, resid_Se, fitted_vals, spat, spat.Pred.pct, spat.Pred.median, ty, tx, ox, op05, op95, os90pl.sp)
 ```
 
+# Ribbon LOOCV Fitted Interval
+From cv_resids above, use fitted_vals and resid_Se to make ribbon for LOOCV fitted interval so to identify obs having interesting vsci values
+```{r ribbon_loocv_fitted_interval}
+
+spat_loocv1 <- cbind(cv_resids$cv_predict, cv_resids$se.fit, aug_a5obs1ws_vsci$vsci)
+colnames(spat_loocv1) <- c("cv_predict", "se.fit", "vsci")
+
+spat_loocv1 <- as.data.frame(spat_loocv1)
+head(spat_loocv1)
+
+spat_loocv1$cv_predict <- round(spat_loocv1$cv_predict,1)
+station_id_2 <-dplyr::select(aug_a5obs1ws_vsci,station_id_2)
+
+# put sf object first so sticky geometry retained
+spat_loocv2 <- bind_cols(station_id_2, spat_loocv1)
+
+
+ggplot(spat_loocv2, aes(x = cv_predict, y = vsci)) + geom_point() + geom_abline() + geom_ribbon(aes(ymin = cv_predict - (1.96*se.fit), ymax = cv_predict + (1.96*se.fit)), fill = "grey", alpha = .8) + geom_line(aes( y = cv_predict)) + labs(x = "VSCI LOOCV Fitted 2001-2018", y = "VSCI Observed 2001-2018", title = "SSN LVOOCV Obs vs Fitted a5 reml n=199")
+
+# number of points outside 90% loocv fitted limits (ofl)
+ofl_stations1 <- filter(spat_loocv2, vsci < (cv_predict - (1.96*se.fit)) | vsci > (cv_predict + (1.96*se.fit)))
+ofl_stations1
+
+mapview(ofl_stations1)
+
+```
 
 # Preds for Distance Hypothesis
 Note for predictions want estimation method to be reml.
