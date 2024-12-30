@@ -1389,6 +1389,10 @@ rm(cv_resids, resid_Se, fitted_vals, spat, spat.Pred.pct, spat.Pred.median, ty, 
 From cv_resids above, use fitted_vals and resid_Se to make ribbon for LOOCV fitted interval so to identify obs having interesting vsci values
 ```{r ribbon_loocv_fitted_interval}
 
+cv_resids = loocv(a5ssn_wswq_reml1,
+                  cv_predict = T,
+                  se.fit = T)
+
 spat_loocv1 <- cbind(cv_resids$cv_predict, cv_resids$se.fit, aug_a5obs1ws_vsci$vsci)
 colnames(spat_loocv1) <- c("cv_predict", "se.fit", "vsci")
 
@@ -1410,11 +1414,14 @@ ofl_stations1
 
 mapview(ofl_stations1)
 
+edges <- st_read("ssn_object/James_071024_pluspreds.ssn/edges.shp")
+
 # now see 2 trend stations on Tye River
 # when zoom in
 # https://stackoverflow.com/questions/36469379/multiple-markers-on-same-coordinate
 st_jitter(ofl_stations1, factor = 0.001) %>% 
-  mapview(.)
+  mapview(.) + mapview(edges)
+
 
 ```
 
