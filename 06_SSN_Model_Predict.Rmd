@@ -1410,6 +1410,12 @@ ofl_stations1
 
 mapview(ofl_stations1)
 
+# now see 2 trend stations on Tye River
+# when zoom in
+# https://stackoverflow.com/questions/36469379/multiple-markers-on-same-coordinate
+st_jitter(ofl_stations1, factor = 0.001) %>% 
+  mapview(.)
+
 ```
 
 # Preds for Distance Hypothesis
@@ -1510,12 +1516,15 @@ ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)
 ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_ribbon(aes(ymin = vsci_lwr, ymax = vsci_upr), fill = "grey", alpha = .8) + geom_line(aes( y = vsci_pred)) + labs(x = "VSCI Predicted 2019-2022", y = "VSCI Observed 2019-2022", title = "zSSN Withheld Obs vs Pred a5 reml n=48")
 
   
-# number of points outside 90% prediction limits
+# number of points outside 90% prediction limits (opl)
 opl_stations1 <- filter(aug_a5predict1ws_vsci, vsci < (vsci_pred - (1.96*.se.fit)) | vsci > (vsci_pred + (1.96*.se.fit)))
 
 opl_stations2 <- filter(aug_a5predict1ws_vsci, vsci < vsci_lwr | vsci > vsci_upr)
 
-
+class(opl_stations2)
+mapview(opl_stations2)
+opl_stations2
+# given comment "Target and Sampled (no fish or PHAB in 2019?) Dry,no staff", should this site 2-DCK003.94_2019 been sampled?
 ```
 
 
