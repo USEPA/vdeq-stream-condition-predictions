@@ -91,6 +91,7 @@ library(scales) # comma instead of scientific notation
 library(corrr) # tidyverse correlation package
 library(tmap)
 library(gstat) # semivariogram cloud
+library(plotly)
 library(dotwhisker)
 # remotes::install_github("fsolt/dotwhisker") 
 # library(dotwhisker) #coefficient plot did not install as archived
@@ -1456,7 +1457,7 @@ varcomp(a5ssn_wswq_reml1)
 loocv(a5ssn_wswq_reml1)
 
 # augment returns an sf object
-aug_a5predict1ws_vsci <- augment(a5ssn_wswq_reml1, newdata = "Preds_2019_2022", se_fit = TRUE, interval = c("prediction"), level = 0.95)
+aug_a5predict1ws_vsci <- augment(a5ssn_wswq_reml1, newdata = "Preds_2019_2022", se_fit = TRUE, interval = c("prediction"), level = 0.90)
 # class(aug_a5predict1ws_vsci)
 # names(aug_a5predict1ws_vsci)
 aug_a5predict1ws_vsci$vsci_pred <- round(aug_a5predict1ws_vsci$.fitted,1)
@@ -1515,14 +1516,15 @@ as.data.frame(aug_a5predict1ws_vsci)|>
 # Ribbon Prediction Interval
 Is this producing a 95% or 90% prediction interval? Is the spatial prediction percentiles using qnorm from JC and TLH code more accurate? The ribbon prediction interval identifies only 1 point outside the interval whereas spatial prediction percentiles identified 5.
 ```{r ribbon_pred_interval}
-# ribbon prediction interval
-ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_ribbon(aes(ymin = vsci_pred - (1.96*.se.fit), ymax = vsci_pred + (1.96*.se.fit)), fill = "grey", alpha = .8) + geom_line(aes( y = vsci_pred)) + labs(x = "VSCI Predicted 2019-2022", y = "VSCI Observed 2019-2022", title = "SSN Withheld Obs vs Pred a5 reml n=48")
+# ribbon prediction interval based on + or - 1.96*.se.fit
+# ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_ribbon(aes(ymin = vsci_pred - (1.96*.se.fit), ymax = vsci_pred + (1.96*.se.fit)), fill = "grey", alpha = .8) + geom_line(aes( y = vsci_pred)) + labs(x = "VSCI Predicted 2019-2022", y = "VSCI Observed 2019-2022", title = "SSN Withheld Obs vs Pred a5 reml n=48")
 
-# ribbon using lower and upper SSN prediction intervals
+# ribbon using lower and upper SSN2 prediction intervals
 # seems to give same results as 1.96*.se.fit above
-ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_ribbon(aes(ymin = vsci_lwr, ymax = vsci_upr), fill = "grey", alpha = .8) + geom_line(aes( y = vsci_pred)) + labs(x = "VSCI Predicted 2019-2022", y = "VSCI Observed 2019-2022", title = "zSSN Withheld Obs vs Pred a5 reml n=48")
+ribbon_pi1 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_ribbon(aes(ymin = vsci_lwr, ymax = vsci_upr), fill = "grey", alpha = .8) + geom_line(aes( y = vsci_pred)) + labs(x = "VSCI Predicted 2019-2022", y = "VSCI Observed 2019-2022", title = "SSN Withheld Obs vs Pred a5 reml n=48 interval 0.90")
 
-  
+ggplotly(ribbon_pi1)
+
 # number of points outside 90% prediction limits (opl)
 opl_stations1 <- filter(aug_a5predict1ws_vsci, vsci < (vsci_pred - (1.96*.se.fit)) | vsci > (vsci_pred + (1.96*.se.fit)))
 
@@ -1548,7 +1550,8 @@ aug_a5predict1ws_vsci$.residuals <- aug_a5predict1ws_vsci$vsci-aug_a5predict1ws_
 resid_SD = sd(aug_a5predict1ws_vsci$.residuals)
 fitted_vals = aug_a5predict1ws_vsci$.fitted
 
-# combine to a dataframe
+# combine to a dataframe note variance/se is same for 
+# all obs
 spat<-cbind(fitted_vals,resid_SD^2)
 head(spat)
 # spatial prediction percentiles
@@ -1577,6 +1580,17 @@ lines(tx[ox],op95,lty=2,col='black')
 #legend
 legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
 
+# identify does not work in RStudio
+# identify(tx, ty, labels = station_id_2, plot=TRUE)
+
+# number of points outside 90% prediction limits
+os90pl.sp <-(ty < spat.Pred.pct[,"Q05"]) |  (ty > spat.Pred.pct[,"Q95"]) 
+summary(os90pl.sp)
+
+# which observations are outside [5%, 95%] prediction limits?
+# these are the Site IDs of the unusual values
+DFobsz[which(os90pl.sp),"station_id_2"]
+
 rm(cv_resids, resid_Se, fitted_vals, spat, spat.Pred.pct, spat.Pred.median, ty, tx, ox, op05, op95, os90pl.sp)
 ```
 
@@ -1593,11 +1607,16 @@ Based on 12/24/2024 email from Travis this uses standard error of each predictio
 resid_Se = aug_a5predict1ws_vsci$.se.fit
 fitted_vals = aug_a5predict1ws_vsci$.fitted
 
-# combine to a dataframe
+# combine to a dataframe and se.fit/variance differs 
+# for each observation
 spat<-cbind(fitted_vals,resid_Se^2)
 head(spat)
 
 # spatial prediction percentiles
+# qnorm arguments include
+# p a vector of probabilities
+# mean a vector of means, which are our fitted values
+# sd a vector of standard deviations, the square root of # our squared .se.fit
 (spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
 
 spat.Pred.median = spat.Pred.pct[,4]
