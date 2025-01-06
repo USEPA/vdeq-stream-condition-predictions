@@ -728,7 +728,7 @@ ssn0_wsrpwq_mlr <- ssn_lm(
   taildown_type = "none",
   euclid_type = "none",
   nugget_type = "nugget",
-  estmethod = "reml" #default
+  estmethod = "reml"
 )
 summary(ssn0_wsrpwq_mlr)
 varcomp(ssn0_wsrpwq_mlr)
