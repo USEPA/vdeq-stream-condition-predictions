@@ -133,10 +133,7 @@ round(summary(rdistmat1_obs[rdistmat1_obs!=0]))
 ## Clouds and Semivariograms
 We will start with a semivariogram cloud to examine spatial variation in vsci.  Specifically, just as we had calculated all pairwise distances between sites, we will calculate all pairwise semivariances in vsci, and plot those semivariances as a function of their distances.
 
-A semivariogram cloud presents a smear of points, but by binning those points into distance classes and by binning the semivariances of those points through the width argument we can make a semivariogram plot.  With the semivariogram plot we are asking:  do stations near each other have similar vsci scores?  Is the semivariance, gamma, small at smaller distances and does it increase with larger distances? Note that the identify function below now seems to work in RStudio. Previously, it only worked with the R GUI.
-See https://github.com/rstudio/rstudio/issues/3162 and https://r-spatial.github.io/gstat/reference/plot.variogramCloud.html.
-From this code chunk, output will be in the Plots tab, R console, and data frames will be viewed.
-
+A semivariogram cloud presents a smear of points, but by binning those points into distance classes and by binning the semivariances of those points through the width argument we can make a semivariogram plot.  With the semivariogram plot we are asking:  do stations near each other have similar vsci scores?  Is the semivariance, gamma, small at smaller distances and does it increase with larger distances? 
 We want data to be unimodal and approximately symmetric for a semivariogram cloud and plot so we do some data exploration.
 ```{r vsci_histogram}
 
@@ -170,7 +167,7 @@ view(DFobs)
 ```
 
 ## Hand Calculate Gamma
-Read the statement below from inside to outside.  The inner plot statement is saying plot the cloud as we did above, but with identify = TRUE we now get a interactive crosshairs to select a point on graph.  Once we make that selection on the maximum gamma and hit finish, then the outer plot statement executes to map our sites and connect the pairs of sites with a red line.
+Based on the row numbers of the data frames, we find the vsci values for the two stations that produced the maximum gamma.
 ```{r calculate_gamma}
 
 # 27 and 99 are the the row numbers in the data frame DFobs so we can get get the vsci measurements and hand calculate gamma in z1.
@@ -217,7 +214,7 @@ filter(z_sci_cloud, dist <= 10000) %>%
 ```
 
 ## Random Semivariograms
-Up to now we have calculated an empirical semivariogram based on the VSCI data collected at the ProbMon stations. We now want to compare that empirical semivariogram to randomized semivariograms. This comparison lets us evaluate to do we have evidence of spatial dependence, or spatial autocorrelation versus spatial independence.
+Up to now we have calculated an empirical semivariogram based on the VSCI data collected at the ProbMon stations. We now want to compare that empirical semivariogram to randomized semivariograms. This comparison lets us evaluate if we have evidence of spatial dependence, or spatial autocorrelation versus spatial independence.
 
 I downloaded Chapter 8 code from Applied Spatial Data Analysis with R, <https://asdar-book.org/>, for generating random variograms. An initial empirical, or sample, variogram is calculated and plotted for vsci, and that object is saved. Then vsci values are randomly sampled and assigned to the coordinates so that a random semivariogram can be calculated. That is done 100 times, and the grey lines of the random semivariograms are plotted with the blue line of the empirical semivariogram. The semivariogram for vsci shows suggestive evidence of spatial autocorrelation compared to randomized semivariograms, which illustrate the assumption of spatial independence.
 
