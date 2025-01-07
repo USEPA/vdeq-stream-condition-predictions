@@ -236,9 +236,9 @@ print(xyplot(gamma ~ dist, z_sci_sv1, pch = 3, type = 'b', lwd = 2, col = 'darkb
 ```
 
 ## Robust Semivariogram
-Output from this code chunk will be under the Plots tab.
+Calculating a robust semivariogram lets us assess if outliers could be affecting the spatial pattern. Output from this code chunk will be under the Plots tab.
 ```{r robust_semivar}
-# Semivariograms are sensitive to outliers.  See https://pdixon.stat.iastate.edu/stat406/notes/part 3b-4.pdf
+
 # so use Cressie-Hawkins to create robust variogram
 
 z_sci_sv3 = variogram(vscivcpmi ~1, DFobs, cressie = TRUE)
