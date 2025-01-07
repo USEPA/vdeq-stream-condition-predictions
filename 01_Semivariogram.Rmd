@@ -48,22 +48,17 @@ This chunk takes a data frame with geographic coordinates and converts it to a s
 ```{r reading_data, echo=FALSE}
 
 hab_1 <- read_csv("data/BBSG_2009-2010_habitat_and_trawl-tow_data.csv")
-spec(hab_1)
-names(hab_1)
+glimpse(hab_1)
 
 # See Long and Lat in decimal degrees
-View(hab_1) 
-str(hab_1)
-glimpse(hab_1)
 
 coords <- data.frame(longitude  = hab_1$Long, latitude = hab_1$Lat)
 head(coords)
 
 # See Marc Weber workshop above about Coordinate Reference Systems (CRS)
-
 hab_sf1 <- st_as_sf(hab_1, coords = c("Long", "Lat"), crs =4269) %>% st_transform(5070)
-
 class(hab_sf1)
+
 # read in shapefile
 bigbend_seagrass <- st_read("data/bigbend_grass.shp")
 class(bigbend_seagrass)
@@ -76,7 +71,7 @@ st_crs(hab_sf1) == st_crs(bigbend_seagrass)
 mapview(hab_sf1) + mapview(bigbend_seagrass)
 ```
 
-## Writing sf objects to shapefiles and geopackage geodatabase
+## Writing sf Objects to Shapefiles and Geopackage Geodatabase
 A sf object can be written out as an ESRI shapefile. If you have several sf objects, such as points for sites and polygons of seagrass areas, you can keep them together by writing them out as a geopackage geodatabase. The output from this code will appear under File Explorer where your working directory is located and will include a shapefile and geopackage that we wrote to that location.
 Note that geopackage is the default spatial format for QGIS. The R package SSNbler <https://cran.r-project.org/package=SSNbler> can be used with QGIS, or ArcGIS Pro, to build a spatial stream network (SSN) object.
 ```{r geopackage, eval=FALSE}
@@ -103,16 +98,15 @@ st_layers("bbsg_v1_2024_05_06.gpkg")
 # st_write(hab_sf1, dsn = file.path(getwd(), "st_layers("bbsg_v1_2024_05_06.gpkg") "), layer = "hab_sf1", delete_layer = TRUE, append = TRUE, driver = "GPKG", quiet = FALSE)
 ```
 
-## Summary of Distances
-We will now start using the James SSN. Getting a summary of distances is important because we are going to be looking at how spatial variance, the semivariance of the VSCI/VCPMI (vsci), is a function of distance. From this code chunk, plots will appear in the Plots tab, a bubble map will appear in the Viewer tab, and a five-number summary of distances appears in the R console.
-```{r distance}
+## Import SSN Object & Extract Data Frame
+We will now start using the James SSN. Getting a summary of distances is important because we are going to be looking at how spatial variance, the semivariance of the VSCI/VCPMI (vsci), is a function of distance. It easier to explore the data frame of an SSN object by extracting it `r ssn_get_data`. 
+```{r ssn_import_extract}
 
 j_ssn1a <- SSN2::ssn_import("ssn_object/James_071024_pluspreds.ssn", predpts = "sites")
+class(j_ssn1a)
 
 DFobs <- SSN2::ssn_get_data(j_ssn1a)
 class(DFobs)
-# use st_distance function to create pairwise distance matrix among all the sites
-# extract half of that matrix and convert it to a vector then get the summary of the distances, min, Q1, median, mean, Q3, and max
 
 mapview(DFobs)
 names(DFobs)
@@ -120,8 +114,12 @@ DFobs <- clean_names(DFobs)
 names(DFobs)
 # now including specified pop-ups
 mapview(DFobs, zcol = "vscivcpmi", cex = "vscivcpmi", alpha.regions = .8, legend = TRUE, popup = popupTable(DFobs, zcol = c("station_id_2", "vscivcpmi")))
+```
 
+## Distance Summary
+We use st_distance function to create pairwise distance matrix among all the sites. Then, because a Euclidean distance matrix is symmetrical, we extract half of that matrix and convert it to a vector then get the summary of the distances, min, Q1, median, mean, Q3, and max. Knowing max distance is important `r variogram` function uses that distance to set default cutoff. That cutoff is the spatial separation distance up to which a pair of points are included in semivariance estimates.  The default is the length of the diagonal of bounding box spanning the data, which is ~ approximately the max distance.  Our default cutoff will be 299,805/3 = 99,935 meters or ~ 100 km. 
 
+```{r distance}
 distmat_obs <- st_distance(DFobs, DFobs,by_element = FALSE)
 
 dim(distmat_obs) # get the dimensions of the distance matrix
@@ -130,7 +128,6 @@ rdistmat1_obs <- as.vector(rdistmat_obs)
 
 round(summary(rdistmat1_obs[rdistmat1_obs!=0]))
 
-# Knowing max distance important for variogram function as that is used in the default cutoff. That cutoff is the spatial separation distance up to which a pair of points are included in semivariance estimates.  The default is the length of the diagonal of bounding box spanning the data, which is ~ approximately the max distance.  Our default cutoff will be 299,805/3 = 99,935 meters or ~ 100 km.
 ```
 
 ## Clouds and Semivariograms
@@ -203,7 +200,7 @@ filter(z_sci_cloud, dist <= 10000) %>%
 # these results match the z_sci_sv2 results
 ```
 
-## Random semivariograms
+## Random Semivariograms
 I downloaded Chapter 8 code from Applied Spatial Data Analysis with R, <https://asdar-book.org/>, for generating random variograms. An initial empirical, or sample, variogram is calculated and plotted for vsci, and that object is saved. Then vsci values are randomly sampled and assigned to the coordinates so that a random semivariogram can be calculated. That is done 100 times, and the grey lines of the random semivariograms are plotted with the blue line of the empirical semivariogram. The semivariogram for vsci shows suggestive evidence of spatial autocorrelation compared to randomized semivariograms, which illustrate the assumption of spatial independence.
 I have used the script below to explore spatial structure in National Aquatic Resource Surveys (NARS) data. Output from this code chunk will be under the Plots tab.
 ```{r random_semivar}
@@ -253,8 +250,8 @@ Canion, A., McCloud, L. and Dobberfuhl, D., 2019. Predictive modeling of elevate
 This blog describes a limitation of tree-based predictive analytics.
 <https://freerangestats.info/blog/2016/12/10/extrapolation#:~:text=Extrapolation%20is%20tough%20for%20trees!%20At%20a%20glance:%20Tree-based%20predictive> 
 
-## References:  Workshops, Websites, and Books
-Some spatial data analysis references, with a brief description given followed by the link.
+## Resources:  Workshops, Websites, and Books
+Some spatial data analysis sesources, with a brief description given followed by the link.
 
 Geospatial Data Science in R website, semivariogram modeling.
 <https://zia207.github.io/geospatial-r-github.io/semivariogram-modeling.html>
@@ -275,10 +272,10 @@ Article on SSN2 R package.
 An Introduction to 'SSNbler': Assembling Spatial Stream Network (ssn) Objects in R.
 <https://pet221.github.io/SSNbler/articles/introduction.html>
 
-Book on Spatial Linear Models for Environmental Data by Dale Zimmerman and Jay M. Ver Hoef 
+Book on Spatial Linear Models for Environmental Data by Dale Zimmerman and Jay M. Ver Hoef. 
 <https://www.routledge.com/Spatial-Linear-Models-for-Environmental-Data/Zimmerman-VerHoef/p/book/9780367183349>
 
-Recent workshop by EPA Statistician Mike Dumelle and EPA Aquatic Biologist Ryan Hill on Spatial Analysis and Statistical Modeling with R and spmodel
+Recent workshop by EPA Statistician Mike Dumelle and EPA Aquatic Biologist Ryan Hill on Spatial Analysis and Statistical Modeling with R and spmodel.
 <https://usepa.github.io/spworkshop.sfs24/>
 
 Using geopackage to save/store spatial data.
