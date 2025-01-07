@@ -1514,7 +1514,7 @@ as.data.frame(aug_a5predict1ws_vsci)|>
 ```
 
 # Ribbon Prediction Interval
-Is this producing a 95% or 90% prediction interval? Is the spatial prediction percentiles using qnorm from JC and TLH code more accurate? The ribbon prediction interval identifies only 1 point outside the interval whereas spatial prediction percentiles identified 5.
+This is producing a 90% prediction interval. Is the spatial prediction percentiles using qnorm from TLH and JC code more accurate?
 ```{r ribbon_pred_interval}
 # ribbon prediction interval based on + or - 1.96*.se.fit
 # ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_ribbon(aes(ymin = vsci_pred - (1.96*.se.fit), ymax = vsci_pred + (1.96*.se.fit)), fill = "grey", alpha = .8) + geom_line(aes( y = vsci_pred)) + labs(x = "VSCI Predicted 2019-2022", y = "VSCI Observed 2019-2022", title = "SSN Withheld Obs vs Pred a5 reml n=48")
@@ -1546,12 +1546,11 @@ I believe this coding is fitting to 199 obs because using a5ssn_wswq_reml1. I th
 # create residuals in the new prediction frame as they don't provide from the prediction augment call
 aug_a5predict1ws_vsci$.residuals <- aug_a5predict1ws_vsci$vsci-aug_a5predict1ws_vsci$.fitted
 
-# pull sd of residuals and fitted values
+# use fitted values and calculate sd of residuals
 resid_SD = sd(aug_a5predict1ws_vsci$.residuals)
 fitted_vals = aug_a5predict1ws_vsci$.fitted
 
-# combine to a dataframe note variance/se is same for 
-# all obs
+# combine to a dataframe note variance/se is same for all obs
 spat<-cbind(fitted_vals,resid_SD^2)
 head(spat)
 # spatial prediction percentiles
@@ -1607,8 +1606,7 @@ Based on 12/24/2024 email from Travis this uses standard error of each predictio
 resid_Se = aug_a5predict1ws_vsci$.se.fit
 fitted_vals = aug_a5predict1ws_vsci$.fitted
 
-# combine to a dataframe and se.fit/variance differs 
-# for each observation
+# combine to a dataframe and se.fit/variance differs for each observation
 spat<-cbind(fitted_vals,resid_Se^2)
 head(spat)
 
@@ -1616,7 +1614,7 @@ head(spat)
 # qnorm arguments include
 # p a vector of probabilities
 # mean a vector of means, which are our fitted values
-# sd a vector of standard deviations, the square root of # our squared .se.fit
+# sd a vector of standard deviations, the square root of the squared .se.fit
 (spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
 
 spat.Pred.median = spat.Pred.pct[,4]
@@ -1649,7 +1647,7 @@ legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y 
 ```
 
 # Carson Code Points Outside LOOCV 90% Prediction Limit for n=48 Withheld Obs
-This code comes from local_SSN_FINAL_20160126_modelling.html 
+This code comes from local_SSN_FINAL_20160126_modelling.html that was used in the Scown et al. 2017 paper.
 ```{r loocv_pts_outside}
 # number of points outside 90% prediction limits
 os90pl.sp <-(ty < spat.Pred.pct[,"Q05"]) |  (ty > spat.Pred.pct[,"Q95"]) 
