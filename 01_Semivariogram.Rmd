@@ -23,7 +23,7 @@ The first dataset we are using is from the data paper <https://esajournals.onlin
 * Randomization of Semivariograms
 
 
-## Libraries and references
+## Libraries
 ```{r, libraries}
 
 library(tidyverse)
@@ -38,32 +38,12 @@ library(spmodel) # for spatial modeling
 library(scales) # comma instead of scientific notation
 library(plotly) # interactive plots
 library(spmodel) # has empirical semivariogram (esv) function
-library(SSN2) # for spatial stream network (SSN) objects
+library(SSN2) # for spatial stream network (SSN) modeling
 library(janitor) # clean_names function
 
-# some spatial data analysis references
-# https://zia207.github.io/geospatial-r-github.io/semivariogram-modeling.html
-# https://pdixon.stat.iastate.edu/stat406/notes/part%203b-4.pdf
-
-# https://community.esri.com/t5/arcgis-geostatistical-analyst/quot-spatial-statistical-data-analysis-for-gis-users-quot/td-p/394418
-
-# Dumelle, M., Higham, M. and Ver Hoef, J.M., 2023. spmodel: Spatial statistical modeling and prediction in R. Plos one, 18(3), p.e0282524.
-# https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0282524
-
-# Spatial Data and Analysis in R Workshop by Marc Weber
-# https://mhweber.github.io/R-User-Group-Spatial-Workshop-2021/
-
-# Using geopackage
-# https://mapping-in-r-workshop.ryanpeek.org/02_import_export_gpkg
-
-# Spatial Linear Models for Environmental Data by Dale Zimmerman and Jay M. Ver Hoef 
-# https://www.routledge.com/Spatial-Linear-Models-for-Environmental-Data/Zimmerman-VerHoef/p/book/9780367183349
-
-# Recent workshop by Mike Dumelle and Ryan Hill on Spatial Analysis and Statistical Modeling with R and spmodel
-# https://usepa.github.io/spworkshop.sfs24/
 ```
 
-## Reading in Data
+## Reading in Spatial Data
 This chunk takes a data frame with geographic coordinates and converts it to a simple features (sf) object that uses the project coordinate reference system (crs) of Albers Equal Area, which has the units of meters. The output from this code chunk is a map in the Viewer tab of monitoring stations, points, and seagrass polygons.
 ```{r reading_data, echo=FALSE}
 
@@ -265,7 +245,7 @@ print(xyplot(gamma ~ dist, z_sci_sv3, pch = 3, type = 'b', lwd = 2, col = 'darkb
 ```
 We had no marked difference in the first two bins of classical semivariance versus Cressie-Hawkins semivariance, which is often the case. 
 
-# After ESDA
+## After ESDA
 The follow-up to exploratory spatial data analysis is spatial modeling so check out the workshop by Mike Dumelle and Ryan Hill. For extra credit, analyze vsci as a function of elevation, first, with a non-spatial, simple linear regression, and then with a spatial model based on Euclidean distance. However, because we have stream network distances, we will need to use the SSN2 R package. A SSN analysis handles 3 kinds of distances:  Euclidean, Flow-Connected (when monitoring sites have an upstream to downstream relationship) and Flow-Unconnected (when monitoring sites are on different branches of the network and share a confluence). An alternative analysis to consider is random forest regression kriging, which is also available using the splmRF function in the spmodel package. The paper by Canion et al. 2019 is the best example I know of showing the benefits of random forest regression kriging over just a random forest analysis (see Table 3).
 
 Canion, A., McCloud, L. and Dobberfuhl, D., 2019. Predictive modeling of elevated groundwater nitrate in a karstic spring-contributing area using random forests and regression-kriging. Environmental Earth Sciences, 78(9), p.271.
@@ -273,6 +253,39 @@ Canion, A., McCloud, L. and Dobberfuhl, D., 2019. Predictive modeling of elevate
 This blog describes a limitation of tree-based predictive analytics.
 <https://freerangestats.info/blog/2016/12/10/extrapolation#:~:text=Extrapolation%20is%20tough%20for%20trees!%20At%20a%20glance:%20Tree-based%20predictive> 
 
+## References:  Workshops, Websites, and Books
+Some spatial data analysis references, with a brief description given followed by the link.
+
+Geospatial Data Science in R website, semivariogram modeling.
+<https://zia207.github.io/geospatial-r-github.io/semivariogram-modeling.html>
+
+Class notes from Professor Dixon at Iowa State University on semivariograms.
+<https://pdixon.stat.iastate.edu/stat406/notes/part%203b-4.pdf>
+
+Link to free pdf of "Spatial Statistical Data Analysis for GIS Users by Konstantin Krivoruchko at ESRI.
+<https://community.esri.com/t5/arcgis-geostatistical-analyst/quot-spatial-statistical-data-analysis-for-gis-users-quot/td-p/394418>
+
+Article on spmodel R package.
+Dumelle, M., Higham, M. and Ver Hoef, J.M., 2023. spmodel: Spatial statistical modeling and prediction in R. Plos one, 18(3), p.e0282524.
+<https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0282524>
+
+Article on SSN2 R package.
+<https://joss.theoj.org/papers/10.21105/joss.06389.pdf>
+
+An Introduction to 'SSNbler': Assembling Spatial Stream Network (ssn) Objects in R.
+<https://pet221.github.io/SSNbler/articles/introduction.html>
+
+Book on Spatial Linear Models for Environmental Data by Dale Zimmerman and Jay M. Ver Hoef 
+<https://www.routledge.com/Spatial-Linear-Models-for-Environmental-Data/Zimmerman-VerHoef/p/book/9780367183349>
+
+Recent workshop by EPA Statistician Mike Dumelle and EPA Aquatic Biologist Ryan Hill on Spatial Analysis and Statistical Modeling with R and spmodel
+<https://usepa.github.io/spworkshop.sfs24/>
+
+Using geopackage to save/store spatial data.
+<https://mapping-in-r-workshop.ryanpeek.org/02_import_export_gpkg>
+
+Spatial Data and Analysis in R Workshop by EPA Geographer Marc Weber.
+<https://mhweber.github.io/R-User-Group-Spatial-Workshop-2021/>
 
 ## Disclaimer
 The United States Environmental Protection Agency (EPA) project code is provided on an "as is" basis and the user assumes responsibility for its use. EPA has relinquished control of the information and no longer has responsibility to protect the integrity , confidentiality, or availability of the information. Any reference to specific commercial products, processes, or services by service mark, trademark, manufacturer, or otherwise, does not constitute or imply their endorsement, recommendation or favoring by EPA. The EPA seal and logo shall not be used in any manner to imply endorsement of any commercial product or activity by EPA or the United States Government.
