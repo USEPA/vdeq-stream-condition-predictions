@@ -1567,17 +1567,31 @@ ox<-order(tx)
 op05<-spat.Pred.pct[ox,"Q05"]
 op95 <- spat.Pred.pct[ox,"Q95"]
 
-# plot
-plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value 2019-2022",ylab="VSCI Observed Value 2019-2022",main="SSN Withheld Obs vs. Pred a5 Model SE n =48")
-abline(0,1,col="red")
-lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
+plot_dat = data.frame("vsci_pred" = tx, "vsci" = ty, "pred_5th" = op05, "pred_95th" = op95,"vsci_bound_order"=tx[ox],"station_id"=aug_a5predict1ws_vsci$station_id_2)
 
-# 5th percentile of predictive distribution
-lines(tx[ox],op05,lty=2,col='black')
-# 95th percentile of predictive distribution
-lines(tx[ox],op95,lty=2,col='black')
-#legend
-legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
+
+p = ggplot(data = plot_dat)+
+  geom_point(aes(x = vsci_pred, y = vsci,label = station_id), color = "black")+
+  geom_smooth(aes(x = vsci_pred, y = vsci), method = "loess", se = F, color = "blue")+
+  geom_line(aes(x = vsci_bound_order, y = pred_5th), linetype = "dashed", color = "black")+
+  geom_line(aes(x = vsci_bound_order, y = pred_95th), linetype = "dashed", color = "black")+
+  geom_abline(intercept = 0, slope = 1, color = "red")+
+  labs(x="vsci predicted",
+       y ="vsci observed")
+
+ggplotly(p)
+
+# plot
+# plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value 2019-2022",ylab="VSCI Observed Value 2019-2022",main="SSN Withheld Obs vs. Pred a5 Model SE n =48")
+# abline(0,1,col="red")
+# lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
+# 
+# # 5th percentile of predictive distribution
+# lines(tx[ox],op05,lty=2,col='black')
+# # 95th percentile of predictive distribution
+# lines(tx[ox],op95,lty=2,col='black')
+# #legend
+# legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
 
 # identify does not work in RStudio
 # identify(tx, ty, labels = station_id_2, plot=TRUE)
@@ -1623,24 +1637,38 @@ head(spat.Pred.median)
 
 # observed and median of our prediction intervals
 ty<-aug_a5predict1ws_vsci$vsci
-tx<-round(spat.Pred.median,1)
+tx<-round(spat.Pred.median,1) ## these just are the fitted values
 
 #percentiles
 ox<-order(tx)
 op05<-spat.Pred.pct[ox,"Q05"]
 op95 <- spat.Pred.pct[ox,"Q95"]
 
-# plot
-plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value 2019-2022",ylab="VSCI Observed Value 2019-2022",main="SSN Withheld Obs vs. Pred a5 reml se.fit n =48")
-abline(0,1,col="red")
-lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
+plot_dat = data.frame("vsci_pred" = tx, "vsci" = ty, "pred_5th" = op05, "pred_95th" = op95,"vsci_bound_order"=tx[ox],"station_id"=aug_a5predict1ws_vsci$station_id_2)
 
-# 5th percentile of predictive distribution
-lines(tx[ox],op05,lty=2,col='black')
-# 95th percentile of predictive distribution
-lines(tx[ox],op95,lty=2,col='black')
-#legend
-legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
+
+p = ggplot(data = plot_dat)+
+  geom_point(aes(x = vsci_pred, y = vsci,label = station_id), color = "black")+
+  geom_smooth(aes(x = vsci_pred, y = vsci), method = "loess", se = F, color = "blue")+
+  geom_line(aes(x = vsci_bound_order, y = pred_5th), linetype = "dashed", color = "black")+
+  geom_line(aes(x = vsci_bound_order, y = pred_95th), linetype = "dashed", color = "black")+
+  geom_abline(intercept = 0, slope = 1, color = "red")+
+  labs(x="vsci predicted",
+       y ="vsci observed")
+
+ggplotly(p)
+
+# # plot
+# plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value 2019-2022",ylab="VSCI Observed Value 2019-2022",main="SSN Withheld Obs vs. Pred a5 reml se.fit n =48")
+# abline(0,1,col="red")
+# lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
+# 
+# # 5th percentile of predictive distribution
+# lines(tx[ox],op05,lty=2,col='black')
+# # 95th percentile of predictive distribution
+# lines(tx[ox],op95,lty=2,col='black')
+# #legend
+# legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
 
 # cor(tx,ty, method = "pearson")
 
@@ -1655,7 +1683,7 @@ summary(os90pl.sp)
 
 # which observations are outside [5%, 95%] prediction limits?
 # these are the Site IDs of the unusual values
-DFobsz[which(os90pl.sp),"station_id_2"]
+aug_a5predict1ws_vsci[which(os90pl.sp),"station_id_2"]
 ```
 
 
