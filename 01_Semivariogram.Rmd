@@ -1,7 +1,7 @@
 ---
 title: "Semivariogram Clouds and Plots"
 author: "Michael McManus, US EPA/ORD"
-date: "12/03/2024"
+date: "01/08/2025"
 output:
   html_document: default
   pdf_document: default
@@ -99,7 +99,7 @@ st_layers("bbsg_v1_2024_05_06.gpkg")
 ```
 
 ## Import SSN Object & Extract Data Frame
-We will now start using the James SSN. Getting a summary of distances is important because we are going to be looking at how spatial variance, the semivariance of the VSCI/VCPMI (vsci), is a function of distance. It easier to explore the data frame of an SSN object by extracting it `r ssn_get_data`. 
+We will now start using the James SSN. It easier to explore the data frame of an SSN object by extracting it `r ssn_get_data`. Note below that DFobs is both an sf object and a data frame so we can readily use it to make an interactive map.
 ```{r ssn_import_extract}
 
 j_ssn1a <- SSN2::ssn_import("ssn_object/James_071024_pluspreds.ssn", predpts = "sites")
@@ -117,6 +117,7 @@ mapview(DFobs, zcol = "vscivcpmi", cex = "vscivcpmi", alpha.regions = .8, legend
 ```
 
 ## Distance Summary
+As we will be looking at spatial variation in vsci, or semivariance, as a function of distance it is important to get a distance summary of the stations.
 We use st_distance function to create pairwise distance matrix among all the sites. Then, because a Euclidean distance matrix is symmetrical, we extract half of that matrix and convert it to a vector then get the summary of the distances, min, Q1, median, mean, Q3, and max. Knowing max distance is important `r variogram` function uses that distance to set default cutoff. That cutoff is the spatial separation distance up to which a pair of points are included in semivariance estimates.  The default is the length of the diagonal of bounding box spanning the data, which is ~ approximately the max distance.  Our default cutoff will be 299,805/3 = 99,935 meters or ~ 100 km. 
 
 ```{r distance}
@@ -147,7 +148,7 @@ summary(DFobs$vscivcpmi)
 
 In this semivariogram cloud, we see that points that are nearer each other on the left-hand part of the x-axis have small semivariances and as we move right to points further apart the semivariances increase. 
 
-We can view the the semivariance cloud as a data frame so we can sort on gamma, the semivariance, to find our maximum gamma, 1303.6 occurs at a pair of sites about 60 km apart. But, what are the two stations having that maximume gamma, where are those sites and what are their vsci values?
+We can view the the semivariance cloud as a data frame so we can sort on gamma, the semivariance, to find our maximum gamma, 1303.6 occurs at a pair of sites about 60 km apart. But, what are the two stations having that maximum gamma, where are those sites and what are their vsci values?
 ```{r semivar_cloud}
 # Semivariogram Cloud
 z_sci_cloud =  variogram(vscivcpmi ~ 1, DFobs, cloud = TRUE)
@@ -233,7 +234,7 @@ print(xyplot(gamma ~ dist, z_sci_sv1, pch = 3, type = 'b', lwd = 2, col = 'darkb
 ```
 
 ## Robust Semivariogram
-Calculating a robust semivariogram lets us assess if outliers could be affecting the spatial pattern. Output from this code chunk will be under the Plots tab.
+Calculating a robust semivariogram lets us assess if outliers could be affecting the spatial pattern. 
 ```{r robust_semivar}
 
 # so use Cressie-Hawkins to create robust variogram
@@ -255,10 +256,10 @@ print(xyplot(gamma ~ dist, z_sci_sv3, pch = 3, type = 'b', lwd = 2, col = 'darkb
 ))
 
 ```
-We had no marked difference in the first two bins of classical semivariance versus Cressie-Hawkins semivariance, which is often the case. 
+We had no marked difference in the first two bins of classical semivariance versus Cressie-Hawkins semivariance. The default semivariogram and robust variogram often do not differ dramatically, which is the case here. Note that the R package spmodel, <https://cran.r-project.org/package=spmodel>, calculates and plots both types of semivariograms.
 
 ## After ESDA
-The follow-up to exploratory spatial data analysis is spatial modeling so check out the workshop by Mike Dumelle and Ryan Hill. For extra credit, analyze vsci as a function of elevation, first, with a non-spatial, simple linear regression, and then with a spatial model based on Euclidean distance. However, because we have stream network distances, we will need to use the SSN2 R package. A SSN analysis handles 3 kinds of distances:  Euclidean, Flow-Connected (when monitoring sites have an upstream to downstream relationship) and Flow-Unconnected (when monitoring sites are on different branches of the network and share a confluence). An alternative analysis to consider is random forest regression kriging, which is also available using the splmRF function in the spmodel package. The paper by Canion et al. 2019 is the best example I know of showing the benefits of random forest regression kriging over just a random forest analysis (see Table 3).
+The follow-up to exploratory spatial data analysis is spatial modeling so check out the workshop by Mike Dumelle and Ryan Hill. For extra credit, analyze vsci as a function of elevation, first, with a non-spatial, simple linear regression, and then with a spatial model based on Euclidean distance. However, because we have stream network distances, we will need to use the SSN2 R package. An SSN analysis handles 3 kinds of distances:  Euclidean, Flow-Connected (when monitoring sites have an upstream to downstream relationship) and Flow-Unconnected (when monitoring sites are on different branches of the network and share a confluence). An alternative analysis to consider is random forest regression kriging, which is also available using the splmRF function in the spmodel package. The paper by Canion et al. 2019 is the best example I know of showing the benefits of random forest regression kriging over just a random forest analysis (see Table 3).
 
 Canion, A., McCloud, L. and Dobberfuhl, D., 2019. Predictive modeling of elevated groundwater nitrate in a karstic spring-contributing area using random forests and regression-kriging. Environmental Earth Sciences, 78(9), p.271.
 
@@ -266,7 +267,7 @@ This blog describes a limitation of tree-based predictive analytics.
 <https://freerangestats.info/blog/2016/12/10/extrapolation#:~:text=Extrapolation%20is%20tough%20for%20trees!%20At%20a%20glance:%20Tree-based%20predictive> 
 
 ## Resources:  Workshops, Websites, and Books
-Some spatial data analysis sesources, with a brief description given followed by the link.
+Some spatial data analysis resources, with a brief description given followed by the link.
 
 Geospatial Data Science in R website, semivariogram modeling.
 <https://zia207.github.io/geospatial-r-github.io/semivariogram-modeling.html>
