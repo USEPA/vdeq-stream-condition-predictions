@@ -1602,9 +1602,9 @@ summary(os90pl.sp)
 
 # which observations are outside [5%, 95%] prediction limits?
 # these are the Site IDs of the unusual values
-DFobsz[which(os90pl.sp),"station_id_2"]
+aug_a5predict1ws_vsci[which(os90pl.sp),"station_id_2"]
 
-rm(cv_resids, resid_Se, fitted_vals, spat, spat.Pred.pct, spat.Pred.median, ty, tx, ox, op05, op95, os90pl.sp)
+rm(cv_resids, fitted_vals, spat, spat.Pred.pct, spat.Pred.median, ty, tx, ox, op05, op95, os90pl.sp)
 ```
 
 # TLH Fitted interval preds (quasi-LOOCV method)
