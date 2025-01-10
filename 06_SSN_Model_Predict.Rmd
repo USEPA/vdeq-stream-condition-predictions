@@ -1538,6 +1538,7 @@ opl_stations2
 
 
 # TLH Fitted interval preds
+On 01/10/2025 merged Travis'branch to make this as a ggplotly plot
 Based on 12/24/2024 email this graph of preds is using standard error of model so that gives straight prediction interval lines
 On 12/23/2024, merged Travis' code so that predictions from 48 pred sites also used residuals from the 48 predictions to build the fitted interval.
 On 12/19/2025 removed a5ssn_wswq_reml1 and replaced with aug_a5predict1ws_vsci, with that SSN model based on the 48 pred sites.
@@ -1567,6 +1568,7 @@ ox<-order(tx)
 op05<-spat.Pred.pct[ox,"Q05"]
 op95 <- spat.Pred.pct[ox,"Q95"]
 
+# put all components into data frame for ggplot
 plot_dat = data.frame("vsci_pred" = tx, "vsci" = ty, "pred_5th" = op05, "pred_95th" = op95,"vsci_bound_order"=tx[ox],"station_id"=aug_a5predict1ws_vsci$station_id_2)
 
 
@@ -1581,7 +1583,7 @@ p = ggplot(data = plot_dat)+
 
 ggplotly(p)
 
-# plot
+# plot using base plot with all components called separately into the plot
 # plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value 2019-2022",ylab="VSCI Observed Value 2019-2022",main="SSN Withheld Obs vs. Pred a5 Model SE n =48")
 # abline(0,1,col="red")
 # lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
@@ -1608,6 +1610,8 @@ rm(cv_resids, fitted_vals, spat, spat.Pred.pct, spat.Pred.median, ty, tx, ox, op
 ```
 
 # TLH Fitted interval preds (quasi-LOOCV method)
+On 01/10/2025 merged Travis'branch to make this as a ggplotly plot
+
 On 12/27/2024, is ribbon prediction interval in chunk 20, Preds for Distance Hypothesis, equivalent to chunk 22, fitted_interval_plot_loocv-preds, below? Doing head(aug_a5predict1ws_vsci$vsci_lwr) and same to vsci_upr show ribbon prediction intervals wider than Q05 and Q95. Consequently, the narrower Q05 and Q95 prediction intervals identify more points outside the intervals.
 
 Based on 12/24/2024 email from Travis this uses standard error of each prediction point so get squiggly lines.
@@ -1644,6 +1648,7 @@ ox<-order(tx)
 op05<-spat.Pred.pct[ox,"Q05"]
 op95 <- spat.Pred.pct[ox,"Q95"]
 
+# put all components into data frame for ggplot
 plot_dat = data.frame("vsci_pred" = tx, "vsci" = ty, "pred_5th" = op05, "pred_95th" = op95,"vsci_bound_order"=tx[ox],"station_id"=aug_a5predict1ws_vsci$station_id_2)
 
 
@@ -1658,7 +1663,7 @@ p = ggplot(data = plot_dat)+
 
 ggplotly(p)
 
-# # plot
+# plot using base plot with all components called in separatel to plot
 # plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value 2019-2022",ylab="VSCI Observed Value 2019-2022",main="SSN Withheld Obs vs. Pred a5 reml se.fit n =48")
 # abline(0,1,col="red")
 # lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
