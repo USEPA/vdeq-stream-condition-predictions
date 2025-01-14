@@ -1246,21 +1246,21 @@ Now that diagnostics checked out make an observed to fitted interval plot on mod
 ```{r fitted_interval_obs_plot}
 # z4 model was run above
 
-# a5ssn_wswq_reml1 <- ssn_lm(
-#   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
-#   ssn.object = j_ssn3,
-#   tailup_type = "none",
-#   taildown_type = "exponential",
-#   euclid_type = "exponential",
-#   nugget_type = "nugget",
-#   estmethod = "reml",
-#   additive = "afv_area",
-#   partition_factor = ~ju
-# )
-# 
-# summary(a5ssn_wswq_reml1)
-# varcomp(a5ssn_wswq_reml1)
-# loocv(a5ssn_wswq_reml1)
+a5ssn_wswq_reml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area",
+  partition_factor = ~ju
+)
+
+summary(a5ssn_wswq_reml1)
+varcomp(a5ssn_wswq_reml1)
+loocv(a5ssn_wswq_reml1)
 
 # how do residuals and fitted values below compare to what comes out with augment function?
 
@@ -1294,10 +1294,8 @@ head(spat)
 spat.Pred.median = spat.Pred.pct[,4]
 head(spat.Pred.median)
 
-# make sure I've got the right obj
-DFobs<-ssn_get_data(j_ssn3)
-# observed and median of our prediction intervals
-ty<-round(DFobs$vsci,1)
+# observed and median of our fitted values from 199 obs
+ty<-aug_a5obs1ws_vsci$vsci
 tx<-round(spat.Pred.median,1)
 
 #percentiles
