@@ -1240,8 +1240,9 @@ check_model(a5_mlr1)
 ```
 
 # TLH fitted to obs interval plot for a5 model
+01/14/2025 added Travis' code to make prediction of 199 sites vsci versus observed vsci as ggplot
 
-Now that diagnostics checked out make an observed to fitted interval plot on model a5ssn_wswq_reml1 by augmenting to get diagonstics.
+Now that diagnostics checked out make an observed to fitted interval plot on model a5ssn_wswq_reml1 by augmenting to get diagnostics.
 ```{r fitted_interval_obs_plot}
 # z4 model was run above
 
@@ -1268,8 +1269,8 @@ aug_a5obs1ws_vsci <- augment(a5ssn_wswq_reml1, drop = FALSE)
 class(aug_a5obs1ws_vsci)
 names(aug_a5obs1ws_vsci)
 
-head(round(aug_a5obs1ws_vsci$.fitted))
-head(round(aug_a5obs1ws_vsci$vsci))
+head(round(aug_a5obs1ws_vsci$.fitted,1))
+head(round(aug_a5obs1ws_vsci$vsci,1))
 
 
 # get spatial residuals from model
@@ -1278,11 +1279,12 @@ spatResids<-residuals(a5ssn_wswq_reml1)
 # head(aug_a5obs1ws_vsci$.resid)
 # the three statements above all return same results
 
-# pull sd of residuals and fitted values
-resid_SD = sd(spatResids)
+# pull out fitted values and sd of residuals
 fitted_vals = a5ssn_wswq_reml1$fitted$response
+resid_SD = sd(spatResids)
 
-# combine to a dataframe
+
+# combine to a dataframe note variance same for all ob
 spat<-cbind(fitted_vals,resid_SD^2)
 head(spat)
 
@@ -1295,31 +1297,59 @@ head(spat.Pred.median)
 # make sure I've got the right obj
 DFobs<-ssn_get_data(j_ssn3)
 # observed and median of our prediction intervals
-ty<-DFobs$vsci
-tx<-spat.Pred.median
+ty<-round(DFobs$vsci,1)
+tx<-round(spat.Pred.median,1)
 
 #percentiles
 ox<-order(tx)
 op05<-spat.Pred.pct[ox,"Q05"]
 op95 <- spat.Pred.pct[ox,"Q95"]
 
-# plot
-plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value",ylab="VSCI Observed Value",main="SSN Obs vs. Pred a5 reml n = 199")
-abline(0,1,col="red")
-lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
+# put all components into data frame for ggplot
+plot_dat = data.frame("vsci_pred" = tx, "vsci" = ty, "pred_5th" = op05, "pred_95th" = op95,"vsci_bound_order"=tx[ox],"station_id"=aug_a5obs1ws_vsci$station_id_2)
 
-# 5th percentile of predictive distribution
-lines(tx[ox],op05,lty=2,col='black')
-# 95th percentile of predictive distribution
-lines(tx[ox],op95,lty=2,col='black')
-#legend
-legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
+
+p = ggplot(data = plot_dat)+
+  geom_point(aes(x = vsci_pred, y = vsci,label = station_id), color = "black")+
+  geom_smooth(aes(x = vsci_pred, y = vsci), method = "loess", se = F, color = "blue")+
+  geom_line(aes(x = vsci_bound_order, y = pred_5th), linetype = "dashed", color = "black")+
+  geom_line(aes(x = vsci_bound_order, y = pred_95th), linetype = "dashed", color = "black")+
+  geom_abline(intercept = 0, slope = 1, color = "red")+
+  labs(x="vsci predicted",
+       y ="vsci observed")
+print(p)
+ggplotly(p)
 
 cor(tx,ty, method = "pearson")
 
-# these object names are used again downstream for preds so remove here
+# number of points outside 90% prediction limits
+os90pl.sp <-(ty < spat.Pred.pct[,"Q05"]) |  (ty > spat.Pred.pct[,"Q95"]) 
+summary(os90pl.sp)
+
+# which observations are outside [5%, 95%] prediction limits?
+# these are the Site IDs of the unusual values
+aug_a5obs1ws_vsci[which(os90pl.sp),"station_id_2"]
+
+mapview(aug_a5obs1ws_vsci[which(os90pl.sp),"station_id_2"])
 
 rm(spatResids,resid_SD,fitted_vals,spat,spat.Pred.pct,spat.Pred.median,ty,tx,ox,op05,op95)
+
+# plot using base plot with all components called separately into the plot
+# plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value",ylab="VSCI Observed Value",main="SSN Obs vs. Pred a5 reml n = 199")
+# abline(0,1,col="red")
+# lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
+
+# 5th percentile of predictive distribution
+# lines(tx[ox],op05,lty=2,col='black')
+# 95th percentile of predictive distribution
+# lines(tx[ox],op95,lty=2,col='black')
+#legend
+# legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
+
+
+# these object names are used again downstream for preds so remove here
+
+
 
 ```
 
