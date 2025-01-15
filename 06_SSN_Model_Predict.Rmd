@@ -1623,7 +1623,8 @@ p = ggplot(data = plot_dat)+
   geom_line(aes(x = vsci_bound_order, y = pred_95th), linetype = "dashed", color = "black")+
   geom_abline(intercept = 0, slope = 1, color = "red")+
   labs(x="vsci predicted",
-       y ="vsci observed")
+       y ="vsci observed",
+       title = "SSN Withheld Obs vs Pred a5 reml n=48 interval 0.90, tlh method")
 print(p)
 ggplotly(p)
 
@@ -1707,7 +1708,8 @@ p = ggplot(data = plot_dat)+
   geom_line(aes(x = vsci_bound_order, y = pred_95th), linetype = "dashed", color = "black")+
   geom_abline(intercept = 0, slope = 1, color = "red")+
   labs(x="vsci predicted",
-       y ="vsci observed")
+       y ="vsci observed",
+       title = "SSN Withheld Obs vs Pred a5 reml n=48 interval 0.90, jhc method")
 
 print(p)
 ggplotly(p)
@@ -1751,7 +1753,7 @@ This is producing a 90% prediction interval because that was the level set when 
 
 # ribbon using lower and upper SSN2 prediction intervals
 # seems to give same results as 1.96*.se.fit above
-ribbon_pi1 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_ribbon(aes(ymin = vsci_lwr, ymax = vsci_upr), fill = "grey", alpha = .8) + geom_line(aes( y = vsci_pred)) + labs(x = "VSCI Predicted 2019-2022", y = "VSCI Observed 2019-2022", title = "SSN Withheld Obs vs Pred a5 reml n=48 interval 0.90")
+ribbon_pi1 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_ribbon(aes(ymin = vsci_lwr, ymax = vsci_upr), fill = "grey", alpha = .8) + geom_line(aes( y = vsci_pred)) + labs(x = "VSCI Predicted 2019-2022", y = "VSCI Observed 2019-2022", title = "SSN Withheld Obs vs Pred a5 reml n=48 interval 0.90, mgm method")
 
 print(ribbon_pi1)
 ggplotly(ribbon_pi1)
