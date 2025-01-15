@@ -108,7 +108,7 @@ rm(ztg)
 ```
 
 ### Flow-Unconnected Distance
-Stations are flow-uconnected when they are on different branches of the stream network and share a confluence. The calculation of gamma remains the same, but the average distance is restricted to those pairs of stations that are flow-unconnected.
+Stations are flow-uconnected when they are on different branches of the stream network and share a confluence. The calculation of average gamma and average distance remain the same, but are restricted to those pairs of stations that are flow-unconnected.
 
 ```{r torg_flow_unconnect}
 ztg <- SSN2::Torgegram(vscivcpmi ~ 1, j_ssn1a, type = c( "flowuncon"))
@@ -130,7 +130,7 @@ rm(ztg)
 ```
 
 ### Flow-Connected Distance
-Stations are flow-connected when they have an upstream to downstream relationship. The calculation of gamma remains the same, but the average distance is restricted to those pairs of stations that are flow-unconnected. Why might the flow-connected Toregram look so wonky? 
+Stations are flow-connected when they have an upstream to downstream relationship. The calculation of average gamma and average distance remains the same, but are restricted to those pairs of stations that are flow-unconnected. Why might the flow-connected Toregram look so wonky? 
 ```{r torg_flow_unconnect}
 ztg <- SSN2::Torgegram(vscivcpmi ~ 1, j_ssn1a, type = c( "flowcon"))
 
@@ -167,7 +167,7 @@ The Euclidean semivariogram suggest some spatial structure at distances up to 75
 
 All of the plots above accepted the defaults for cutoff and equally spaced bins, which is 15.
 
-We have evidence of spatial autocorrelation in VSCI. But, what we want to know is after we have accounted for variation in VSCI by modeling using covariates, is there leftover, or residual, spatial autocorrelation. If that's the case, then we want to model that residual spatial autocorrelation, which can often result in getting better spatial predictions and a better fitting model than a non-spatial model. After ESDA, we have to decide 1) what covariates to use, and 2) what spatial covariance functions, Euclidean, tail-up, and tail-down to use, and 3) what shapes of the spatial covariance functions to use. The shapes, or forms, of spatial covariance functions are described using terms such as nugget, exponential, spherical, or Gaussian, etc. Examples of those shapes are shown below.
+We have evidence of spatial autocorrelation in VSCI. But, what we want to know is after we have accounted for variation in VSCI by modeling using covariates, is there leftover, or residual, spatial autocorrelation. If that's the case, then we want to model that residual spatial autocorrelation, which can often result in getting better spatial predictions and a better fitting model than a non-spatial model. After ESDA, we have to decide 1) what covariates to use, 2) what spatial covariance functions, Euclidean, tail-up, and tail-down to use, and 3) what shapes of the spatial covariance functions to use. The shapes, or forms, of spatial covariance functions are described using terms such as nugget, exponential, spherical, or Gaussian, etc. Examples of those shapes are shown below.
 
 ```{r shapes}
 show.vgms()
