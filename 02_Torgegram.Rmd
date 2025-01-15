@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Outline
+For each of the scripts start with a cleared Environment.
 
 Our exploratory spatial data analysis (ESDA) continues by examining spatial variation now over stream network distances, instead of only Euclidean distance. 
 
@@ -36,7 +37,7 @@ library(janitor) # clean_names function
 
 ```
 
-## SSN Import
+## SSN Import & Extract Data Frame
 
 A spatial stream network object is needed to evaluate semivariance in the response variable as a function of Euclidean and stream network distances, flow-connected and flow-unconnected. 
 
@@ -45,6 +46,7 @@ Ideally for an SSN analysis, the data set has these 3 characteristics of monitor
 * Spatial Configuration:  spans headwaters to outlet
 * Spatial Clustering:  around confluences.
 
+We import the rfbc SSN object and extract the data frame, DFobs, which holds the attribute data and "sticky" geometry. We can manipulate, transform, etc. the DFobs and put it back into the SSN object.
 ```{r ssn_import}
 j_ssn1a <- SSN2::ssn_import("ssn_object/James_071024_pluspreds.ssn", predpts = "sites")
 class(j_ssn1a)
@@ -75,44 +77,102 @@ SSN2 creates a distance folder where distance R object stored. Look where the SS
 ```
 
 ## Torgegram
-When semivariance is plotted as a function of stream network distances the plot is called a Torgegram. Why might the flow-connected Toregram look so wonky? If you examine the flow-connected data frame created below you will see the incredibly small sample size for the 15 plotted points. One typically wants the number of pairs of points (np) to be at least 30 for each semivariance point. The wonky pattern associated with the small sample size of the flow-connected Torgeram is why that distance, and its associated tail-up covariance component, was not considered in the SSN modeling.
-```{r torgegram}
+
+We are still interested in answering the question:  do sites nearer to each other have smaller semivariances that sites further apart. Now, we are asking that question over Euclidean, flow-unconnected, and flow-connected distances.
+
+### Euclidean Distance
+We will begin with gamma, or semivariance, plotted as a function of Euclidean distance so this is just a semivariogram plot. Recall that our individual vsci observations for each station are binned over distance giving an average distance and average gamma based on the number of pairs of points used for those averages. The size of the point plotted in the graph corresponds to the number of pairs of points.
+```{r torg_euclid}
 names(j_ssn1a)
 summary(j_ssn1a)
 
-ztg <- SSN2::Torgegram(vscivcpmi ~ 1, j_ssn1a, type = c("flowcon", "flowuncon", "euclid"))
-plot(ztg, main = "VSCI")
+ztg <- SSN2::Torgegram(vscivcpmi ~ 1, j_ssn1a, type = c( "euclid"))
+class(ztg)
+plot(ztg, main = "VSCI:  Euclidean")
 names(ztg)
 
 View(ztg$euclid)
 
+```
+
+Notice in the View of ztg$euclid that columns names of dist, gamma, and np correspond to the x-axis, y-axis, and points plotted in the graph
+
+Besides the default plot based on the Torgegram object, we can also use ggplot. Note that the gstat variogram function uses a default cutoff of 1/3 the bounding box diagonal, which gave a cutoff of 100km. In SSN2, the Torgegram function uses a default cutoff of 1/2 the bounding box diagonal, which gives a cutoff of 150 km.
+```{r ggplot_euclid}
 torg_eu <- ztg[["euclid"]]
 names(torg_eu)
 class(torg_eu)
 ggplot(torg_eu, aes(x=dist, y=gamma,size=np)) + geom_point() + ggtitle("VSCI Euclidean Semivariogram")
 
+rm(ztg)
+```
+
+### Flow-Unconnected Distance
+Stations are flow-uconnected when they are on different branches of the stream network and share a confluence. The calculation of gamma remains the same, but the average distance is restricted to those pairs of stations that are flow-unconnected.
+
+```{r torg_flow_unconnect}
+ztg <- SSN2::Torgegram(vscivcpmi ~ 1, j_ssn1a, type = c( "flowuncon"))
+
+plot(ztg, main = "VSCI:  Flow-Unconnected")
+
+View(ztg$flowuncon)
+
+```
+
+Now using ggplot.
+```{r ggplo_flowuncon}
+torg_fu <- ztg[["flowuncon"]]
+
+ggplot(torg_fu, aes(x=dist, y=gamma,size=np)) + geom_point() + ggtitle("VSCI Flow-Unconnected Torgegram")
+
+rm(ztg)
+
+```
+
+### Flow-Connected Distance
+Stations are flow-connected when they have an upstream to downstream relationship. The calculation of gamma remains the same, but the average distance is restricted to those pairs of stations that are flow-unconnected. Why might the flow-connected Toregram look so wonky? 
+```{r torg_flow_unconnect}
+ztg <- SSN2::Torgegram(vscivcpmi ~ 1, j_ssn1a, type = c( "flowcon"))
+
+plot(ztg, main = "VSCI:  Flow-Connected")
+
+View(ztg$flowcon)
+
+```
+
+If you examine the flow-connected data frame created above you will see the incredibly small sample size for the 15 plotted points. One typically wants the number of pairs of points (np) to be at least 30 for each semivariance point. 
+
+Now using ggplot
+```{r ggplot_flowcon}
 torg_fc <- ztg[["flowcon"]]
 names(torg_fc)
 class(torg_fc)
 ggplot(torg_fc, aes(x=dist, y=gamma,size=np)) + geom_point() + ggtitle("VSCI Flow-Connected Torgegram")
 
-torg_fu <- ztg[["flowuncon"]]
-names(torg_fu)
-class(torg_fu)
-ggplot(torg_fu, aes(x=dist, y=gamma,size=np)) + geom_point() + ggtitle("VSCI Flow-Unconnected Torgegram")
+rm(ztg)
+```
+
+### Variation of Torgegram Plotting
+```{r toregrams-together_separate}
+ztg <- SSN2::Torgegram(vscivcpmi ~ 1, j_ssn1a, type = c( "flowcon", "flowuncon", "euclid"))
+
+plot(ztg, main = "VSCI:  All Distances")
 
 # specifying separate = TRUE requires hitting the return bar to see each Torgegram. If trying to run all the code chunks from top to bottom at once, then comment this line out otherwise it will error.
 
 # plot(ztg, separate = TRUE, main = "VSCI")
-
 ```
 
-The Euclidean semivariogram suggest some spatial structure at distances up to 75 km apart. As noted, the flow-connected Torgegram does not look spatially interpretable. How did the manner in which the sites were selected likely affect the wonky flow-connected pattern? The flow-unconnected Torgegram suggests some spatial structure as well.
+The Euclidean semivariogram suggest some spatial structure at distances up to 75 km apart. The flow-unconnected Torgegram suggests some spatial structure as well. As noted, the flow-connected Torgegram does not look spatially interpretable. How did the manner in which the sites were selected likely affect the wonky flow-connected pattern? 
+
+All of the plots above accepted the defaults for cutoff and equally spaced bins, which is 15.
 
 We have evidence of spatial autocorrelation in VSCI. But, what we want to know is after we have accounted for variation in VSCI by modeling using covariates, is there leftover, or residual, spatial autocorrelation. If that's the case, then we want to model that residual spatial autocorrelation, which can often result in getting better spatial predictions and a better fitting model than a non-spatial model. After ESDA, we have to decide 1) what covariates to use, and 2) what spatial covariance functions, Euclidean, tail-up, and tail-down to use, and 3) what shapes of the spatial covariance functions to use. The shapes, or forms, of spatial covariance functions are described using terms such as nugget, exponential, spherical, or Gaussian, etc. Examples of those shapes are shown below.
 
 ```{r shapes}
 show.vgms()
 ```
+
+During exploratory spatial data analysis we do not try specifying the shapes of the spatial autocovariance functions. That is done during the development of an SSN model.
 
 At the Geospatial Data Science in R site <https://zia207.github.io/geospatial-r-github.io/index.html> see the section on spatial interpolation.
