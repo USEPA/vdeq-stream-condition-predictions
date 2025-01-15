@@ -1624,7 +1624,7 @@ p = ggplot(data = plot_dat)+
   geom_abline(intercept = 0, slope = 1, color = "red")+
   labs(x="vsci predicted",
        y ="vsci observed")
-
+print(p)
 ggplotly(p)
 
 # identify does not work in RStudio
@@ -1709,6 +1709,7 @@ p = ggplot(data = plot_dat)+
   labs(x="vsci predicted",
        y ="vsci observed")
 
+print(p)
 ggplotly(p)
 
 # Carson Code Points Outside LOOCV 90% Prediction Limit for n=48 Withheld Obs
@@ -1752,10 +1753,11 @@ This is producing a 90% prediction interval because that was the level set when 
 # seems to give same results as 1.96*.se.fit above
 ribbon_pi1 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_ribbon(aes(ymin = vsci_lwr, ymax = vsci_upr), fill = "grey", alpha = .8) + geom_line(aes( y = vsci_pred)) + labs(x = "VSCI Predicted 2019-2022", y = "VSCI Observed 2019-2022", title = "SSN Withheld Obs vs Pred a5 reml n=48 interval 0.90")
 
+print(ribbon_pi1)
 ggplotly(ribbon_pi1)
 
 # number of points outside 90% prediction limits (opl)
-opl_stations1 <- filter(aug_a5predict1ws_vsci, vsci < (vsci_pred - (1.96*.se.fit)) | vsci > (vsci_pred + (1.96*.se.fit)))
+# opl_stations1 <- filter(aug_a5predict1ws_vsci, vsci < (vsci_pred - (1.96*.se.fit)) | vsci > (vsci_pred + (1.96*.se.fit)))
 
 opl_stations2 <- filter(aug_a5predict1ws_vsci, vsci < vsci_lwr | vsci > vsci_upr)
 
