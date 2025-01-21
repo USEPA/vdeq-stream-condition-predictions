@@ -1494,6 +1494,8 @@ rm(cv_resids, spat_loocv1, spat_loocv2, p, ofl_stations1)
 ```
 
 # Preds for Distance Hypothesis
+On 01/21/2025 added study type, st_type, of status or trend stallion as noticed first 11 stations with smallest .se.fit were trend stations.
+
 Note for predictions want estimation method to be reml.
 Looking to see if distance to nearest upstream waterbody covariate pulls outliers closer to 1:1 line, which is the a5 model.
 ```{r distance_hypothesis_preds}
@@ -1535,6 +1537,18 @@ head(aug_a5predict1ws_vsci$.se.fit)
 # Pineiro 2008 put observed on y and predict on x
 # label specific points
 # https://stackoverflow.com/questions/15624656/label-points-in-geom-point
+
+select(aug_a5predict1ws_vsci, station_id_2, vsci, vsci_pred, .se.fit) %>% arrange(.se.fit) %>% print(n =48)
+
+aug_a5predict1ws_vsci <- aug_a5predict1ws_vsci %>%
+  mutate(
+    st_type = case_when(
+    station_id ==  station_id_2 ~ "status",
+    station_id != station_id_2 ~ "trend"
+  )
+)
+
+select(aug_a5predict1ws_vsci, station_id_2, st_type, vsci, vsci_pred, .se.fit) %>% arrange(.se.fit) %>% print(n =48)
 
 # plotting without 1:1 abline shows how weak correlation is.
 ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci)) + geom_point() + geom_abline()
