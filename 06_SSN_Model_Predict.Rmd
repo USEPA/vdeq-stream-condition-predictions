@@ -1494,7 +1494,7 @@ rm(cv_resids, spat_loocv1, spat_loocv2, p, ofl_stations1)
 ```
 
 # Preds for Distance Hypothesis
-On 01/21/2025 added study type, st_type, of status or trend stallion as noticed first 11 stations with smallest .se.fit were trend stations.
+On 01/21/2025 added study type, st_type, of status or trend station as noticed first 11 stations with smallest .se.fit were trend stations.
 
 Note for predictions want estimation method to be reml.
 Looking to see if distance to nearest upstream waterbody covariate pulls outliers closer to 1:1 line, which is the a5 model.
