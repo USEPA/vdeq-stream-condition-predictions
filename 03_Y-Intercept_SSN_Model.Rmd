@@ -18,6 +18,7 @@ compare the forms, Euclidean, Tail Up, and Tail Down, and shapes of the autocova
 knitr::opts_chunk$set(echo = TRUE)
 library(SSN2)
 library(tidyverse)
+library(janitor)
 
 j_ssn1a <- SSN2::ssn_import("ssn_object/James_071024_pluspreds.ssn", predpts = "sites")
 class(j_ssn1a)
