@@ -1548,7 +1548,16 @@ aug_a5predict1ws_vsci <- aug_a5predict1ws_vsci %>%
   )
 )
 
-select(aug_a5predict1ws_vsci, station_id_2, st_type, vsci, vsci_pred, .se.fit) %>% arrange(.se.fit) %>% print(n =48)
+select(aug_a5predict1ws_vsci, station_id_2, st_type, vsci, vsci_pred, .se.fit) %>% arrange(st_type, .se.fit) %>% print(n =48)
+
+ggplot(aug_a5predict1ws_vsci, aes(x = st_type, y = vsci-pred)) + geom_boxplot()
+
+ggplot(aug_a5predict1ws_vsci, aes(x = st_type, y = .se.fit)) + geom_boxplot()
+
+ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type)) + geom_point()
+
+
+ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type)) + geom_point()+ geom_smooth(aes(x = vsci_pred, y = vsci), method = "lm", se = F, color = "blue")
 
 # plotting without 1:1 abline shows how weak correlation is.
 ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci)) + geom_point() + geom_abline()
