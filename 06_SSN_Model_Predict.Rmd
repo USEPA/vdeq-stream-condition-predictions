@@ -206,12 +206,24 @@ rm(tothab_ds1, tothab_ds2, dr_na, tothab_ds3, jr_na, tothab_ds4)
 ```
 
 # Transform Obs Covariates
+On 01/24/2025 added code for st_type, status or trend station type.
+
 On 12/16/2024 added binomial wbc, wbc_bin, coded as numeric 0 or 1 similar to Dumelle et al. 2023 coding in National Lake assessment conductivity paper.
  
 On 11/25/2024 added WWTP, STATSGo_Set2, and waterbody covariates.
 0n 06/28/20204 added for ju - yes and ju - no to test if partitioning on ju helpful first by looking at separate torgegrams and then in modeling.
 On 04/10/2024 added code for a binary presence covariate for impervious cover at watershed extent.
 ```{r transform_obs}
+# use code to evaluate vsci by year for trend sites if a random effect for trend stations is needed
+DFobs <- DFobs %>%
+  mutate(
+    st_type = case_when(
+      station_id_2 == "2-JKS028.69_2004" ~ "status",
+      station_id_2 != "2-JKS028.69_2004" & station_id_2 != station_id ~ "trend",
+      station_id_2 != "2-JKS028.69_2004" & station_id_2 == station_id ~ "status",
+    )
+  )
+summary(as.factor(DFobs$st_type))
 
 DFobs$year_f <- as.factor(DFobs$year)
 DFobs$vahusb <- factor(DFobs$vahusb, levels = c("JU", "JM", "JR", "JA", "JL"))
@@ -453,6 +465,8 @@ j_ssn3 <-  SSN2::ssn_put_data(DFobs3a,j_ssn3)
 ```
 
 # Transform Pred Covariates
+On 01/24/2025 added code for st_type, status or trend station type.
+
 On 12/16/2024 added binomial wbc, wbc_bin, coded as numeric 0 or 1 similar to Dumelle et al. 2023 coding in National Lake assessment conductivity paper.
 
 On 11/25/2024 have to assign 0's for 31 of 48 preds that had distances of NA and additional covariates.
@@ -464,6 +478,15 @@ preds3 <- preds1
 
 # create same name as in obs models
 preds3$tothab <- preds3$tot_hab
+
+preds3 <- preds3 %>%
+  mutate(
+    st_type = case_when(
+    station_id ==  station_id_2 ~ "status",
+    station_id != station_id_2 ~ "trend"
+  )
+)
+
 
 preds3$year_f <- as.factor(preds3$year)
 preds3$vahusb <- factor(preds3$vahusb, levels = c("JU", "JM", "JR", "JA", "JL"))
