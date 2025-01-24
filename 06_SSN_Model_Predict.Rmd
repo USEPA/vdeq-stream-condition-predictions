@@ -28,6 +28,8 @@ With those modification evaluated, then the final model, which included the part
 
 Log Keeping log below for now when reach final version will delete.
 
+01/24/2025 coded for status and trend station types so to evaluate ST_rand model
+
 12/23/2024 Travis walked me through merging his interval_pred_upd branch with main repository on GitHub. Once that was done I pulled that from main repository to my local repository.
 
 
@@ -224,6 +226,10 @@ DFobs <- DFobs %>%
     )
   )
 summary(as.factor(DFobs$st_type))
+
+ggplot(DFobs, aes(x = st_type, y = vscivcpmi)) + geom_boxplot() + labs(title = "Obs from 2001-2018 (n=199)")
+
+select(DFobs, station_id_2, st_type, vscivcpmi) %>% arrange(st_type, vscivcpmi, station_id_2) %>% print(n =Inf)
 
 DFobs$year_f <- as.factor(DFobs$year)
 DFobs$vahusb <- factor(DFobs$vahusb, levels = c("JU", "JM", "JR", "JA", "JL"))
@@ -486,6 +492,12 @@ preds3 <- preds3 %>%
     station_id != station_id_2 ~ "trend"
   )
 )
+
+summary(as.factor(preds3$st_type))
+
+ggplot(preds3, aes(x = st_type, y = vscivcpmi)) + geom_boxplot() + labs(title = "Preds 2019-2022 (n=48)")
+
+select(preds3, station_id_2, st_type, vscivcpmi) %>% arrange(st_type, station_id_2, vscivcpmi) %>% print(n =Inf)
 
 
 preds3$year_f <- as.factor(preds3$year)
