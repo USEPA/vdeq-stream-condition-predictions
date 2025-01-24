@@ -1124,7 +1124,7 @@ loocv(ssn_catrpwq_ml1)
 ```
 
 # 9.0 Station Type
-On 01/21/2025 in modeling 48 preds in script 06 station type, st_type status or trend, showed differences in predictions and standard errors.Now investigating if using st_type as covariate produced a better fitting SSN model. Previously, I had only considered station_id as a random effect and in that role it did not improve ssn_wswq_reml1 model. As covariate, st_type, does not improve SSN model. SSN_wswq_ml1 has AICc of 1414 and with st_type covariate, SSN_wswq_ml1_st has AICc of 1417. Final model comparison will include station_id as random effect and st_type as covariate. That final, complicated model has the lowest AICc of 1406, but it's model performance stats, RMSPE and cor2, are slightly worst. See how this complicated model performs on 48 prediction points.
+On 01/21/2025 in modeling 48 preds in script 06 station type, st_type status or trend, showed differences in predictions and standard errors.Now investigating if using st_type as covariate produced a better fitting SSN model. Previously, I had only considered station_id as a random effect and in that role it did not improve ssn_wswq_reml1 model. As covariate, st_type, does not improve SSN model. SSN_wswq_ml1 has AICc of 1414 and with st_type covariate, SSN_wswq_ml1_st has AICc of 1417. Final model comparison will include station_id as random effect and st_type as covariate. That final, complicated model, ssn_wswq_ml1_st, has the lowest AICc of 1406, but it's model performance stats, RMSPE and cor2, are slightly worst. See how this complicated model performs on 48 prediction points.
 ```{r st_type covariate}
 
 ssn_wswq_ml1_st <- ssn_lm(
