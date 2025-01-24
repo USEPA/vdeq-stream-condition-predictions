@@ -1279,20 +1279,27 @@ check_model(a5_mlr1)
 On 01/24/2025 inserted this code chunk to run status/trend random effects model, ssn_wswq_rand1_st, and compare it to distance model.
 ```{r st_vs_distance}
 ssn_wswq_rand1_st <- ssn_lm(
-  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + st_type,
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km + st_type,
   ssn.object = j_ssn3,
   tailup_type = "none",
   taildown_type = "exponential",
   euclid_type = "exponential",
   nugget_type = "nugget",
-  estmethod = "reml",
+  estmethod = "ml",
   additive = "afv_area",
+  partition_factor = ~ju,
   random = ~ (1 | station_id)
 )
 
 summary(ssn_wswq_rand1_st)
 varcomp(ssn_wswq_rand1_st)
 loocv(ssn_wswq_rand1_st)
+
+plot(ssn_wswq_rand1_st, which = c(1:6))
+
+glances(a5ssn_wswq_ml1, ssn_wswq_rand1_st)
+
+
 ```
 
 # TLH fitted to obs interval plot for a5 model
