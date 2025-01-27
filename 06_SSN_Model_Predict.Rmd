@@ -1276,7 +1276,7 @@ check_model(a5_mlr1)
 
 
 # ST_rand Model vs Distance Model
-On 01/24/2025 inserted this code chunk to run status/trend random effects model, ssn_wswq_rand1_st, and compare it to distance model.
+On 01/24/2025 inserted this code chunk to run status/trend random effects model, ssn_wswq_rand1_st, and compare it to distance model, with both models estimated by ml given different covariates.
 ```{r st_vs_distance}
 ssn_wswq_rand1_st <- ssn_lm(
   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km + st_type,
@@ -1603,26 +1603,30 @@ head(aug_a5predict1ws_vsci$.se.fit)
 # label specific points
 # https://stackoverflow.com/questions/15624656/label-points-in-geom-point
 
-select(aug_a5predict1ws_vsci, station_id_2, vsci, vsci_pred, .se.fit) %>% arrange(.se.fit) %>% print(n =48)
+select(aug_a5predict1ws_vsci, station_id_2, st_type, vsci, vsci_pred, .se.fit) %>% arrange(.se.fit) %>% print(n =48)
 
-aug_a5predict1ws_vsci <- aug_a5predict1ws_vsci %>%
-  mutate(
-    st_type = case_when(
-    station_id ==  station_id_2 ~ "status",
-    station_id != station_id_2 ~ "trend"
-  )
-)
+# aug_a5predict1ws_vsci <- aug_a5predict1ws_vsci %>%
+#   mutate(
+#     st_type = case_when(
+#     station_id ==  station_id_2 ~ "status",
+#     station_id != station_id_2 ~ "trend"
+#   )
+# )
 
-select(aug_a5predict1ws_vsci, station_id_2, st_type, vsci, vsci_pred, .se.fit) %>% arrange(st_type, .se.fit) %>% print(n =48)
+# select(aug_a5predict1ws_vsci, station_id_2, st_type, vsci, vsci_pred, .se.fit) %>% arrange(st_type, .se.fit) %>% print(n =48)
 
-ggplot(aug_a5predict1ws_vsci, aes(x = st_type, y = vsci-pred)) + geom_boxplot()
+ggplot(aug_a5predict1ws_vsci, aes(x = st_type, y = vsci)) + geom_boxplot() +labs(title = "Observed VSCI at n = 48 Preds Sites")
 
-ggplot(aug_a5predict1ws_vsci, aes(x = st_type, y = .se.fit)) + geom_boxplot()
+ggplot(aug_a5predict1ws_vsci, aes(x = st_type, y = vsci_pred)) + geom_boxplot() + labs(title = "Predicted VSCI at n = 48 Preds Sites")
+
+ggplot(aug_a5predict1ws_vsci, aes(x = st_type, y = .se.fit)) + geom_boxplot() + labs(title = "Predicted VSCI at n = 48 Preds Sites")
 
 ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type)) + geom_point()
 
-
 ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type)) + geom_point()+ geom_smooth(aes(x = vsci_pred, y = vsci), method = "lm", se = F, color = "blue")
+
+# using linewidth instead of size b/c ggplot geom_smooth waring
+ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, linewidth = .se.fit, shape = st_type)) + geom_point()+ geom_smooth(aes(x = vsci_pred, y = vsci), method = "lm", se = F, color = "blue")
 
 # plotting without 1:1 abline shows how weak correlation is.
 ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci)) + geom_point() + geom_abline()
@@ -1668,6 +1672,54 @@ as.data.frame(aug_a5predict1ws_vsci)|>
 
 
 ```
+
+
+# Preds for ST_rand model reml
+Using reml estimate as testing predictions.
+```{r st_rand1_hypothesis}
+
+ssn_wswq_rand1_st_reml <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km + st_type,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area",
+  partition_factor = ~ju,
+  random = ~ (1 | station_id)
+)
+
+summary(ssn_wswq_rand1_st_reml)
+varcomp(ssn_wswq_rand1_st_reml) # now space varcomp small
+loocv(ssn_wswq_rand1_st_reml)
+
+# augment returns an sf object
+# note level set to 0.90
+aug_st5predict1ws_vsci <- augment(ssn_wswq_rand1_st_reml, newdata = "Preds_2019_2022", se_fit = TRUE, interval = c("prediction"), level = 0.90)
+# class(aug_a5predict1ws_vsci)
+# names(aug_a5predict1ws_vsci)
+aug_st5predict1ws_vsci$vsci_pred <- round(aug_st5predict1ws_vsci$.fitted,1)
+aug_st5predict1ws_vsci$vsci_lwr <- round(aug_st5predict1ws_vsci$.lower,1)
+aug_st5predict1ws_vsci$vsci_upr <- round(aug_st5predict1ws_vsci$.upper,1)
+head(aug_st5predict1ws_vsci$.se.fit)
+# Pineiro 2008 put observed on y and predict on x
+# label specific points
+# https://stackoverflow.com/questions/15624656/label-points-in-geom-point
+
+select(aug_st5predict1ws_vsci, station_id_2, st_type, vsci, vsci_pred, .se.fit) %>% arrange(.se.fit) %>% print(n =48)
+
+cor(aug_st5predict1ws_vsci$vsci_pred,aug_st5predict1ws_vsci$vsci, method = "pearson")
+
+#2019-2022 a5reml correlation with partition factor of ju and distance covariate is 0.57
+
+as.data.frame(aug_st5predict1ws_vsci)|>
+  dplyr::select(vsci_pred,vsci)|>
+  correlate()
+
+```
+
 
 # TLH Fitted interval preds
 On 01/10/2025 merged Travis' branch to make this as a ggplotly plot
