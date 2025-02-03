@@ -1898,6 +1898,10 @@ ribbon_pi1 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label =
 print(ribbon_pi1)
 ggplotly(ribbon_pi1)
 
+ribbon_pi2 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, shape = st_type, label = station_id_2)) + geom_point(aes(size = .se.fit)) + geom_abline() + geom_ribbon(aes(ymin = vsci_lwr, ymax = vsci_upr), fill = "grey", alpha = .4) + geom_line(aes( y = vsci_pred)) + labs(x = "VSCI Predicted 2019-2022", y = "VSCI Observed 2019-2022", title = "SSN Withheld Obs vs Pred a5 reml n=48 interval 0.90, mgm method")
+
+print(ribbon_pi2)
+ggplot(ribbon_pi2)
 # number of points outside 90% prediction limits (opl)
 # opl_stations1 <- filter(aug_a5predict1ws_vsci, vsci < (vsci_pred - (1.96*.se.fit)) | vsci > (vsci_pred + (1.96*.se.fit)))
 
