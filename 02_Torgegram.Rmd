@@ -95,9 +95,9 @@ View(ztg$euclid)
 
 ```
 
-Notice in the View of ztg$euclid that columns names of dist, gamma, and np correspond to the x-axis, y-axis, and points plotted in the graph, respectively.
+Notice in the View of ztg$euclid that columns names of dist, gamma, and np correspond to the x-axis, y-axis, and points plotted in the graph, respectively. Back in script 01 the variogram function in the gstat package has a default cutoff of 1/3 the bounding box diagonal, which gave a distance cutoff of ~ 100km. In the SSN2 package, the Torgegram function uses a default cutoff of 1/2 the bounding box diagonal, which gives a Euclidean distance cutoff of ~ 150 km.
 
-Besides the default plot based on the Torgegram object, we can also use ggplot. Back in script 01 the variogram function in the gstat package has a default cutoff of 1/3 the bounding box diagonal, which gave a distance cutoff of ~ 100km. In the SSN2 package, the Torgegram function uses a default cutoff of 1/2 the bounding box diagonal, which gives a Euclidean distance cutoff of ~ 150 km.
+Besides the default plot based on the Torgegram object, we can also use ggplot. 
 
 ```{r ggplot_euclid}
 torg_eu <- ztg[["euclid"]]
