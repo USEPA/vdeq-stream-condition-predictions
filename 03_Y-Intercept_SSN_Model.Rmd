@@ -42,6 +42,9 @@ j_ssn1a <-  SSN2::ssn_put_data(DFobs,j_ssn1a)
 # 1.0 One Way:  SSN Y-Intercept
 All these models have the same fixed effects structure so REML estimation, the default, can be used. See the last paragraph in section 4.1 Linear SSN Models for why restricted maximum likelihood (REML) is the default and when maximum likelihood (ML) should be used. For the one-way models, the notation assigned the models below gives the two-letter spatial autocovariance forms first as tu, td, or eu for tail up, tail down, or Euclidean, respectively, followed by an underscore, and then three letters describing the shape, exp, lin, or gau for exponential, linear, or Gaussian, respectively.
 
+The <https://pet221.github.io/SSNbler/articles/introduction.html#calculating-additive-function-values-afvs> gives an explanation of the additive function values, which are specified with the additive argument for the ssn_lm function. Basically, the additive function value is what allows spatial weighting to be assigned at confluence where, for example, a large mainstem converges with a smaller tributary. The large mainstem would be given more weighting than the small tributary.
+
+
 ```{r oneway_ssn_yintercept}
 tu_exp <- ssn_lm(
   formula = vscivcpmi ~ 1,
