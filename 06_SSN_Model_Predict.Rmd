@@ -72,34 +72,31 @@ On 03/27/2024, Using code from step1_james_eda_v1.Rmd, but now specifying preds1
 
 library(SSN2)
 library(tidyverse)
-library(dplyr)
-library(Hmisc)
-library(sf)
-library(moments)
-library(fitdistrplus)
-library(mapview)
-library(leaflet)
-library(leafpop) # for popups in mapview
-library(leafsync) # sync mapview maps
-library(units)
 library(janitor)
-library(dummy)
-library(GGally)  # parallel coordinate plot
 library(readxl)
-library(bestglm)
-library(car)
+library(sf)
+library(dummy)
+library(mapview)
+library(leafpop) # for popups in mapview
+library(GGally)  # parallel coordinate plot
 library(performance)
-library(scales) # comma instead of scientific notation
-library(corrr) # tidyverse correlation package
-library(tmap)
-library(gstat) # semivariogram cloud
 library(plotly)
-library(dotwhisker)
-# remotes::install_github("fsolt/dotwhisker") 
-# library(dotwhisker) #coefficient plot did not install as archived
-# consider https://github.com/ggobi/ggally/issues/372
-# with function in Ggally of GGally::ggcoef() 
+library(corrr) # tidyverse correlation package
+
 sessionInfo()
+
+# attached base packages:
+# [1] stats     graphics  grDevices utils     datasets  methods   base     
+# 
+# other attached packages:
+#  [1] corrr_0.4.4        plotly_4.10.4      performance_0.12.2
+#  [4] GGally_2.2.1       leafpop_0.1.0      mapview_2.11.2    
+#  [7] dummy_0.1.3        sf_1.0-16          readxl_1.4.3      
+# [10] janitor_2.2.0      lubridate_1.9.3    forcats_1.0.0     
+# [13] stringr_1.5.1      dplyr_1.1.4        purrr_1.0.2       
+# [16] readr_2.1.5        tidyr_1.3.1        tibble_3.2.1      
+# [19] ggplot2_3.5.1      tidyverse_2.0.0    SSN2_0.2.1 
+
 
 knitr::opts_chunk$set(message=FALSE, warning=FALSE,collapse = T)
 ```
@@ -1898,10 +1895,15 @@ ribbon_pi1 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label =
 print(ribbon_pi1)
 ggplotly(ribbon_pi1)
 
-ribbon_pi2 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, shape = st_type, label = station_id_2)) + geom_point(aes(size = .se.fit)) + geom_abline() + geom_ribbon(aes(ymin = vsci_lwr, ymax = vsci_upr), fill = "grey", alpha = .4) + geom_line(aes( y = vsci_pred)) + labs(x = "VSCI Predicted 2019-2022", y = "VSCI Observed 2019-2022", title = "SSN Withheld Obs vs Pred a5 reml n=48 interval 0.90, mgm method")
+ribbon_pi2 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, shape = st_type, label = station_id_2)) +
+  geom_point(aes(size = .se.fit)) + 
+  geom_abline() + 
+  geom_ribbon(aes(ymin = vsci_lwr, ymax = vsci_upr), fill = "grey", alpha = .4) +
+  geom_line(aes( y = vsci_pred)) + 
+  labs(x = "VSCI Predicted 2019-2022", y = "VSCI Observed 2019-2022", title = "SSN Withheld Obs vs Pred a5 reml n=48 interval 0.90, mgm method")
 
 print(ribbon_pi2)
-ggplot(ribbon_pi2)
+
 # number of points outside 90% prediction limits (opl)
 # opl_stations1 <- filter(aug_a5predict1ws_vsci, vsci < (vsci_pred - (1.96*.se.fit)) | vsci > (vsci_pred + (1.96*.se.fit)))
 
@@ -1911,6 +1913,39 @@ class(opl_stations2)
 mapview(opl_stations2)
 opl_stations2
 # given comment "Target and Sampled (no fish or PHAB in 2019?) Dry,no staff", should this site 2-DCK003.94_2019 been sampled?
+
+```
+
+#Exploring residuals and counts at trend vs status
+
+```{r}
+
+## adding in some additional looks at .se.fit vs station type and number of samples.
+
+small_preds = aug_a5predict1ws_vsci%>% select(station_id,st_type,vsci,vsci_pred,.se.fit,.fitted,.residuals)
+
+
+p = ggplot(small_preds, aes(x = .se.fit, y = .residuals,color = st_type))+
+  geom_point(aes(label = station_id))
+ggplotly(p,hoverinfo = "text")
+
+#small_preds n
+small_preds_n = small_preds%>% group_by(station_id,st_type)%>% summarise(n = n())
+
+# small obs
+small_obs = aug_a5obs1ws_vsci %>% select(station_id,st_type,vsci,.fitted,.resid)
+
+p2 = ggplot(small_obs, aes(x = .resid,color = st_type))+
+  geom_histogram(aes(label = station_id))
+ggplotly(p2,hoverinfo = "text")
+# is the .se.fit basically just based on number of samples?
+small_dfobsz_n = DFobsz%>% select(station_id,st_type)%>%
+  group_by(station_id,st_type)%>%
+  summarise(n = n())
+
+# so as far as I can see we actually do not have more samples at the 
+
+
 ```
 
 

@@ -34,12 +34,23 @@ library(leaflet)
 library(leafpop) # for popups in mapview
 library(gstat) # for semivariograms
 library(lattice) # for random semivariogram plots
-library(spmodel) # for spatial modeling
+# library(spmodel) # for spatial modeling and empirical semivariogram (esv) function
 library(scales) # comma instead of scientific notation
 library(plotly) # interactive plots
-library(spmodel) # has empirical semivariogram (esv) function
 library(SSN2) # for spatial stream network (SSN) modeling
 library(janitor) # clean_names function
+
+sessionInfo()
+
+# attached base packages:
+# [1] stats     graphics  grDevices utils     datasets  methods   base     
+# 
+# other attached packages:
+#  [1] lattice_0.22-6  scales_1.3.0    plotly_4.10.4   janitor_2.2.0   SSN2_0.2.1     
+#  [6] gstat_2.1-1     leafpop_0.1.0   leaflet_2.2.2   mapview_2.11.2  sf_1.0-16      
+# [11] lubridate_1.9.3 forcats_1.0.0   stringr_1.5.1   dplyr_1.1.4     purrr_1.0.2    
+# [16] readr_2.1.5     tidyr_1.3.1     tibble_3.2.1    ggplot2_3.5.1   tidyverse_2.0.0
+
 
 ```
 
@@ -99,7 +110,7 @@ st_layers("bbsg_v1_2024_05_06.gpkg")
 ```
 
 ## Import SSN Object & Extract Data Frame
-We will now start using the James SSN. It easier to explore the data frame of an SSN object by extracting it `r ssn_get_data`. Note below that DFobs is both an sf object and a data frame so we can readily use it to make an interactive map.
+We will now start using the James SSN. It easier to explore the data frame of an SSN object by extracting it via the `ssn_get_data` command. Note below that DFobs is both an sf object and a data frame so we can readily use it to make an interactive map.
 ```{r ssn_import_extract}
 
 j_ssn1a <- SSN2::ssn_import("ssn_object/James_071024_pluspreds.ssn", predpts = "sites")
@@ -118,7 +129,7 @@ mapview(DFobs, zcol = "vscivcpmi", cex = "vscivcpmi", alpha.regions = .8, legend
 
 ## Distance Summary
 As we will be looking at spatial variation in vsci, or semivariance, as a function of distance it is important to get a distance summary of the stations.
-We use st_distance function to create pairwise distance matrix among all the sites. Then, because a Euclidean distance matrix is symmetrical, we extract half of that matrix and convert it to a vector then get the summary of the distances, min, Q1, median, mean, Q3, and max. Knowing max distance is important `r variogram` function uses that distance to set default cutoff. That cutoff is the spatial separation distance up to which a pair of points are included in semivariance estimates.  The default is the length of the diagonal of bounding box spanning the data, which is ~ approximately the max distance.  Our default cutoff will be 299,805/3 = 99,935 meters or ~ 100 km. 
+We use st_distance function to create pairwise distance matrix among all the sites. Then, because a Euclidean distance matrix is symmetrical, we extract half of that matrix and convert it to a vector then get the summary of the distances, min, Q1, median, mean, Q3, and max. Knowing max distance is important the `variogram` function uses that distance to set default cutoff. That cutoff is the spatial separation distance up to which a pair of points are included in semivariance estimates.  The default is the length of the diagonal of bounding box spanning the data, which is ~ approximately the max distance.  Our default cutoff will be 299,805/3 = 99,935 meters or ~ 100 km. 
 
 ```{r distance}
 distmat_obs <- st_distance(DFobs, DFobs,by_element = FALSE)
