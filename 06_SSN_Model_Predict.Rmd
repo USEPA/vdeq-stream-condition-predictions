@@ -1698,6 +1698,26 @@ as.data.frame(aug_a5predict1ws_vsci)|>
 
 ```
 
+# Synced Maps
+```{r synced_maps}
+
+names(aug_a5predict1ws_vsci)
+
+true_vsci <- mapview(aug_a5predict1ws_vsci, zcol = "vsci", cex = "vsci", alpha.regions = .8, legend = TRUE,layer.name = 'Prediction Sites True VSCI', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "vsci")))
+#+ mapview(rfbc$edges) + mapview(huc12, zcol = "NAME", burst = TRUE)
+true_vsci
+
+pred_vsci <- mapview(aug_a5predict1ws_vsci, zcol = "vsci_pred", cex = "vsci_pred", alpha.regions = .8, legend = TRUE,layer.name = 'Prediction Sites Predicted VSCI', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "vsci_pred")))
+#+ mapview(rfbc$edges) + mapview(huc12, zcol = "NAME", burst = TRUE)
+pred_vsci
+
+# synced maps
+sync(true_vsci, pred_vsci, ncol =1)
+
+
+
+```
+
 
 # Preds for ST_rand model reml
 Using reml estimate as testing predictions.
