@@ -1215,6 +1215,8 @@ This follows coding as used in Dumelle et al. 2023 paper. Using that coding prod
 Run ML estimation when comparing to models with different covariates. Run with REML when comparing to models with different spatial autocovariances and for prediction.
 On 11/19/2024 Tried running interaction of wbc*dist_nearest_up_wb_km, but got error of singular matrix. Consequently, only tested model using continuous covariate dist_nearest_up_wb_km.
 Again, commented out plot(a5ssn_wswq_ml1, which = c(1:6)) as seems to prevent code running straight through. The a5ssn_wswq_ml1 model with only continuous covariate dist_nearest_up_wb_km has smaller AICc than z4 model.
+
+Running torgegram on SSN0 nugget mlr model as shown in section 4.1.1 of SSN2 vignette. Not seeing much in Torgegram plot.
 ```{r distance_hypothesis}
 # test distance covariate in model a5
 
@@ -1228,7 +1230,7 @@ ztg <- Torgegram(
   type = c("flowcon", "flowuncon", "euclid")
 )
 
-plot(ztg)
+plot(ztg, separate = TRUE)
 View(ztg$euclid)
 View(ztg$flowuncon)  
 View(ztg$flowcon) # kind of  low np
@@ -1257,6 +1259,7 @@ a5ssn_wswq_ml1 <- ssn_lm(
   partition_factor = ~ju
 )
 
+tidy(a5ssn_wswq_ml1)
 summary(a5ssn_wswq_ml1)
 varcomp(a5ssn_wswq_ml1)
 loocv(a5ssn_wswq_ml1)
@@ -1286,7 +1289,7 @@ glances(z4ssn_wswq_ml1,a5ssn_wswq_ml1)
 ```
 
 # Check Nonspatial Diagnostics on a5 model
-Get checks on collinearity, added variable plots and other diagnostics. Typical MLR diagnostics look good. Running torgegram on model as shown in section 4.1.1 of SSN2 vignette.
+Get checks on collinearity, added variable plots and other diagnostics. Typical MLR diagnostics look good. 
 ```{r a5_mlr_diagnostics}
 a5_mlr1 <- lm(vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
   data = DFobs3a)
