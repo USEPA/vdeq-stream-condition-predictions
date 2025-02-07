@@ -1222,6 +1222,29 @@ ggplot(DFobs3a, aes(x = dist_nearest_up_wb_km, y = vsci)) + geom_point() + facet
 
 ggplot(DFobs3a, aes(x = dist_nearest_up_wb_km, y = vsci)) + geom_point() + geom_smooth(method = "lm", se =TRUE)
 
+ztg <- Torgegram(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
+  ssn.object = j_ssn3,
+  type = c("flowcon", "flowuncon", "euclid")
+)
+
+plot(ztg)
+View(ztg$euclid)
+View(ztg$flowuncon)  
+View(ztg$flowcon) # kind of  low np
+
+ztg1 <- Torgegram(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
+  ssn.object = j_ssn3,
+  type = c("flowcon", "flowuncon", "euclid"),
+  cutoff = 20000
+)
+
+plot(ztg1)
+View(ztg1$euclid)
+View(ztg1$flowuncon)  #very low np
+View(ztg1$flowcon) #very low np
+
 a5ssn_wswq_ml1 <- ssn_lm(
   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
   ssn.object = j_ssn3,
@@ -1263,8 +1286,7 @@ glances(z4ssn_wswq_ml1,a5ssn_wswq_ml1)
 ```
 
 # Check Nonspatial Diagnostics on a5 model
-Get checks on collinearity, added variable plots and other diagnostics.
-Diagnostics look good.
+Get checks on collinearity, added variable plots and other diagnostics. Typical MLR diagnostics look good. Running torgegram on model as shown in section 4.1.1 of SSN2 vignette.
 ```{r a5_mlr_diagnostics}
 a5_mlr1 <- lm(vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
   data = DFobs3a)
