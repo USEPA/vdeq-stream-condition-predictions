@@ -1212,12 +1212,37 @@ This follows coding as used in Dumelle et al. 2023 paper. Using that coding prod
 Run ML estimation when comparing to models with different covariates. Run with REML when comparing to models with different spatial autocovariances and for prediction.
 On 11/19/2024 Tried running interaction of wbc*dist_nearest_up_wb_km, but got error of singular matrix. Consequently, only tested model using continuous covariate dist_nearest_up_wb_km.
 Again, commented out plot(a5ssn_wswq_ml1, which = c(1:6)) as seems to prevent code running straight through. The a5ssn_wswq_ml1 model with only continuous covariate dist_nearest_up_wb_km has smaller AICc than z4 model.
+
+Running torgegram on SSN0 nugget mlr model as shown in section 4.1.1 of SSN2 vignette. Not seeing much in Torgegram plot.
 ```{r distance_hypothesis}
 # test distance covariate in model a5
 
 ggplot(DFobs3a, aes(x = dist_nearest_up_wb_km, y = vsci)) + geom_point() + facet_wrap(vars(wbc))  + geom_smooth(method = "lm", se =TRUE)
 
 ggplot(DFobs3a, aes(x = dist_nearest_up_wb_km, y = vsci)) + geom_point() + geom_smooth(method = "lm", se =TRUE)
+
+ztg <- Torgegram(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
+  ssn.object = j_ssn3,
+  type = c("flowcon", "flowuncon", "euclid")
+)
+
+plot(ztg, separate = TRUE)
+View(ztg$euclid)
+View(ztg$flowuncon)  
+View(ztg$flowcon) # kind of  low np
+
+ztg1 <- Torgegram(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
+  ssn.object = j_ssn3,
+  type = c("flowcon", "flowuncon", "euclid"),
+  cutoff = 20000
+)
+
+plot(ztg1)
+View(ztg1$euclid)
+View(ztg1$flowuncon)  #very low np
+View(ztg1$flowcon) #very low np
 
 a5ssn_wswq_ml1 <- ssn_lm(
   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
@@ -1231,6 +1256,7 @@ a5ssn_wswq_ml1 <- ssn_lm(
   partition_factor = ~ju
 )
 
+tidy(a5ssn_wswq_ml1)
 summary(a5ssn_wswq_ml1)
 varcomp(a5ssn_wswq_ml1)
 loocv(a5ssn_wswq_ml1)
@@ -1260,8 +1286,7 @@ glances(z4ssn_wswq_ml1,a5ssn_wswq_ml1)
 ```
 
 # Check Nonspatial Diagnostics on a5 model
-Get checks on collinearity, added variable plots and other diagnostics.
-Diagnostics look good.
+Get checks on collinearity, added variable plots and other diagnostics. Typical MLR diagnostics look good. 
 ```{r a5_mlr_diagnostics}
 a5_mlr1 <- lm(vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
   data = DFobs3a)
@@ -1666,6 +1691,36 @@ as.data.frame(aug_a5predict1ws_vsci)|>
 # saveRDS(a4preds_cov_19_22, file = "a4preds_cov_19_22.rds")
 # 
 # st_write(a4preds_cov_19_22, dsn = file.path(getwd(), "preds_cov_19_22.gpkg"), layer = "preds_cov_1922", driver = "GPKG", quiet = FALSE)
+
+
+```
+
+# Synced Maps
+```{r synced_maps}
+names(DFobs3a)
+names(aug_a5predict1ws_vsci)
+
+vsci_obs <- mapview(DFobs3a, zcol = "vsci", at=seq(0, 90, 15), cex = "vsci", alpha.regions = .8, legend = TRUE,layer.name = 'Observed Sites VSCI', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "vsci")))
+vsci_obs
+
+vsci_true <- mapview(aug_a5predict1ws_vsci, zcol = "vsci", at=seq(0, 90, 15), cex = "vsci", alpha.regions = .8, legend = TRUE,layer.name = 'Prediction Sites True VSCI', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "vsci")))
+
+#+ mapview(rfbc$edges) + mapview(huc12, zcol = "NAME", burst = TRUE)
+vsci_true
+
+sync(vsci_obs, vsci_true, ncol=1)
+
+vsci_pred <- mapview(aug_a5predict1ws_vsci, zcol = "vsci_pred", at=seq(0, 90, 15), cex = "vsci_pred", alpha.regions = .8, legend = TRUE,layer.name = 'Predictands VSCI', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "vsci_pred")))
+#+ mapview(rfbc$edges) + mapview(huc12, zcol = "NAME", burst = TRUE)
+vsci_pred
+
+# synced maps1
+sync1 <- sync(vsci_true, vsci_pred, ncol =1)
+
+vsci_predse <- mapview(aug_a5predict1ws_vsci, zcol = ".se.fit",  cex = ".se.fit", alpha.regions = .8, legend = TRUE,layer.name = 'Predictands VSCI SE', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "st_type", "vsci", "vsci_pred", ".se.fit")))
+
+# synced maps2
+sync2 <- sync(vsci_pred, vsci_predse, ncol=1)
 
 
 ```

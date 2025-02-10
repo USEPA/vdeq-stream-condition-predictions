@@ -210,11 +210,11 @@ summary(dists_knn1)
 # 0.161  2014.809  4765.854  5034.192  7320.395 16006.036 
 
 # based on VDEQ stream order (SO) entries, compare to SSN sites and edges
-vahusb <- as.data.frame(DFobs) %>%
-  group_by(vahusb, order) %>%
-  summarize(
-            count = dplyr::n()) %>% 
-  print(n = Inf)
+# comment out figure out later why error
+# vahusb <- as.data.frame(DFobs) %>%
+#   group_by(vahusb, order) %>%
+#   summarize(n = dplyr::n()) %>% 
+#   print(n = Inf)
 
 # remove datasets not used downstream
 rm(z, z1, z1, z1_nn, station_nn, dists, dists_knn1,vahusb)
