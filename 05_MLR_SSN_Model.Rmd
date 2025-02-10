@@ -85,41 +85,33 @@ Can I use SSN2 package for some of ESDA of James River? Yes.
 # Library and Functions Load
 ```{r setup, collapse=TRUE}
 
-library(ggplot2)
-library(gridExtra)
-library(car)
-library(bestglm)
+library(tidyverse)
+library(janitor)
 library(sf)
-library(dplyr)
-library(gpairs)
-library(moments)
-library(fitdistrplus)
-library(openxlsx)
-library(kableExtra)
-library(scales)
-library(gstat) # for semivariogram cloud
-library(lattice) # for random semivariograms
-# remotes::install_github('r-tmap/tmap')
-library(tmap)
+library(dummy)
+library(bestglm)
+library(performance)
+library(car)
+library(SSN2)
 library(mapview)
-library(leaflet)
 library(leafpop) # for popups in mapview
 library(leafsync) # to sync obs and prediction maps
-library(units)
-library(GGally)
-library(readxl)
-library(tidyr)
-library(spmodel)
-library(purrr)
-library(SSN2)
-library(dummy)
-library(performance)
-library(see)
-library(effects)
-library(ggeffects)
-library(janitor)
-library(nngeo) # nearest neighbor distances
-library(plotly)
+
+sessionInfo()
+
+# attached base packages:
+# [1] stats     graphics  grDevices utils     datasets  methods  
+# [7] base     
+# 
+# other attached packages:
+#  [1] leafsync_0.1.0     leafpop_0.1.0      mapview_2.11.2    
+#  [4] SSN2_0.2.1         car_3.1-2          carData_3.0-5     
+#  [7] performance_0.12.2 see_0.8.5          bestglm_0.37.3    
+# [10] leaps_3.1          dummy_0.1.3        sf_1.0-16         
+# [13] janitor_2.2.0      lubridate_1.9.3    forcats_1.0.0     
+# [16] stringr_1.5.1      dplyr_1.1.4        purrr_1.0.2       
+# [19] readr_2.1.5        tidyr_1.3.1        tibble_3.2.1      
+# [22] ggplot2_3.5.1      tidyverse_2.0.0  
 
 knitr::opts_chunk$set(message=FALSE, warning=FALSE,collapse = T)
 
@@ -1172,8 +1164,8 @@ glances(ssn_wswq_ml1, ssn_wswq_ml1_st,ssn_wswq_rand1_st)
 Cannot get subset working, return this later.
 ```{r subsetSSN_test}
 
-ssn_2018 <- ssn_subset(j_ssn3, path= "E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/subset_test" ,subset = year_ == 2018)
+# ssn_2018 <- ssn_subset(j_ssn3, path= "E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/subset_test" ,subset = year_ == 2018)
 
-str(DFobs2)
+# str(DFobs2)
 ```
 

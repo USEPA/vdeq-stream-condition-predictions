@@ -100,40 +100,53 @@ Yes.
 
 ```{r setup, collapse=TRUE}
 
-library(ggplot2)
-library(gridExtra)
-library(car)
-library(bestglm)
-library(sf)
-library(dplyr)
-library(gpairs)
-library(moments)
-library(fitdistrplus)
-library(openxlsx)
-library(kableExtra)
-library(scales)
-library(gstat) # for semivariogram cloud
-library(lattice) # for random 
-library(tmap)
-library(mapview)
-library(leaflet)
-library(leafpop) # for popups in mapview
-library(leafsync) # to sync obs and prediction maps
-library(units)
-library(GGally)
-library(readxl)
-library(tidyr)
-library(spmodel)
-library(purrr)
-library(SSN2)
-library(dummy)
-library(performance)
-library(see)
-library(effects)
-library(ggeffects)
+library(tidyverse)
 library(janitor)
 library(nngeo) # nearest neighbor distances
-library(plotly)
+library(readxl)
+library(GGally)
+
+
+# library(ggplot2)
+# library(gridExtra)
+# library(car)
+# library(bestglm)
+# library(sf)
+# library(dplyr)
+# library(gpairs)
+# library(moments)
+# library(fitdistrplus)
+# library(openxlsx)
+# library(kableExtra)
+# library(scales)
+# library(gstat) # for semivariogram cloud
+# library(lattice) # for random
+# library(tmap)
+# library(mapview)
+# library(leaflet)
+# library(leafpop) # for popups in mapview
+# library(leafsync) # to sync obs and prediction maps
+# library(units)
+# library(spmodel)
+# library(purrr)
+# library(SSN2)
+# library(dummy)
+# library(performance)
+# library(see)
+# library(effects)
+# library(ggeffects)
+# library(plotly)
+
+sessionInfo()
+
+# attached base packages:
+# [1] stats     graphics  grDevices utils     datasets  methods   base     
+# 
+# other attached packages:
+#  [1] GGally_2.2.1    readxl_1.4.3    nngeo_0.4.8     sf_1.0-16      
+#  [5] janitor_2.2.0   lubridate_1.9.3 forcats_1.0.0   stringr_1.5.1  
+#  [9] dplyr_1.1.4     purrr_1.0.2     readr_2.1.5     tidyr_1.3.1    
+# [13] tibble_3.2.1    ggplot2_3.5.1   tidyverse_2.0.0
 
 knitr::opts_chunk$set(message=FALSE, warning=FALSE,collapse = T)
 
@@ -352,7 +365,7 @@ JL and JA have largest rck_dep_ws but with very little variation.
 rck_dep_ws is highly, negatively correlated with elev_ws.
 
 ```{r statsgo_set2}
-statsgo_set2 <- read.csv("E:/R_vdeq_nhdplus/STATSGO_Set2_VA.csv") %>% clean_names(.)
+statsgo_set2 <- read.csv("data/STATSGO_Set2_VA.csv") %>% clean_names(.)
 
 names(statsgo_set2)
 

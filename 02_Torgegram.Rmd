@@ -21,19 +21,21 @@ Our exploratory spatial data analysis (ESDA) continues by examining spatial vari
 ## Libraries and Refernces
 ```{r libraries}
 library(tidyverse)
-library(lubridate)
-library(sf)
-library(mapview)
-library(leaflet)
-library(leafpop) # for popups in mapview
 library(gstat) # for semivariograms
-library(lattice) # for random semivariogram plots
-library(spmodel) # for spatial modeling
-library(scales) # comma instead of scientific notation
-library(plotly) # interactive plots
-library(spmodel) # has empirical semivariogram (esv) function
 library(SSN2) # for spatial stream network (SSN) objects
 library(janitor) # clean_names function
+
+sessionInfo()
+
+# attached base packages:
+# [1] stats     graphics  grDevices utils     datasets  methods   base     
+# 
+# other attached packages:
+#  [1] janitor_2.2.0   SSN2_0.2.1      gstat_2.1-1     lubridate_1.9.3 forcats_1.0.0  
+#  [6] stringr_1.5.1   dplyr_1.1.4     purrr_1.0.2     readr_2.1.5     tidyr_1.3.1    
+# [11] tibble_3.2.1    ggplot2_3.5.1   tidyverse_2.0.0
+
+
 
 ```
 
