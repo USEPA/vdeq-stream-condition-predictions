@@ -1700,13 +1700,18 @@ as.data.frame(aug_a5predict1ws_vsci)|>
 
 # Synced Maps
 ```{r synced_maps}
-
+names(DFobs3a)
 names(aug_a5predict1ws_vsci)
+
+vsci_obs <- mapview(DFobs3a, zcol = "vsci", at=seq(0, 90, 15), cex = "vsci", alpha.regions = .8, legend = TRUE,layer.name = 'Observed Sites VSCI', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "vsci")))
+vsci_obs
 
 vsci_true <- mapview(aug_a5predict1ws_vsci, zcol = "vsci", at=seq(0, 90, 15), cex = "vsci", alpha.regions = .8, legend = TRUE,layer.name = 'Prediction Sites True VSCI', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "vsci")))
 
 #+ mapview(rfbc$edges) + mapview(huc12, zcol = "NAME", burst = TRUE)
 vsci_true
+
+sync(vsci_obs, vsci_true, ncol=1)
 
 vsci_pred <- mapview(aug_a5predict1ws_vsci, zcol = "vsci_pred", at=seq(0, 90, 15), cex = "vsci_pred", alpha.regions = .8, legend = TRUE,layer.name = 'Predictands VSCI', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "vsci_pred")))
 #+ mapview(rfbc$edges) + mapview(huc12, zcol = "NAME", burst = TRUE)
@@ -1719,6 +1724,8 @@ vsci_predse <- mapview(aug_a5predict1ws_vsci, zcol = ".se.fit",  cex = ".se.fit"
 
 # synced maps2
 sync2 <- sync(vsci_pred, vsci_predse, ncol=1)
+
+
 ```
 
 
