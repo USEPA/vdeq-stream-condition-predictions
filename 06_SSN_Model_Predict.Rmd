@@ -1924,7 +1924,6 @@ opl_stations2
 
 small_preds = aug_a5predict1ws_vsci%>% select(station_id,st_type,vsci,vsci_pred,.se.fit,.fitted,.residuals)
 
-
 p = ggplot(small_preds, aes(x = .se.fit, y = .residuals,color = st_type))+
   geom_point(aes(label = station_id))
 ggplotly(p,hoverinfo = "text")
@@ -1932,19 +1931,22 @@ ggplotly(p,hoverinfo = "text")
 #small_preds n
 small_preds_n = small_preds%>% group_by(station_id,st_type)%>% summarise(n = n())
 
-# small obs
-small_obs = aug_a5obs1ws_vsci %>% select(station_id,st_type,vsci,.fitted,.resid)
+## loocv
+aug_a5obs1ws_vsci$se.fit <- loocv(a5ssn_wswq_reml1,se.fit = T)[[2]]
 
-p2 = ggplot(small_obs, aes(x = .resid,color = st_type))+
-  geom_histogram(aes(label = station_id))
-ggplotly(p2,hoverinfo = "text")
+# small obs
+small_obs = aug_a5obs1ws_vsci %>% select(station_id,st_type,vsci,.fitted,.resid,se.fit)
+
+p3 = ggplot(small_obs, aes(x = se.fit, y = .resid,color = st_type))+
+  geom_point(aes(label = station_id))
+ggplotly(p3,hoverinfo = "text")
+
 # is the .se.fit basically just based on number of samples?
-small_dfobsz_n = DFobsz%>% select(station_id,st_type)%>%
+small_obs_n = small_obs%>% select(station_id,st_type)%>%
   group_by(station_id,st_type)%>%
   summarise(n = n())
 
-# so as far as I can see we actually do not have more samples at the 
-
+# so looking at these is appears we maybe have slightly tighter residuals at the trend stations but that would require some more specific distribtuional tests. However the main takeaway is that while the sample size at a point is likely impacting that se.fit value it is not the only driving factor as there are mure se.fit values than there are uniqu sample sizes. 
 
 ```
 
