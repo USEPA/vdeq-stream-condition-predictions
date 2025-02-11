@@ -1697,21 +1697,43 @@ as.data.frame(aug_a5predict1ws_vsci)|>
 
 ```
 
+# VAHUSB Polygons
+```{r vahusb_poly}
+vahusb_poly <- st_read("E:/R_vdeq_nhdplus/vahusb.shp")
+# names(vahusb_poly)
+# mapview(vahusb_poly)
+mapview(vahusb_poly, zcol="VAHUSB", burst = TRUE)
+
+vahusb_poly <- vahusb_poly %>% 
+  mutate(
+    subbasin = case_when(
+      VAHUSB == "James River, Upper (Mountain)" ~ "JU",
+      VAHUSB == "James River, Middle (Piedmont)" ~ "JM",
+      VAHUSB == "James River- Rivanna River" ~ "JR",
+      VAHUSB == "James River- Appomattox River" ~ "JA",
+      VAHUSB == "James River, Lower (Tidal)" ~ "JL"
+    )
+  )
+names(vahusb_poly)
+mapview(vahusb_poly, zcol="subbasin", burst = TRUE)
+
+```
+
 # Synced Maps
 ```{r synced_maps}
 names(DFobs3a)
 names(aug_a5predict1ws_vsci)
 
-vsci_obs <- mapview(DFobs3a, zcol = "vsci", at=seq(0, 90, 15), cex = "vsci", alpha.regions = .8, legend = TRUE,layer.name = 'Observed Sites VSCI', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "vsci")))
+vsci_obs <- mapview(DFobs3a, zcol = "vsci", at=seq(0, 90, 15), cex = "vsci", alpha.regions = .8, legend = TRUE,layer.name = 'Observed Sites VSCI', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "vsci"))) + mapview(vahusb_poly, zcol="subbasin", burst = TRUE)
 vsci_obs
 
-vsci_true <- mapview(aug_a5predict1ws_vsci, zcol = "vsci", at=seq(0, 90, 15), cex = "vsci", alpha.regions = .8, legend = TRUE,layer.name = 'Prediction Sites True VSCI', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "vsci")))
+vsci_true <- mapview(aug_a5predict1ws_vsci, zcol = "vsci", at=seq(0, 90, 15), cex = "vsci", alpha.regions = .8, legend = TRUE,layer.name = 'Prediction Sites True VSCI', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "vsci"))) + mapview(vahusb_poly, zcol="subbasin", burst = TRUE)
 
 #+ mapview(rfbc$edges) + mapview(huc12, zcol = "NAME", burst = TRUE)
 vsci_true
 
 sync1 <- sync(vsci_obs, vsci_true, ncol=1)
-mapshot2(sync1, file = sync1)
+# mapshot2(sync1, file = sync1)
 
 vsci_pred <- mapview(aug_a5predict1ws_vsci, zcol = "vsci_pred", at=seq(0, 90, 15), cex = "vsci_pred", alpha.regions = .8, legend = TRUE,layer.name = 'Predictands VSCI', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "vsci_pred")))
 #+ mapview(rfbc$edges) + mapview(huc12, zcol = "NAME", burst = TRUE)
