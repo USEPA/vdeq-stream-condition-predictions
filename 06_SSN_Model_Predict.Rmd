@@ -78,6 +78,8 @@ library(sf)
 library(dummy)
 library(mapview)
 library(leafpop) # for popups in mapview
+library(leafsync) # sync mapview maps
+library(webshot2) # png of mapview maps
 library(GGally)  # parallel coordinate plot
 library(performance)
 library(plotly)
@@ -1708,19 +1710,20 @@ vsci_true <- mapview(aug_a5predict1ws_vsci, zcol = "vsci", at=seq(0, 90, 15), ce
 #+ mapview(rfbc$edges) + mapview(huc12, zcol = "NAME", burst = TRUE)
 vsci_true
 
-sync(vsci_obs, vsci_true, ncol=1)
+sync1 <- sync(vsci_obs, vsci_true, ncol=1)
+mapshot2(sync1, file = sync1)
 
 vsci_pred <- mapview(aug_a5predict1ws_vsci, zcol = "vsci_pred", at=seq(0, 90, 15), cex = "vsci_pred", alpha.regions = .8, legend = TRUE,layer.name = 'Predictands VSCI', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "vsci_pred")))
 #+ mapview(rfbc$edges) + mapview(huc12, zcol = "NAME", burst = TRUE)
 vsci_pred
 
 # synced maps1
-sync1 <- sync(vsci_true, vsci_pred, ncol =1)
+sync2 <- sync(vsci_true, vsci_pred, ncol =1)
 
 vsci_predse <- mapview(aug_a5predict1ws_vsci, zcol = ".se.fit",  cex = ".se.fit", alpha.regions = .8, legend = TRUE,layer.name = 'Predictands VSCI SE', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "st_type", "vsci", "vsci_pred", ".se.fit")))
 
 # synced maps2
-sync2 <- sync(vsci_pred, vsci_predse, ncol=1)
+sync3 <- sync(vsci_pred, vsci_predse, ncol=1)
 
 
 ```
