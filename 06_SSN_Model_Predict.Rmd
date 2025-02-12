@@ -1726,7 +1726,7 @@ mapview(vahusb_poly, zcol="subbasin")
 ```
 
 # Synced Maps
-Synced maps are good for a quick visualization, but the workflow of make synced maps, use Rstudio export to save html locally, then open html in browser, snip a screenshot and paste into Powerpoint does not make publication-quality maps. I could not get the mapshot or mapshot2 functions in mapview to make a png.
+Synced maps are good for a quick, interactive visualization, but the workflow of make synced maps, use Rstudio export to save html locally, then open html in browser, snip a screenshot and paste into Powerpoint does not make publication-quality maps. I could not get the mapshot or mapshot2 functions in mapview to make a png.
 ```{r synced_maps}
 names(DFobs3a)
 names(aug_a5predict1ws_vsci)
@@ -1758,7 +1758,7 @@ sync3 <- sync(vsci_pred, vsci_predse, ncol=1)
 ```
 
 # tmap: Prediction Maps
-This code came from vdeq.RMD under James ProbMon Sites NMC/SFS. I want to modify to show observed vsci for prediction sites and then predictions and prediction standard error.
+This code came from vdeq.RMD under James ProbMon Sites NMC/SFS. I want to modify to show observed vsci vs predictand true vsci, then predictand true vsci vs predictand vsci, and then predictand vsci vs predictand standard error. Best just to make makes separately then align them in Powerpoint. The tmap_arrange function seems to mess up the bubble sizes.
 ```{r jprobmon}
 # edges <- st_read("E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/James041724.ssn/edges.shp")
 
@@ -1775,12 +1775,19 @@ tm_shape(vahusb_poly) + tm_polygons("subbasin") +
 ) + tm_scale_bar(position = c("center", "BOTTOM", text.size = 1.0)) + tm_compass(position = c("left", "top")) +
   tm_legend(legend.outside=T,  legend.outside.position="top",legend.hist.height = 1.0, legend.hist.width = 1.0, legend.hist.size = 1.5)
 
+# trying to make subasins legends only so can put in Powerpoint
+sb_legend <- tm_shape(vahusb_poly) + tm_polygons("subbasin") +
+  tm_layout(legend.only = TRUE)
+tmap_save(sb_legend, "figures_nmc_2025/sb_legend.jpeg", width = 2, height = 2, dpi = 150)
+
+
 tm_shape(edges) + tm_lines(
   col = "blue") + tm_shape(preds_bind1) + tm_bubbles(
   col = ("resid"))
 
 
 ### trying legend.show = F for polygons
+# Observed sites
 j_map_vsci_obs <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show = F) +
   tm_shape(DFobs3a) + 
   tm_bubbles(
@@ -1790,7 +1797,7 @@ j_map_vsci_obs <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show = 
   legend.col.is.portrait = FALSE,
   style = "fixed",
   palette = "viridis",
-  title.col = "Observed VSCI 2001-2018 (n = 199)",
+  title.col = "VSCI at Observed Sites 2001-2018 (n = 199)",
   breaks = seq(0, 90, by = 15),
   sizes.legend=seq(0, 90, by=15),
   legend.hist = FALSE,
@@ -1802,11 +1809,12 @@ j_map_vsci_obs <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show = 
 ) + tm_scale_bar(position = c("center", "BOTTOM", text.size = 1.0)) + tm_compass(position = c("left", "top")) +
   tm_legend(legend.outside=T, legend.outside.position="top",legend.hist.height = 1.0, legend.hist.width = 1.0, legend.hist.size = 1.5)
 
-tmap_save(j_map_vsci_obs, "E:/R_vdeq_sci/Working/Data/neptune_analysis/scripts_by_basin/figures_sfs/j_map_obs_19_20.jpeg", width = 7, height = 3.5, dpi = 150)
+tmap_save(j_map_vsci_obs, "figures_nmc_2025/j_map_vsci_obs_v1_20250212.jpeg", width = 7, height = 3.5, dpi = 150)
 
+# map for true vsci predictands
 ### trying legend.show = F for polygons
-j_map_vsci_obs <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show = F) +
-  tm_shape(DFobs3a) + 
+j_map_vsci_true <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show = F) +
+  tm_shape(aug_a5predict1ws_vsci) + 
   tm_bubbles(
   size = "vsci",
   legend.size.show = FALSE,
@@ -1814,7 +1822,7 @@ j_map_vsci_obs <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show = 
   legend.col.is.portrait = FALSE,
   style = "fixed",
   palette = "viridis",
-  title.col = "Observed VSCI 2001-2018 (n = 199)",
+  title.col = "True VSCI at Prediction Sites 2019-2022 (n = 48)",
   breaks = seq(0, 90, by = 15),
   sizes.legend=seq(0, 90, by=15),
   legend.hist = FALSE,
@@ -1826,7 +1834,18 @@ j_map_vsci_obs <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show = 
 ) + tm_scale_bar(position = c("center", "BOTTOM", text.size = 1.0)) + tm_compass(position = c("left", "top")) +
   tm_legend(legend.outside=T, legend.outside.position="top",legend.hist.height = 1.0, legend.hist.width = 1.0, legend.hist.size = 1.5)
 
+tmap_save(j_map_vsci_true, "figures_nmc_2025/j_map_vsci_true_v1_20250212.jpeg", width = 7, height = 3.5, dpi = 150)
 
+# output for commented out code did not look very good
+
+
+# j_map_obs_true <- tmap_arrange(j_map_vsci_obs, j_map_vsci_true, ncol =1)
+# tmap_save(j_map_obs_true, "figures_nmc_2025/j_map_obs_true_v1_20250211.png", width = 6, height = 3, dpi = 150)
+
+# dimensions used that looked good in sfs 2024 powerpoin
+# png(file="figures_sfs/esv2.png",width=6,height=3,units="in",res=150)
+
+# RStudio exported map
 
 # original width =10, height =6
 # https://stackoverflow.com/questions/60892033/how-do-you-position-the-title-and-legend-in-tmap
