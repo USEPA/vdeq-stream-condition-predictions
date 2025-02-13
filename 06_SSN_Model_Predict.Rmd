@@ -1751,6 +1751,7 @@ sync2 <- sync(vsci_true, vsci_pred, ncol =1)
 
 vsci_predse <- mapview(aug_a5predict1ws_vsci, zcol = ".se.fit",  cex = ".se.fit", alpha.regions = .8, legend = TRUE,layer.name = 'Predictands VSCI SE', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "st_type", "vsci", "vsci_pred", ".se.fit")))
 
+vsci_predse
 # synced maps2
 sync3 <- sync(vsci_pred, vsci_predse, ncol=1)
 
@@ -1785,9 +1786,9 @@ tm_shape(edges) + tm_lines(
   col = "blue") + tm_shape(preds_bind1) + tm_bubbles(
   col = ("resid"))
 
-
-### trying legend.show = F for polygons
 # Observed sites
+### trying legend.show = F for polygons
+
 j_map_vsci_obs <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show = F) +
   tm_shape(DFobs3a) + 
   tm_bubbles(
@@ -1836,7 +1837,53 @@ j_map_vsci_true <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show =
 
 tmap_save(j_map_vsci_true, "figures_nmc_2025/j_map_vsci_true_v1_20250212.jpeg", width = 7, height = 3.5, dpi = 150)
 
-# output for commented out code did not look very good
+
+# map for vsci predictands
+j_map_vsci_predicted <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show = F) +
+  tm_shape(aug_a5predict1ws_vsci) + 
+  tm_bubbles(
+  size = "vsci_pred",
+  legend.size.show = FALSE,
+  col = "vsci_pred",
+  legend.col.is.portrait = FALSE,
+  style = "fixed",
+  palette = "viridis",
+  title.col = "Predictand VSCI at Prediction Sites 2019-2022 (n = 48)",
+  breaks = seq(0, 90, by = 15),
+  sizes.legend=seq(0, 90, by=15),
+  legend.hist = FALSE,
+) + tm_layout(asp=0,
+  legend.width = 2, legend.text.size = 1.5, legend.title.size = 3.0,
+  frame = FALSE,
+  legend.position = c("center", "TOP"),
+  title.position = c('center', 'TOP')
+) + tm_scale_bar(position = c("center", "BOTTOM", text.size = 1.0)) + tm_compass(position = c("left", "top")) +
+  tm_legend(legend.outside=T, legend.outside.position="top",legend.hist.height = 1.0, legend.hist.width = 1.0, legend.hist.size = 1.5)
+
+tmap_save(j_map_vsci_predicted, "figures_nmc_2025/j_map_vsci_predictedv1_20250213.jpeg", width = 7, height = 3.5, dpi = 150)
+
+# map for predictand se
+j_map_vsci_predse <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show = F) +
+  tm_shape(aug_a5predict1ws_vsci) + 
+  tm_bubbles(
+  size = ".se.fit",
+  legend.size.show = FALSE,
+  col = ".se.fit",
+  legend.col.is.portrait = FALSE,
+  style = "cont",
+  palette = "viridis",
+  title.col = "Standard Error of Predictand VSCI at Prediction Sites 2019-2022 (n = 48)",
+  legend.hist = FALSE,
+) + tm_layout(asp=0,
+  legend.width = 2, legend.text.size = 1.5, legend.title.size = 3.0,
+  frame = FALSE,
+  legend.position = c("center", "TOP"),
+  title.position = c('center', 'TOP')
+) + tm_scale_bar(position = c("center", "BOTTOM", text.size = 1.0)) + tm_compass(position = c("left", "top")) +
+  tm_legend(legend.outside=T, legend.outside.position="top",legend.hist.height = 1.0, legend.hist.width = 1.0, legend.hist.size = 1.5)
+
+tmap_save(j_map_vsci_predse, "figures_nmc_2025/j_map_vsci_predse_v1_20250213.jpeg", width = 7, height = 3.5, dpi = 150)
+
 
 
 # j_map_obs_true <- tmap_arrange(j_map_vsci_obs, j_map_vsci_true, ncol =1)
