@@ -1229,7 +1229,7 @@ ztg <- Torgegram(
   ssn.object = j_ssn3,
   type = c("flowcon", "flowuncon", "euclid")
 )
-
+plot(ztg)
 plot(ztg, separate = TRUE)
 View(ztg$euclid)
 View(ztg$flowuncon)  
@@ -1582,6 +1582,8 @@ rm(cv_resids, spat_loocv1, spat_loocv2, p, ofl_stations1)
 ```
 
 # Preds for Distance Hypothesis
+
+02/14/2025 trying to make scatter plot showing prediction error for status and trend stations
 On 01/23/2025 the abrupt change from saw tooth prediction interval to
 steady prediction interval is driven by the shorter range of vsci obs and vsci predictions for trend stations compared to the status status stations.
 On 01/21/2025 added station type, st_type, of status or trend station as noticed first 11 stations with smallest .se.fit were trend stations.
@@ -1656,11 +1658,29 @@ ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, linewidth = .se.fit, 
 # plotting without 1:1 abline shows how weak correlation is.
 ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci)) + geom_point() + geom_abline()
 
-a5preds2019_2022_v1 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_text(aes(label =ifelse(vsci<45, as.character(station_id_2), '')), hjust = -0.1, vjust = 0)+ labs(x = "Predicted VSCI", y = "Observed VSCI, 2019-2022", title = "a5reml Watershed SSN JU Partitioned & Upstream Waterbody Distance") + xlim(35,80) + ylim(35,80)
+a5preds2019_2022_v1 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_text(aes(label =ifelse(vsci<45, as.character(station_id_2), '')), hjust = -0.1, vjust = 0)+ labs(x = "Predicted VSCI", y = "True VSCI, 2019-2022", title = "a5reml Watershed SSN JU Partitioned & Upstream Waterbody Distance") + xlim(35,80) + ylim(35,80)
 
 # png(file="figures_sfs/a5preds2019_2022_v1.png",width=6,height=3,units="in",res=150)
 a5preds2019_2022_v1
 # dev.off()
+
+a5preds2019_2022_v2 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type, color = st_type)) + geom_point() + labs(x = "Predicted VSCI", y = "True VSCI, 2019-2022", title = "SSN Prediction Sites") + xlim(35,80) + ylim(35,80) + scale_size_binned(name = "Standard Error") + 
+scale_shape_manual(name = "Station Type", labels = c("Status", "Trend"))  
+  
+  guides(shape = guide_legend(title = "Station Type", override.aes = list(size = 6))) + theme(legend.text = element_text(size = 12))
+
+a5preds2019_2022_v2 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type, color = st_type)) + geom_point() + labs(x = "Predicted VSCI", y = "True VSCI, 2019-2022", title = "SSN Prediction Sites") + xlim(35,80) + ylim(35,80) + scale_size_binned(name = "Standard Error") + guides(shape = guide_legend(title = "Station Type", override.aes = list(size = 6))) + theme(legend.text = element_text(size = 12))
+
+# This one is closest
+a5preds2019_2022_v2 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type, color = st_type)) + geom_point() + labs(x = "Predicted VSCI", y = "True VSCI, 2019-2022", title = "SSN Prediction Sites") + xlim(35,80) + ylim(35,80) + scale_size_binned(name = "Standard Error") + guides(color = guide_legend(override.aes = list(size = 6))) + theme(legend.text = element_text(size = 12))
+
+# https://stackoverflow.com/questions/15059093/ggplot2-adjust-the-symbol-size-in-legends
+# make the size of the points & lines in the legend larger
+g + guides(color = guide_legend(override.aes = list(size = 2)))
+
+ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type, color = st_type)) + geom_point() + labs(x = "Predicted VSCI", y = "True VSCI, 2019-2022", title = "SSN Prediction Sites") + xlim(35,80) + ylim(35,80) + scale_size(range = c(4,10), "Standard Error")
+
+ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type)) + geom_point()
 
 cor(aug_a5predict1ws_vsci$vsci_pred,aug_a5predict1ws_vsci$vsci, method = "pearson")
 
