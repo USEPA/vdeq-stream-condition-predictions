@@ -78,10 +78,16 @@ library(sf)
 library(dummy)
 library(mapview)
 library(leafpop) # for popups in mapview
+library(leafsync) # sync mapview maps
+library(webshot2) # png of mapview maps
 library(GGally)  # parallel coordinate plot
 library(performance)
 library(plotly)
 library(corrr) # tidyverse correlation package
+library(tmap) # for publication quality maps
+library(tmaptools)
+library(shiny)
+library(shinyjs) # for tmap color palette
 
 sessionInfo()
 
@@ -1226,7 +1232,7 @@ ztg <- Torgegram(
   ssn.object = j_ssn3,
   type = c("flowcon", "flowuncon", "euclid")
 )
-
+plot(ztg)
 plot(ztg, separate = TRUE)
 View(ztg$euclid)
 View(ztg$flowuncon)  
@@ -1343,6 +1349,7 @@ a5ssn_wswq_reml1 <- ssn_lm(
   partition_factor = ~ju
 )
 
+tidy(a5ssn_wswq_reml1)
 summary(a5ssn_wswq_reml1)
 varcomp(a5ssn_wswq_reml1)
 loocv(a5ssn_wswq_reml1)
@@ -1431,6 +1438,31 @@ rm(spatResids,resid_SD,fitted_vals,spat,spat.Pred.pct,spat.Pred.median,ty,tx,ox,
 # legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
 
 ```
+
+## NMC Distance Model w/ and w/o Partition Factor
+02/19/2025 Making this comparison to include results in NMC 2025 presentation
+```{r distance_with_without_partition}
+#np stands for no parititon factor
+
+np5ssn_wswq_reml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area"
+)
+
+tidy(np5ssn_wswq_reml1)
+summary(np5ssn_wswq_reml1)
+varcomp(np5ssn_wswq_reml1)
+loocv(np5ssn_wswq_reml1)
+
+glances(a5ssn_wswq_reml1, np5ssn_wswq_reml1)
+```
+
 
 # TLH fitted to obs interval plot (LOOCV method)
 On 01/14/2025 inserted TLH's code using observation-specific LOOCV variance with qnorm so get squiggly 90th percentile lines in ggplot.
@@ -1579,6 +1611,8 @@ rm(cv_resids, spat_loocv1, spat_loocv2, p, ofl_stations1)
 ```
 
 # Preds for Distance Hypothesis
+
+02/14/2025 trying to make scatter plot showing prediction error for status and trend stations
 On 01/23/2025 the abrupt change from saw tooth prediction interval to
 steady prediction interval is driven by the shorter range of vsci obs and vsci predictions for trend stations compared to the status status stations.
 On 01/21/2025 added station type, st_type, of status or trend station as noticed first 11 stations with smallest .se.fit were trend stations.
@@ -1653,11 +1687,33 @@ ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, linewidth = .se.fit, 
 # plotting without 1:1 abline shows how weak correlation is.
 ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci)) + geom_point() + geom_abline()
 
-a5preds2019_2022_v1 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_text(aes(label =ifelse(vsci<45, as.character(station_id_2), '')), hjust = -0.1, vjust = 0)+ labs(x = "Predicted VSCI", y = "Observed VSCI, 2019-2022", title = "a5reml Watershed SSN JU Partitioned & Upstream Waterbody Distance") + xlim(35,80) + ylim(35,80)
+a5preds2019_2022_v1 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_text(aes(label =ifelse(vsci<45, as.character(station_id_2), '')), hjust = -0.1, vjust = 0)+ labs(x = "Predicted VSCI", y = "True VSCI, 2019-2022", title = "a5reml Watershed SSN JU Partitioned & Upstream Waterbody Distance") + xlim(35,80) + ylim(35,80)
 
 # png(file="figures_sfs/a5preds2019_2022_v1.png",width=6,height=3,units="in",res=150)
 a5preds2019_2022_v1
 # dev.off()
+
+a5preds2019_2022_v2 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type, color = st_type)) + geom_point() + labs(x = "Predicted VSCI", y = "True VSCI, 2019-2022", title = "SSN Prediction Sites") + xlim(35,80) + ylim(35,80) + scale_size_binned(name = "Standard Error") + 
+scale_shape_manual(name = "Station Type", labels = c("Status", "Trend"))  
+  
+  guides(shape = guide_legend(title = "Station Type", override.aes = list(size = 6))) + theme(legend.text = element_text(size = 12))
+
+a5preds2019_2022_v2 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type, color = st_type)) + geom_point() + labs(x = "Predicted VSCI", y = "True VSCI, 2019-2022", title = "SSN Prediction Sites") + xlim(35,80) + ylim(35,80) + scale_size_binned(name = "Standard Error") + guides(shape = guide_legend(title = "Station Type", override.aes = list(size = 6))) + theme(legend.text = element_text(size = 12))
+
+# This one is closest
+a5preds2019_2022_v2 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type, color = st_type)) + geom_point() + labs(x = "Predicted VSCI", y = "True VSCI, 2019-2022",  title = "SSN Prediction Sites") + xlim(35,80) + ylim(35,80) + scale_size_binned(name = "Standard Error") + guides(color = guide_legend(override.aes = list(size = 6))) + theme(legend.text = element_text(size = 12))
+
+png(file="figures_nmc_2025/a5preds2019_2022_v2.png",width=6,height=3,units="in",res=150)
+a5preds2019_2022_v2
+dev.off()
+
+# https://stackoverflow.com/questions/15059093/ggplot2-adjust-the-symbol-size-in-legends
+# make the size of the points & lines in the legend larger
+g + guides(color = guide_legend(override.aes = list(size = 2)))
+
+ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type, color = st_type)) + geom_point() + labs(x = "Predicted VSCI", y = "True VSCI, 2019-2022", title = "SSN Prediction Sites") + xlim(35,80) + ylim(35,80) + scale_size(range = c(4,10), "Standard Error")
+
+ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type)) + geom_point()
 
 cor(aug_a5predict1ws_vsci$vsci_pred,aug_a5predict1ws_vsci$vsci, method = "pearson")
 
@@ -1695,35 +1751,284 @@ as.data.frame(aug_a5predict1ws_vsci)|>
 
 ```
 
+## NMC Pred VSCI vs True VSCI
+
+```{r nmc_pred_true_vsci_stationtype}
+# This one is closest
+a5preds2019_2022_v3 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type, color = st_type)) + geom_point() + labs(x = "Predicted VSCI", y = "True VSCI, 2019-2022", title = "SSN Prediction Sites", shape = "Station Type", color = "Station Type") + xlim(35,80) + ylim(35,80) + scale_size_binned(name = "Standard Error") + guides(color = guide_legend(override.aes = list(size = 6))) + theme(legend.text = element_text(size = 12))
+
+png(file="figures_nmc_2025/a5preds2019_2022_v3.png",width=6,height=3,units="in",res=150)
+a5preds2019_2022_v3
+dev.off()
+
+# this plot comes closest
+# try ribbon matched to code above
+ribbon_pi3 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, shape = st_type, color = st_type)) +
+  geom_point(aes(size = .se.fit)) + 
+  geom_abline() + 
+  geom_ribbon(aes(ymin = vsci_lwr, ymax = vsci_upr), fill = "grey", alpha = .4) +
+  geom_line(aes( y = vsci_pred)) + 
+  labs(x = "Predicted VSCI", y = "True VSCI 2019-2022", title = "SSN Predictions (prediction interval 0.90)", shape = "Station Type", color = "Station Type", subtitle = ("Pearson Correlation = 0.57")) + scale_size_binned(name = "Standard Error")
+
+png(file="figures_nmc_2025/ribbon_pi3.png",width=6,height=3,units="in",res=150)
+ribbon_pi3
+dev.off()
+
++ xlim(35,80) + ylim(35,80) + scale_size_binned(name = "Standard Error") + guides(color = guide_legend(override.aes = list(size = 6))) + theme(legend.text = element_text(size = 12))
+
+ribbon_pi2 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, shape = st_type, label = station_id_2)) +
+  geom_point(aes(size = .se.fit)) + 
+  geom_abline() + 
+  geom_ribbon(aes(ymin = vsci_lwr, ymax = vsci_upr), fill = "grey", alpha = .4) +
+  geom_line(aes( y = vsci_pred)) + 
+  labs(x = "Predicted VSCI", y = "True VSCI 2019-2022", title = "SSN Predictions (prediction interval 0.90")
+
+print(ribbon_pi2)
+```
+
+## NMC Elevation Boxplots by Subbasin
+```{r nmc_boxplots}
+RColorBrewer::display.brewer.all()
+viridis::viridis(7)
+tmaptools::palette_explorer() # zoomed to this and checked options Print color values to get color codes for Brewer Categorical Set3 so I could specify fill colors to match tmaps
+
+boxplot_elev_ws <- ggplot(data=DFobs3a, aes(y= elev_ws, x= vahusb)) + geom_boxplot(aes(fill = vahusb), outlier.color = "Red") + geom_jitter() + labs(y = "Watershed Elevation (m)", x = "Subbasins", fill = "Subbasin") + scale_fill_manual(values = c("#8DD3C7", "#FFFFB3", "#BEBADA", "#FB8072", "#80B1D3"))
+  
+png(file="figures_nmc_2025/boxplot_elev_ws.png",width=6,height=3,units="in",res=150)
+boxplot_elev_ws
+dev.off()
+
+
+```
+
+
+# VAHUSB Polygons
+```{r vahusb_poly}
+vahusb_poly <- st_read("E:/R_vdeq_nhdplus/vahusb.shp")
+# names(vahusb_poly)
+# mapview(vahusb_poly)
+mapview(vahusb_poly, zcol="VAHUSB", burst = TRUE)
+
+vahusb_poly <- vahusb_poly %>% 
+  mutate(
+    subbasin = case_when(
+      VAHUSB == "James River, Upper (Mountain)" ~ "JU",
+      VAHUSB == "James River, Middle (Piedmont)" ~ "JM",
+      VAHUSB == "James River- Rivanna River" ~ "JR",
+      VAHUSB == "James River- Appomattox River" ~ "JA",
+      VAHUSB == "James River, Lower (Tidal)" ~ "JL"
+    )
+  )
+names(vahusb_poly)
+mapview(vahusb_poly, zcol="subbasin", burst = TRUE)
+
+vahusb_poly$subbasin <- factor(vahusb_poly$subbasin, levels = c("JU", "JM", "JR", "JA", "JL"))
+
+# once made a factor do not need to do burst
+mapview(vahusb_poly, zcol="subbasin")
+
+```
+
 # Synced Maps
+Synced maps are good for a quick, interactive visualization, but the workflow of make synced maps, use Rstudio export to save html locally, then open html in browser, snip a screenshot and paste into Powerpoint does not make publication-quality maps. I could not get the mapshot or mapshot2 functions in mapview to make a png.
 ```{r synced_maps}
 names(DFobs3a)
 names(aug_a5predict1ws_vsci)
 
-vsci_obs <- mapview(DFobs3a, zcol = "vsci", at=seq(0, 90, 15), cex = "vsci", alpha.regions = .8, legend = TRUE,layer.name = 'Observed Sites VSCI', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "vsci")))
+vsci_obs <- mapview(DFobs3a, zcol = "vsci", at=seq(0, 90, 15), cex = "vsci", alpha.regions = .8, legend = TRUE,layer.name = 'Observed Sites VSCI', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "vsci"))) + mapview(vahusb_poly, zcol="subbasin", burst = TRUE)
 vsci_obs
 
-vsci_true <- mapview(aug_a5predict1ws_vsci, zcol = "vsci", at=seq(0, 90, 15), cex = "vsci", alpha.regions = .8, legend = TRUE,layer.name = 'Prediction Sites True VSCI', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "vsci")))
+vsci_true <- mapview(aug_a5predict1ws_vsci, zcol = "vsci", at=seq(0, 90, 15), cex = "vsci", alpha.regions = .8, legend = TRUE,layer.name = 'Prediction Sites True VSCI', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "vsci"))) + mapview(vahusb_poly, zcol="subbasin", burst = TRUE)
 
 #+ mapview(rfbc$edges) + mapview(huc12, zcol = "NAME", burst = TRUE)
 vsci_true
 
-sync(vsci_obs, vsci_true, ncol=1)
+sync1 <- sync(vsci_obs, vsci_true, ncol=1)
+# mapshot2(sync1, file = sync1)
 
 vsci_pred <- mapview(aug_a5predict1ws_vsci, zcol = "vsci_pred", at=seq(0, 90, 15), cex = "vsci_pred", alpha.regions = .8, legend = TRUE,layer.name = 'Predictands VSCI', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "vsci_pred")))
 #+ mapview(rfbc$edges) + mapview(huc12, zcol = "NAME", burst = TRUE)
 vsci_pred
 
 # synced maps1
-sync1 <- sync(vsci_true, vsci_pred, ncol =1)
+sync2 <- sync(vsci_true, vsci_pred, ncol =1)
 
 vsci_predse <- mapview(aug_a5predict1ws_vsci, zcol = ".se.fit",  cex = ".se.fit", alpha.regions = .8, legend = TRUE,layer.name = 'Predictands VSCI SE', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "st_type", "vsci", "vsci_pred", ".se.fit")))
 
+vsci_predse
 # synced maps2
-sync2 <- sync(vsci_pred, vsci_predse, ncol=1)
+sync3 <- sync(vsci_pred, vsci_predse, ncol=1)
 
 
 ```
+
+## NMC tmap: Prediction Maps
+This code came from vdeq.RMD under James ProbMon Sites NMC/SFS. I want to modify to show observed vsci vs predictand true vsci, then predictand true vsci vs predictand vsci, and then predictand vsci vs predictand standard error. Best just to make makes separately then align them in Powerpoint. The tmap_arrange function seems to mess up the bubble sizes.
+```{r jprobmon}
+# edges <- st_read("E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/James041724.ssn/edges.shp")
+
+
+# do lines first then sites to see if it looks better probably need to put down largest extent first. I think if I make the bounding box larger then text on legend and scale bar will become larger.
+
+?tmaptools::palette_explorer(5) 
+tmaptools::palette_explorer() 
+viridis::viridis(7)
+
+legend_title = "Subbasin"
+tm_shape(vahusb_poly) + tm_polygons("subbasin") +
+  tm_layout(asp=0,
+  legend.width = 2, legend.text.size = 1.5, legend.title.size = 3.0,
+  frame = FALSE,
+  legend.position = c("right", "TOP"),
+  title.position = c('right', 'TOP')
+) + tm_scale_bar(position = c("center", "BOTTOM", text.size = 1.0)) + tm_compass(position = c("left", "top")) +
+  tm_legend(legend.outside=T,  legend.outside.position="top",legend.hist.height = 1.0, legend.hist.width = 1.0, legend.hist.size = 1.5)
+
+# trying to make subasins legends only so can put in Powerpoint
+sb_legend <- tm_shape(vahusb_poly) + tm_polygons("subbasin") +
+  tm_layout(legend.only = TRUE)
+tmap_save(sb_legend, "figures_nmc_2025/sb_legend.jpeg", width = 2, height = 2, dpi = 150)
+
+
+tm_shape(edges) + tm_lines(
+  col = "blue") + tm_shape(preds_bind1) + tm_bubbles(
+  col = ("resid"))
+
+# Observed sites
+### trying legend.show = F for polygons
+
+j_map_vsci_obs <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show = F) +
+  tm_shape(DFobs3a) + 
+  tm_bubbles(
+  size = "vsci",
+  legend.size.show = FALSE,
+  col = "vsci",
+  legend.col.is.portrait = FALSE,
+  style = "fixed",
+  palette = "viridis",
+  title.col = "VSCI at Observed Sites 2001-2018 (n = 199)",
+  breaks = seq(0, 90, by = 15),
+  sizes.legend=seq(0, 90, by=15),
+  legend.hist = FALSE,
+) + tm_layout(asp=0,
+  legend.width = 2, legend.text.size = 1.5, legend.title.size = 3.0,
+  frame = FALSE,
+  legend.position = c("center", "TOP"),
+  title.position = c('center', 'TOP')
+) + tm_scale_bar(position = c("center", "BOTTOM", text.size = 1.0)) + tm_compass(position = c("left", "top")) +
+  tm_legend(legend.outside=T, legend.outside.position="top",legend.hist.height = 1.0, legend.hist.width = 1.0, legend.hist.size = 1.5)
+
+tmap_save(j_map_vsci_obs, "figures_nmc_2025/j_map_vsci_obs_v1_20250212.jpeg", width = 7, height = 3.5, dpi = 150)
+
+# map for true vsci predictands
+### trying legend.show = F for polygons
+j_map_vsci_true <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show = F) +
+  tm_shape(aug_a5predict1ws_vsci) + 
+  tm_bubbles(
+  size = "vsci",
+  legend.size.show = FALSE,
+  col = "vsci",
+  legend.col.is.portrait = FALSE,
+  style = "fixed",
+  palette = "viridis",
+  title.col = "True VSCI at Prediction Sites 2019-2022 (n = 48)",
+  breaks = seq(0, 90, by = 15),
+  sizes.legend=seq(0, 90, by=15),
+  legend.hist = FALSE,
+) + tm_layout(asp=0,
+  legend.width = 2, legend.text.size = 1.5, legend.title.size = 3.0,
+  frame = FALSE,
+  legend.position = c("center", "TOP"),
+  title.position = c('center', 'TOP')
+) + tm_scale_bar(position = c("center", "BOTTOM", text.size = 1.0)) + tm_compass(position = c("left", "top")) +
+  tm_legend(legend.outside=T, legend.outside.position="top",legend.hist.height = 1.0, legend.hist.width = 1.0, legend.hist.size = 1.5)
+
+tmap_save(j_map_vsci_true, "figures_nmc_2025/j_map_vsci_true_v1_20250212.jpeg", width = 7, height = 3.5, dpi = 150)
+
+
+# map for vsci predictands
+j_map_vsci_predicted <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show = F) +
+  tm_shape(aug_a5predict1ws_vsci) + 
+  tm_bubbles(
+  size = "vsci_pred",
+  legend.size.show = FALSE,
+  col = "vsci_pred",
+  legend.col.is.portrait = FALSE,
+  style = "fixed",
+  palette = "viridis",
+  title.col = "Predictand VSCI at Prediction Sites 2019-2022 (n = 48)",
+  breaks = seq(0, 90, by = 15),
+  sizes.legend=seq(0, 90, by=15),
+  legend.hist = FALSE,
+) + tm_layout(asp=0,
+  legend.width = 2, legend.text.size = 1.5, legend.title.size = 3.0,
+  frame = FALSE,
+  legend.position = c("center", "TOP"),
+  title.position = c('center', 'TOP')
+) + tm_scale_bar(position = c("center", "BOTTOM", text.size = 1.0)) + tm_compass(position = c("left", "top")) +
+  tm_legend(legend.outside=T, legend.outside.position="top",legend.hist.height = 1.0, legend.hist.width = 1.0, legend.hist.size = 1.5)
+
+tmap_save(j_map_vsci_predicted, "figures_nmc_2025/j_map_vsci_predictedv1_20250213.jpeg", width = 7, height = 3.5, dpi = 150)
+
+# map for predictand se
+j_map_vsci_predse <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show = F) +
+  tm_shape(aug_a5predict1ws_vsci) + 
+  tm_bubbles(
+  size = ".se.fit",
+  legend.size.show = FALSE,
+  col = ".se.fit",
+  legend.col.is.portrait = FALSE,
+  style = "cont",
+  palette = "viridis",
+  title.col = "Standard Error of Predictand VSCI at Prediction Sites 2019-2022 (n = 48)",
+  legend.hist = FALSE,
+) + tm_layout(asp=0,
+  legend.width = 2, legend.text.size = 1.5, legend.title.size = 3.0,
+  frame = FALSE,
+  legend.position = c("center", "TOP"),
+  title.position = c('center', 'TOP')
+) + tm_scale_bar(position = c("center", "BOTTOM", text.size = 1.0)) + tm_compass(position = c("left", "top")) +
+  tm_legend(legend.outside=T, legend.outside.position="top",legend.hist.height = 1.0, legend.hist.width = 1.0, legend.hist.size = 1.5)
+
+tmap_save(j_map_vsci_predse, "figures_nmc_2025/j_map_vsci_predse_v1_20250213.jpeg", width = 7, height = 3.5, dpi = 150)
+
+
+
+# j_map_obs_true <- tmap_arrange(j_map_vsci_obs, j_map_vsci_true, ncol =1)
+# tmap_save(j_map_obs_true, "figures_nmc_2025/j_map_obs_true_v1_20250211.png", width = 6, height = 3, dpi = 150)
+
+# dimensions used that looked good in sfs 2024 powerpoin
+# png(file="figures_sfs/esv2.png",width=6,height=3,units="in",res=150)
+
+# RStudio exported map
+
+# original width =10, height =6
+# https://stackoverflow.com/questions/60892033/how-do-you-position-the-title-and-legend-in-tmap
+
+j_map_preds_19_20 <- tm_shape(edges) + tm_lines(
+  col = "blue") + tm_shape(preds_cov_19_20) + tm_bubbles(
+  size = ".se.fit",
+  legend.size.show = FALSE,
+  col = "vsci_pred",
+  legend.col.is.portrait = FALSE,
+  style = "fixed",
+  palette = "viridis",
+  title.col = "Predicted VSCI 2019-2020 (n = 22)",
+  breaks = seq(0, 90, by = 15),
+  sizes.legend=seq(0, 90, by=15),
+  legend.hist = FALSE,
+) + tm_layout(asp=0,
+  legend.width = 2, legend.text.size = 1.5, legend.title.size = 3.0,
+  frame = FALSE,
+  legend.position = c("center", "TOP"),
+  title.position = c('center', 'TOP')
+) + tm_scale_bar(position = c("center", "BOTTOM", text.size = 1.0)) + tm_compass(position = c("left", "top")) +
+  tm_legend(legend.outside=T, legend.outside.position="top",legend.hist.height = 1.0, legend.hist.width = 1.0, legend.hist.size = 1.5)
+
+tmap_save(j_map_preds_19_20, "E:/R_vdeq_sci/Working/Data/neptune_analysis/scripts_by_basin/figures_sfs/j_map_preds_19_20.jpeg", width = 7, height = 3.5, dpi = 150)
+
+```
+
 
 
 # Preds for ST_rand model reml
