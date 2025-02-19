@@ -1439,6 +1439,31 @@ rm(spatResids,resid_SD,fitted_vals,spat,spat.Pred.pct,spat.Pred.median,ty,tx,ox,
 
 ```
 
+## NMC Distance Model w/ and w/o Partition Factor
+02/19/2025 Making this comparison to include results in NMC 2025 presentation
+```{r distance_with_without_partition}
+#np stands for no parititon factor
+
+np5ssn_wswq_reml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area"
+)
+
+tidy(np5ssn_wswq_reml1)
+summary(np5ssn_wswq_reml1)
+varcomp(np5ssn_wswq_reml1)
+loocv(np5ssn_wswq_reml1)
+
+glances(a5ssn_wswq_reml1, np5ssn_wswq_reml1)
+```
+
+
 # TLH fitted to obs interval plot (LOOCV method)
 On 01/14/2025 inserted TLH's code using observation-specific LOOCV variance with qnorm so get squiggly 90th percentile lines in ggplot.
 Returns 19 obs sites falling outside LOOCV 90th percentile lines, and sorting by station_id_2 in mapview label highlight Tye River sites.
