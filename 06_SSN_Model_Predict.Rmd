@@ -1696,7 +1696,6 @@ a5preds2019_2022_v1
 a5preds2019_2022_v2 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type, color = st_type)) + geom_point() + labs(x = "Predicted VSCI", y = "True VSCI, 2019-2022", title = "SSN Prediction Sites") + xlim(35,80) + ylim(35,80) + scale_size_binned(name = "Standard Error") + 
 scale_shape_manual(name = "Station Type", labels = c("Status", "Trend"))  
   
-  guides(shape = guide_legend(title = "Station Type", override.aes = list(size = 6))) + theme(legend.text = element_text(size = 12))
 
 a5preds2019_2022_v2 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type, color = st_type)) + geom_point() + labs(x = "Predicted VSCI", y = "True VSCI, 2019-2022", title = "SSN Prediction Sites") + xlim(35,80) + ylim(35,80) + scale_size_binned(name = "Standard Error") + guides(shape = guide_legend(title = "Station Type", override.aes = list(size = 6))) + theme(legend.text = element_text(size = 12))
 
@@ -1709,7 +1708,6 @@ dev.off()
 
 # https://stackoverflow.com/questions/15059093/ggplot2-adjust-the-symbol-size-in-legends
 # make the size of the points & lines in the legend larger
-g + guides(color = guide_legend(override.aes = list(size = 2)))
 
 ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type, color = st_type)) + geom_point() + labs(x = "Predicted VSCI", y = "True VSCI, 2019-2022", title = "SSN Prediction Sites") + xlim(35,80) + ylim(35,80) + scale_size(range = c(4,10), "Standard Error")
 
@@ -1804,7 +1802,7 @@ dev.off()
 
 # VAHUSB Polygons
 ```{r vahusb_poly}
-vahusb_poly <- st_read("E:/R_vdeq_nhdplus/vahusb.shp")
+vahusb_poly <- st_read("data/vahusb.shp")
 # names(vahusb_poly)
 # mapview(vahusb_poly)
 mapview(vahusb_poly, zcol="VAHUSB", burst = TRUE)
