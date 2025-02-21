@@ -723,6 +723,9 @@ class(preds3a)
 j_ssn3 <-  SSN2::ssn_put_data(preds3a,j_ssn3, name = "Preds_2019_2022", resize_data = FALSE)
 summary(j_ssn3$preds$Preds_2019_2022$pct_imp_w_emplog)
 summary(j_ssn3$obs$pct_imp_w_emplog)
+
+summary(j_ssn3$preds$Preds_2019_2022$pct_imp_w)
+summary(j_ssn3$obs$pct_imp_w)
 ```
 
 Dummy code for preds
@@ -765,7 +768,7 @@ summary(j_ssn3)
 str(j_ssn3$preds$Preds_2019_2022$afv_area)
 ```
 
-# Create Distance Matrix
+# 3.0 Create Distance Matrix
 When using a new SSN object, such as James_071024_pluspreds.ssn have to create distance matrices. Ran first set of code and now see a distance matrix folder in where the SSN object is stored at:
 ssn_object/James_071024_pluspreds.ssn and see sub folders for obs and Preds_2019_2022 subfolder.
 Already run so commented out.
@@ -778,77 +781,9 @@ Already run so commented out.
 ```
 
 
-## Torgegrams DO, TN and Partitioning
-In the coefficent plot, the flip-flop in instream stressor, being dissolved oxygen at Watershed and Watershed-Riparian, and then total nitrogen for Catchment and Catchment-Riparian suggests that different stressors have their effects on stream condition index at different spatial extents. I thought of following that up in two ways. First, see if semivariograms and Torgegrams of dissolved oxygen and total nitrogen show different ranges, the distance at which observations are independent. My hypothesis is that dissolved oxygen will have a larger range than total nitrogen. Second, I want to see if I update the watershed model to include all 3 instream stressors does that beat the current watershed model having only dissolved oxygen.
 
-On 05/03/2024, not seeing that much spatial structure in DO or Log(TN). On 07/12/2024 still need to test if 3 instream stressors in a model outperforms just DO in the model. Try subsetting ssn objectby ju factor and then making separate Torgegrams.
-```{r do_tn_toregrams}
-# 
-# class(j_ssn3)
-# ztg <- SSN2::Torgegram(vscivcpmi ~ 1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
-# # SSN2::plot.Torgegram(ztg)
-# torg <- ztg[["euclid"]]
-# names(torg)
-# class(torg)
-# ggplot(torg, aes(x=dist, y=gamma,size=np)) + geom_point()
-# 
-# summary(j_ssn3$obs$ju)
-# glimpse(j_ssn3$obs$ju)
-# 
-# #ju yes has 71 obs and no has 128 obs
-# # esv_separate <- map(c(yes, no), ~ SSN2::Torgegram(vscivcpmi ~ 1, j_ssn3 |> filter(ju == .x)))
-# # 
-# # esv_separate
-# # 
-# # # plot(esv_separate[[1]]) not helpful
-# # 
-# # esv_ju_yes <- esv_separate[[1]] 
-# # esv_ju_no <- esv_separate[[2]]
-# # 
-# # names(esv_ju_yes)
-# # 
-# # esv1 <- ggplot(esv_ju_yes, aes(x=dist, y=gamma, size=np)) + geom_point() + labs(x = "Euclidean Distance (m)", y = "Semivariance", title = "JU yes") + scale_x_continuous(labels=comma)
-# # 
-# # esv2 <- ggplot(esv_ju_no, aes(x=dist, y=gamma, size=np)) + geom_point() + labs(x = "Euclidean Distance (m)", y = "Semivariance", title = "JU no") + scale_x_continuous(labels=comma)
-# # 
-# 
-# 
-# 
-# ztg <- SSN2::Torgegram(l_tn ~1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
-# plot(ztg, main = "Torgegram Log(TN)")
-# plot(ztg, type = "flowcon", main = "Torgegram Log(TN)")
-# plot(ztg, type = "flowuncon", main = "Torgegram Log(TN)")
-# plot(ztg, type = "euclid", main = "Torgegram Log(TN)")
-# plot(ztg, separate = TRUE, main = "Torgegram Log(TN)")
-# 
-# flowcon <- ztg[["flowcon"]]
-# ggplot(flowcon, aes(x=dist, y=gamma)) + geom_point()
-# flowcon$dist_type <- "flow_conn"
-# 
-# flowuncon <- ztg[["flowuncon"]]
-# names(flowuncon)
-# class(flowuncon)
-# ggplot(flowuncon, aes(x=dist, y=gamma)) + geom_point()
-# flowuncon$dist_type <- "flow_unconn"
-# 
-# euclid <- ztg[["euclid"]]
-# names(euclid)
-# class(euclid)
-# ggplot(euclid, aes(x=dist, y=gamma)) + geom_point()
-# euclid$dist_type <- "euclid"
-# 
-# torg <- bind_rows(flowuncon,euclid)
-# ggplot(torg, aes(x=dist, y=gamma, colour = dist_type)) + geom_point()
-# 
-# # test if Torgegram would work using similar code below
-# # esv_separate <- map(c(2001, 2006), ~ esv(log_Zn ~ log_dist2road, moss |> filter(year == .x)))
-# 
-
-```
-
-
-# Ws-Wq Model
-This is the SSN Ws-Wq model that was evaluated in script 05. Here is it run again and augmented with diagnostic and fitted values. The parallel coordinate plot of the augmented data frame was grouped by the 5 vahusb. The clustering of the JU variables in that plot is what suggested using the partition factor. See the description of partition factor under section 4.1.3 Advanced Features in An Introduction to Spatial Stream Network Modeling in R using SSN2.
+# 4.0 Ws-Wq Model
+This is the SSN Ws-Wq model that was evaluated in script 05. Here is it run again and augmented with diagnostic and fitted values. The parallel coordinate plot of the augmented data frame was grouped by the 5 vahusb. The clustering of the JU variables in that plot is what suggested using the partition factor. See also, the NMC Elevation Boxplots under Figures for Presentation. See the description of partition factor under section 4.1.3 Advanced Features in An Introduction to Spatial Stream Network Modeling in R using SSN2.
 
 On 04/19/2024 kept tail down exponential and changed Euclidean to exponential based on models_yintercept.csv table.
 On 04/10/2023 evaluated model using vsci, untransformed, and added imp_w_pres, a binary presence indicator of impervious cover. This was approach was used by Dumelle et al. 2023 in their spatial modeling of NLA conductivity.
@@ -871,44 +806,55 @@ loocv(ssn_wswq_reml1)
 
 tidy(ssn_wswq_reml1)
 
+```
+
+# 4.1 Mapview Standardized Residuals
+```{r mapview_wswq_ssn_residuals}
 aug_ssn_wswq_reml1 <- augment(ssn_wswq_reml1, drop = FALSE)
 class(aug_ssn_wswq_reml1)
-names(aug_ssn_wswq_reml1)
 
-mapview(aug_ssn_wswq_reml1)
+mapview(aug_ssn_wswq_reml1, zcol = ".std.resid", alpha.regions = .8, legend = TRUE, popup = popupTable(aug_ssn_wswq_reml1, zcol = c(".std.resid")))
 
-mapview(aug_ssn_wswq_reml1, zcol = ".std.resid", cex = ".std.resid", alpha.regions = .8, legend = TRUE, popup = popupTable(aug_ssn_wswq_reml1, zcol = c(".std.resid")))# + mapview(stream)
+```
 
-# parallel coordinate plot
+# 4.2 Parallel Coordinate Plot of Covariates by Subbasin
+```{r pcp_covariates_subbasin}
 # names(aug_ssn_wswq_reml1)
-pcpobs <- ggparcoord(data = aug_ssn_wswq_reml1, columns = c(136,155,38,161,165,204,166,232), groupColumn = "vahusb", scale = "std", showPoint = TRUE, title = "Observed Sites", alphaLines = 0.8, boxplot = FALSE)
+pcpobs <- ggparcoord(data = aug_ssn_wswq_reml1, columns = c(123, 136, 38, 167), groupColumn = "vahusb", scale = "std", showPoint = TRUE, title = "Observed Sites", alphaLines = 0.8, boxplot = FALSE)
 pcpobs
 
 ggplot(aug_ssn_wswq_reml1, aes(x = pct_imp_w_emplog, y = .fitted, colour = vahusb)) + geom_point() + geom_smooth(method = "lm")
 
-ggplot(aug_ssn_wswq_reml1, aes(x = vahusb, y = .fitted)) + geom_boxplot()
+```
 
+# 4.3 Torgegram of Ws-Wq SSN Model Residuals
+```{r torg_wswq_resids}
 resid_ssn1 <- as.data.frame(aug_ssn_wswq_reml1)|>
    dplyr::select(station_id_2, .fitted, .resid, .std.resid)
 
 class(resid_ssn1)
-names(resid_ssn1)
-
-ssn_wswq_fit_reml1 <- dplyr::select(aug_ssn_wswq_reml1, c(station_id, station_id_2, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, pct_imp_w, elev_ws, pct_imp_w_emplog, vsci, .fitted, .std.resid))
-
-# saveRDS(ssn_wswq_fit_reml1, file = "outputs/ssn_wswq_fit_reml1.rds")
-
-# st_write(ssn_wswq_fit_reml1, dsn = file.path(getwd(), "ssn_wswq_fit_reml1.gpkg"), layer = "ssn_wswq_fit_reml1", driver = "GPKG", quiet = FALSE, append = FALSE)
+# names(resid_ssn1)
 
 # put selected covariates in an SF object
 DFobs4 <- full_join(DFobs3a, resid_ssn1, by = join_by(station_id_2))
-names(DFobs4)
 
 # put SF object into SSN
 j_ssn4 <-  SSN2::ssn_put_data(DFobs4,j_ssn3)
 
 res_tg1 <- SSN2::Torgegram(.std.resid ~ 1, j_ssn4, type = c("flowuncon", "euclid"))
-plot(res_tg1, main = "Torgegram of Standardized Residuals from Watershed SSN")
+plot(res_tg1, main = "Torgegram of Standardized Residuals from WS-WQ SSN")
+
+# do View to check the np is reasonably larger, greater than 30
+View(res_tg1$euclid)
+View(res_tg1$flowuncon)
+# Follow three steps below for saving output as RDS and a geopackage geodatabase
+
+# ssn_wswq_fit_reml1 <- dplyr::select(aug_ssn_wswq_reml1, c(station_id, station_id_2, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, pct_imp_w, elev_ws, pct_imp_w_emplog, vsci, .fitted, .std.resid))
+
+# saveRDS(ssn_wswq_fit_reml1, file = "outputs/ssn_wswq_fit_reml1.rds")
+
+# st_write(ssn_wswq_fit_reml1, dsn = file.path(getwd(), "ssn_wswq_fit_reml1.gpkg"), layer = "ssn_wswq_fit_reml1", driver = "GPKG", quiet = FALSE, append = FALSE)
+
 ```
 
 # Ws-Wq Partitioned
@@ -2127,3 +2073,73 @@ rm(fitted_vals, resid_Se, spat, spat.Pred.pct, spat.Pred.median, ty, tx, ox, op0
 # cor(tx,ty, method = "pearson")
 
 ```
+
+# ESDA Not Lead Anywhere
+Torgegrams DO, TN and Partitioning
+In the coefficent plot from Script 05, the flip-flop in instream stressor, being dissolved oxygen at Watershed and Watershed-Riparian, and then total nitrogen for Catchment and Catchment-Riparian suggests that different stressors have their effects on stream condition index at different spatial extents. I thought of following that up in two ways. First, see if semivariograms and Torgegrams of dissolved oxygen and total nitrogen show different ranges, the distance at which observations are independent. My hypothesis is that dissolved oxygen will have a larger range than total nitrogen. Second, I want to see if I update the watershed model to include all 3 instream stressors does that beat the current watershed model having only dissolved oxygen.
+
+On 05/03/2024, not seeing that much spatial structure in DO or Log(TN). On 07/12/2024 still need to test if 3 instream stressors in a model outperforms just DO in the model. Try subsetting ssn objectby ju factor and then making separate Torgegrams.
+```{r do_tn_toregrams}
+# 
+# class(j_ssn3)
+# ztg <- SSN2::Torgegram(vscivcpmi ~ 1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
+# # SSN2::plot.Torgegram(ztg)
+# torg <- ztg[["euclid"]]
+# names(torg)
+# class(torg)
+# ggplot(torg, aes(x=dist, y=gamma,size=np)) + geom_point()
+# 
+# summary(j_ssn3$obs$ju)
+# glimpse(j_ssn3$obs$ju)
+# 
+# #ju yes has 71 obs and no has 128 obs
+# # esv_separate <- map(c(yes, no), ~ SSN2::Torgegram(vscivcpmi ~ 1, j_ssn3 |> filter(ju == .x)))
+# # 
+# # esv_separate
+# # 
+# # # plot(esv_separate[[1]]) not helpful
+# # 
+# # esv_ju_yes <- esv_separate[[1]] 
+# # esv_ju_no <- esv_separate[[2]]
+# # 
+# # names(esv_ju_yes)
+# # 
+# # esv1 <- ggplot(esv_ju_yes, aes(x=dist, y=gamma, size=np)) + geom_point() + labs(x = "Euclidean Distance (m)", y = "Semivariance", title = "JU yes") + scale_x_continuous(labels=comma)
+# # 
+# # esv2 <- ggplot(esv_ju_no, aes(x=dist, y=gamma, size=np)) + geom_point() + labs(x = "Euclidean Distance (m)", y = "Semivariance", title = "JU no") + scale_x_continuous(labels=comma)
+# # 
+# 
+# 
+# 
+# ztg <- SSN2::Torgegram(l_tn ~1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
+# plot(ztg, main = "Torgegram Log(TN)")
+# plot(ztg, type = "flowcon", main = "Torgegram Log(TN)")
+# plot(ztg, type = "flowuncon", main = "Torgegram Log(TN)")
+# plot(ztg, type = "euclid", main = "Torgegram Log(TN)")
+# plot(ztg, separate = TRUE, main = "Torgegram Log(TN)")
+# 
+# flowcon <- ztg[["flowcon"]]
+# ggplot(flowcon, aes(x=dist, y=gamma)) + geom_point()
+# flowcon$dist_type <- "flow_conn"
+# 
+# flowuncon <- ztg[["flowuncon"]]
+# names(flowuncon)
+# class(flowuncon)
+# ggplot(flowuncon, aes(x=dist, y=gamma)) + geom_point()
+# flowuncon$dist_type <- "flow_unconn"
+# 
+# euclid <- ztg[["euclid"]]
+# names(euclid)
+# class(euclid)
+# ggplot(euclid, aes(x=dist, y=gamma)) + geom_point()
+# euclid$dist_type <- "euclid"
+# 
+# torg <- bind_rows(flowuncon,euclid)
+# ggplot(torg, aes(x=dist, y=gamma, colour = dist_type)) + geom_point()
+# 
+# # test if Torgegram would work using similar code below
+# # esv_separate <- map(c(2001, 2006), ~ esv(log_Zn ~ log_dist2road, moss |> filter(year == .x)))
+# 
+
+```
+
