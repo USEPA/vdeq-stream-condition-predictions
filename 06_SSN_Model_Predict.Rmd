@@ -1003,149 +1003,7 @@ loocv(z4ssn_wswq_ml1) %>% print(n = Inf)
 
 ```
 
-# TLH fitted to obs interval plot
-On 12/23/2024 commenting this code out b/c this is not the model I need for fitted interval obs plot.
 
-On 12/16/2024 first using a4 reml model and will compare to z5 reml model with distance covariate as that provides a better fit based on smaller AICc value.
-```{r fitted_interval_obs_plot}
-# z4 model was run above
-
-## fit model
-# z4ssn_wswq_ml1 <- ssn_lm(
-#   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
-#   ssn.object = j_ssn3,
-#   tailup_type = "none",
-#   taildown_type = "exponential",
-#   euclid_type = "exponential",
-#   nugget_type = "nugget",
-#   estmethod = "ml",
-#   additive = "afv_area",
-#   partition_factor = ~ju
-# )
-# summary(z4ssn_wswq_reml1)
-
-# how do residuals and fitted values below compare to what comes out with augment function?
-
-
-
-# class(aug_z4_wswq_reml1)
-# names(aug_z4_wswq_reml1)
-# 
-# head(round(aug_z4_wswq_reml1$.fitted))
-# head(round(aug_z4_wswq_reml1$vsci))
-
-
-# get spatial residuals from model
-# spatResids<-residuals(z4ssn_wswq_reml1)
-# zspatResids<-residuals(z4ssn_wswq_reml1)
-# head(aug_z4ssn_wswq_reml1$.resid)
-# the three statements above all return same results
-
-# pull sd of residuals and fitted values
-# resid_SD = sd(spatResids)
-# fitted_vals = z4ssn_wswq_reml1$fitted$response
-
-# combine to a dataframe
-# spat<-cbind(fitted_vals,resid_SD^2)
-# head(spat)
-
-# spatial prediction percentiles
-# (spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
-
-# spat.Pred.median = spat.Pred.pct[,4]
-# head(spat.Pred.median)
-
-# make sure I've got the right obj
-# DFobs<-ssn_get_data(j_ssn3)
-# observed and median of our prediction intervals
-# ty<-DFobs$vsci
-# tx<-spat.Pred.median
-
-#percentiles
-# ox<-order(tx)
-# op05<-spat.Pred.pct[ox,"Q05"]
-# op95 <- spat.Pred.pct[ox,"Q95"]
-
-# plot
-# plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value",ylab="VSCI Observed Value",main="Spatial Model Observed vs. Predicted z4 reml n = 199")
-# abline(0,1,col="red")
-# lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
-
-# 5th percentile of predictive distribution
-# lines(tx[ox],op05,lty=2,col='black')
-# 95th percentile of predictive distribution
-# lines(tx[ox],op95,lty=2,col='black')
- #legend
-# legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
-
-# cor(tx,ty, method = "pearson")
-
-# these object names are used again downstream for preds so remove here
-
-# rm(spatResids,resid_SD,fitted_vals,spat,spat.Pred.pct,spat.Pred.median,ty,tx,ox,op05,op95)
-```
-
-# TLH fitted to obs interval plot (LOOCV method)
-On 12/26/2024 commenting this code because this is not the model I need for fitted interval obs plot.
-```{r fitted_interval_plot_loocv}
-# Alrighty, so this method mimics John's method
-# which gives a loocv estimate of fitted value an se.
-# This results in the squiggly lines because he's giving that 
-# se at each individual value.
-# cv_resids = loocv(z4ssn_wswq_reml1,
- #                 cv_predict = T,
-#                  se.fit = T)
-# pull sd of residuals and fitted values
-# resid_Se = cv_resids$se.fit
-# fitted_vals = cv_resids$cv_predict
-
-# combine to a dataframe
-# spat<-cbind(fitted_vals,resid_Se^2)
-# head(spat)
-
-# spatial prediction percentiles
-# (spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
-
-# spat.Pred.median = spat.Pred.pct[,4]
-# head(spat.Pred.median)
-
-# make sure I've got the right obj
-# DFobs<-ssn_get_data(j_ssn3)
-# observed and median of our prediction intervals
-# ty<-DFobs$vsci
-# tx<-spat.Pred.median
-
-#percentiles
-# ox<-order(tx)
-# op05<-spat.Pred.pct[ox,"Q05"]
-# op95 <- spat.Pred.pct[ox,"Q95"]
-
-# plot
-# plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value",ylab="VSCI Observed Value",main="LOOCV Spatial Model Observed vs. Predicted z4 reml")
-# abline(0,1,col="red")
-# lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
-
-# 5th percentile of predictive distribution
-# lines(tx[ox],op05,lty=2,col='black')
-# 95th percentile of predictive distribution
-# lines(tx[ox],op95,lty=2,col='black')
-#legend
-# legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
-
-```
-
-# Carson Code Points Outside LOOCV 90% Prediction Limit for n=199 Obs
-Added this code on 12/24/2024 and commented out because this is not the final SSN model.
-This code comes from local_SSN_FINAL_20160126_modelling.html 
-```{r loocv_pts_outside}
-# number of points outside 90% prediction limits
-# os90pl.sp <-(ty < spat.Pred.pct[,"Q05"]) |  (ty > spat.Pred.pct[,"Q95"]) 
-# summary(os90pl.sp)
-
-# which observations are outside [5%, 95%] prediction limits?
-# these are the Site IDs of the unusual values
-# DFobsz[which(os90pl.sp),"station_id_2"]
-```
 
 
 # Additional Hypotheses for a4 model
@@ -1315,114 +1173,6 @@ glances(a5ssn_wswq_ml1, ssn_wswq_rand1_st)
 
 ```
 
-# TLH fitted to obs interval plot for a5 model
-01/14/2025 added Travis' code to make prediction of 199 sites vsci versus observed vsci as ggplot using same variance for each obs so get straight 90th percentile lines. 18 Stations fell outside of those lines.
-
-Now that diagnostics checked out make an observed to fitted interval plot on model a5ssn_wswq_reml1 by augmenting to get diagnostics.
-```{r fitted_interval_obs_plot}
-# z4 model was run above
-
-a5ssn_wswq_reml1 <- ssn_lm(
-  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
-  ssn.object = j_ssn3,
-  tailup_type = "none",
-  taildown_type = "exponential",
-  euclid_type = "exponential",
-  nugget_type = "nugget",
-  estmethod = "reml",
-  additive = "afv_area",
-  partition_factor = ~ju
-)
-
-tidy(a5ssn_wswq_reml1)
-summary(a5ssn_wswq_reml1)
-varcomp(a5ssn_wswq_reml1)
-loocv(a5ssn_wswq_reml1)
-
-# how do residuals and fitted values below compare to what comes out with augment function?
-
-aug_a5obs1ws_vsci <- augment(a5ssn_wswq_reml1, drop = FALSE)
-
-class(aug_a5obs1ws_vsci)
-names(aug_a5obs1ws_vsci)
-
-head(round(aug_a5obs1ws_vsci$.fitted,1))
-head(round(aug_a5obs1ws_vsci$vsci,1))
-
-
-# get spatial residuals from model
-spatResids<-residuals(a5ssn_wswq_reml1)
-# zspatResids<-residuals(a5ssn_wswq_reml1)
-# head(aug_a5obs1ws_vsci$.resid)
-# the three statements above all return same results
-
-# pull out fitted values and sd of residuals
-fitted_vals = a5ssn_wswq_reml1$fitted$response
-resid_SD = sd(spatResids)
-
-
-# combine to a dataframe note variance same for all obs
-spat<-cbind(fitted_vals,resid_SD^2)
-head(spat)
-
-# spatial prediction percentiles
-(spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
-
-spat.Pred.median = spat.Pred.pct[,4]
-head(spat.Pred.median)
-
-# observed and median of our fitted values from 199 obs
-ty<-aug_a5obs1ws_vsci$vsci
-tx<-round(spat.Pred.median,1)
-
-#percentiles
-ox<-order(tx)
-op05<-spat.Pred.pct[ox,"Q05"]
-op95 <- spat.Pred.pct[ox,"Q95"]
-
-# put all components into data frame for ggplot
-plot_dat = data.frame("vsci_pred" = tx, "vsci" = ty, "pred_5th" = op05, "pred_95th" = op95,"vsci_bound_order"=tx[ox],"station_id"=aug_a5obs1ws_vsci$station_id_2)
-
-
-p = ggplot(data = plot_dat)+
-  geom_point(aes(x = vsci_pred, y = vsci,label = station_id), color = "black")+
-  geom_smooth(aes(x = vsci_pred, y = vsci), method = "loess", se = F, color = "blue")+
-  geom_line(aes(x = vsci_bound_order, y = pred_5th), linetype = "dashed", color = "black")+
-  geom_line(aes(x = vsci_bound_order, y = pred_95th), linetype = "dashed", color = "black")+
-  geom_abline(intercept = 0, slope = 1, color = "red")+
-  labs(x="vsci predicted",
-       y ="vsci observed")
-print(p)
-ggplotly(p)
-
-cor(tx,ty, method = "pearson")
-
-# number of points outside 90% prediction limits
-os90pl.sp <-(ty < spat.Pred.pct[,"Q05"]) |  (ty > spat.Pred.pct[,"Q95"]) 
-summary(os90pl.sp)
-
-# which observations are outside [5%, 95%] prediction limits?
-# these are the Site IDs of the unusual values
-aug_a5obs1ws_vsci[which(os90pl.sp),"station_id_2"]
-
-mapview(aug_a5obs1ws_vsci[which(os90pl.sp),"station_id_2"])
-
-# these object names are used again downstream for preds so remove here
-rm(spatResids,resid_SD,fitted_vals,spat,spat.Pred.pct,spat.Pred.median,ty,tx,ox,op05,op95,p)
-
-# plot using base plot with all components called separately into the plot
-# plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value",ylab="VSCI Observed Value",main="SSN Obs vs. Pred a5 reml n = 199")
-# abline(0,1,col="red")
-# lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
-
-# 5th percentile of predictive distribution
-# lines(tx[ox],op05,lty=2,col='black')
-# 95th percentile of predictive distribution
-# lines(tx[ox],op95,lty=2,col='black')
-#legend
-# legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
-
-```
 
 ## NMC Distance Model w/ and w/o Partition Factor
 02/19/2025 Making this comparison to include results in NMC 2025 presentation
@@ -1448,152 +1198,6 @@ loocv(np5ssn_wswq_reml1)
 glances(a5ssn_wswq_reml1, np5ssn_wswq_reml1)
 ```
 
-
-# TLH fitted to obs interval plot (LOOCV method)
-On 01/14/2025 inserted TLH's code using observation-specific LOOCV variance with qnorm so get squiggly 90th percentile lines in ggplot.
-Returns 19 obs sites falling outside LOOCV 90th percentile lines, and sorting by station_id_2 in mapview label highlight Tye River sites.
-Uses se.fit from loocv with qnorm to make squiggly lines for 90th percentile.
-On 12/16/2024 insert TLH's code so applied to a5ssn_wswq_reml1 model on 199 obs.
-```{r fitted_interval_plot_loocv}
-# Alrighty, so this method mimics John's method
-# which gives a loocv estimate of fitted value an se.
-# This results in the squiggly lines because he's giving that 
-# se at each individual value.
-
-cv_resids = loocv(a5ssn_wswq_reml1,
-                  cv_predict = T,
-                  se.fit = T)
-# pull out fitted values and resids se
-fitted_vals = cv_resids$cv_predict
-resid_Se = cv_resids$se.fit
-
-
-# combine to a dataframe and se.fit/variance differs for each observation
-spat<-cbind(fitted_vals,resid_Se^2)
-head(spat)
-
-# spatial prediction percentiles
-# qnorm arguments include
-# p a vector of probabilities
-# mean a vector of means, which are our fitted values
-# sd a vector of standard deviations, the square root of the squared .se.fit
-(spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
-
-spat.Pred.median = spat.Pred.pct[,4]
-head(spat.Pred.median)
-
-# observed and median of our prediction intervals
-ty<-aug_a5obs1ws_vsci$vsci
-tx<-round(spat.Pred.median,1)
-
-#percentiles
-ox<-order(tx)
-op05<-spat.Pred.pct[ox,"Q05"]
-op95 <- spat.Pred.pct[ox,"Q95"]
-
-# put all components into data frame for ggplot
-plot_dat = data.frame("vsci_pred" = tx, "vsci" = ty, "pred_5th" = op05, "pred_95th" = op95,"vsci_bound_order"=tx[ox],"station_id"=aug_a5obs1ws_vsci$station_id_2)
-
-
-p = ggplot(data = plot_dat)+
-  geom_point(aes(x = vsci_pred, y = vsci,label = station_id), color = "black")+
-  geom_smooth(aes(x = vsci_pred, y = vsci), method = "loess", se = F, color = "blue")+
-  geom_line(aes(x = vsci_bound_order, y = pred_5th), linetype = "dashed", color = "black")+
-  geom_line(aes(x = vsci_bound_order, y = pred_95th), linetype = "dashed", color = "black")+
-  geom_abline(intercept = 0, slope = 1, color = "red")+
-  labs(x="vsci predicted",
-       y ="vsci observed")
-
-print(p)
-ggplotly(p)
-
-# Carson Code Points Outside LOOCV 90% Prediction Limit for 199 obs. This code comes from local_SSN_FINAL_20160126_modelling.html 
-
-# number of points outside 90% prediction limits
-os90pl.sp <-(ty < spat.Pred.pct[,"Q05"]) |  (ty > spat.Pred.pct[,"Q95"]) 
-summary(os90pl.sp)
-
-# which observations are outside [5%, 95%] prediction limits?
-# these are the Site IDs of the unusual values
-aug_a5obs1ws_vsci[which(os90pl.sp),"station_id_2"]
-
-mapview(aug_a5obs1ws_vsci[which(os90pl.sp),"station_id_2"])
-
-rm(cv_resids, resid_Se, fitted_vals, spat, spat.Pred.pct, spat.Pred.median, ty, tx, ox, op05, op95, os90pl.sp, p)
-
-# plot using base plot pulling in each component separately
-# plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value",ylab="VSCI Observed Value",main="LOOCV SSN Obs vs. Preds a5 reml n=199")
-# abline(0,1,col="red")
-# lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
-
-# 5th percentile of predictive distribution
-# lines(tx[ox],op05,lty=2,col='black')
-# 95th percentile of predictive distribution
-# lines(tx[ox],op95,lty=2,col='black')
-#legend
-# legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
-
-```
-
-# Ribbon LOOCV Fitted Interval
-From cv_resids, use fitted_vals and resid_Se to make ribbon for LOOCV fitted interval so to identify obs having interesting vsci values. Uses +/- 1.96*se.fit from loocv to make squiggly ribbon.
-```{r ribbon_loocv_fitted_interval}
-
-# a5ssn_wswq_reml1 <- ssn_lm(
-#   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
-#   ssn.object = j_ssn3,
-#   tailup_type = "none",
-#   taildown_type = "exponential",
-#   euclid_type = "exponential",
-#   nugget_type = "nugget",
-#   estmethod = "reml",
-#   additive = "afv_area",
-#   partition_factor = ~ju
-# )
-# 
-# summary(a5ssn_wswq_reml1)
-# varcomp(a5ssn_wswq_reml1)
-# loocv(a5ssn_wswq_reml1)
-
-cv_resids = loocv(a5ssn_wswq_reml1,
-                  cv_predict = T,
-                  se.fit = T)
-
-spat_loocv1 <- cbind(cv_resids$cv_predict, cv_resids$se.fit, aug_a5obs1ws_vsci$vsci)
-colnames(spat_loocv1) <- c("cv_predict", "se.fit", "vsci")
-
-spat_loocv1 <- as.data.frame(spat_loocv1)
-head(spat_loocv1)
-
-spat_loocv1$cv_predict <- round(spat_loocv1$cv_predict,1)
-
-station_id_2 <-dplyr::select(aug_a5obs1ws_vsci,station_id_2)
-
-# put sf object first so sticky geometry retained
-spat_loocv2 <- bind_cols(station_id_2, spat_loocv1)
-
-
-p <- ggplot(spat_loocv2, aes(x = cv_predict, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_ribbon(aes(ymin = cv_predict - (1.96*se.fit), ymax = cv_predict + (1.96*se.fit)), fill = "grey", alpha = .8) + geom_line(aes( y = cv_predict)) + labs(x = "VSCI LOOCV Fitted 2001-2018", y = "VSCI Observed 2001-2018", title = "SSN LVOOCV Obs vs Fitted a5 reml n=199")
-
-print(p)
-ggplotly(p)
-
-# number of points outside 90% loocv fitted limits (ofl)
-ofl_stations1 <- filter(spat_loocv2, vsci < (cv_predict - (1.96*se.fit)) | vsci > (cv_predict + (1.96*se.fit)))
-ofl_stations1
-
-mapview(ofl_stations1)
-
-edges <- st_read("ssn_object/James_071024_pluspreds.ssn/edges.shp")
-
-# now see 2 trend stations on Tye River
-# when zoom in
-# https://stackoverflow.com/questions/36469379/multiple-markers-on-same-coordinate
-st_jitter(ofl_stations1, factor = 0.001) %>% 
-  mapview(.) + mapview(edges)
-
-rm(cv_resids, spat_loocv1, spat_loocv2, p, ofl_stations1)
-```
 
 # Preds for Distance Hypothesis
 
@@ -1844,169 +1448,8 @@ as.data.frame(aug_st5predict1ws_vsci)|>
 ```
 
 
-# TLH Fitted interval preds
-On 01/10/2025 merged Travis' branch to make this as a ggplotly plot
-Based on 12/24/2024 email this graph of preds is using standard error of model so that gives straight prediction interval lines
-On 12/23/2024, merged Travis' code so that predictions from 48 pred sites also used residuals from the 48 predictions to build the fitted interval.
-On 12/19/2025 removed a5ssn_wswq_reml1 and replaced with aug_a5predict1ws_vsci, with that SSN model based on the 48 pred sites.
-I believe this coding is fitting to 199 obs because using a5ssn_wswq_reml1. I think it should be using aug_a5predict1ws_vsci as it has 48 predicted sites from 2019-2022.
-```{r fitted_interval_preds_plot}
-# create residuals in the new prediction frame as they don't provide from the prediction augment call
-aug_a5predict1ws_vsci$.residuals <- aug_a5predict1ws_vsci$vsci-aug_a5predict1ws_vsci$.fitted
-
-# use fitted values and calculate sd of residuals
-fitted_vals = aug_a5predict1ws_vsci$.fitted
-resid_SD = sd(aug_a5predict1ws_vsci$.residuals)
-
-# combine to a dataframe note variance/se is same for all obs
-spat<-cbind(fitted_vals,resid_SD^2)
-head(spat)
-# spatial prediction percentiles
-(spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
-
-spat.Pred.median = spat.Pred.pct[,4]
-
-# observed and median of our prediction intervals
-ty<-round(aug_a5predict1ws_vsci$vsci,1)
-tx<-round(spat.Pred.median,1)
-
-#percentiles
-ox<-order(tx)
-op05<-spat.Pred.pct[ox,"Q05"]
-op95 <- spat.Pred.pct[ox,"Q95"]
-
-# put all components into data frame for ggplot
-plot_dat = data.frame("vsci_pred" = tx, "vsci" = ty, "pred_5th" = op05, "pred_95th" = op95,"vsci_bound_order"=tx[ox],"station_id"=aug_a5predict1ws_vsci$station_id_2)
 
 
-p = ggplot(data = plot_dat)+
-  geom_point(aes(x = vsci_pred, y = vsci,label = station_id), color = "black")+
-  geom_smooth(aes(x = vsci_pred, y = vsci), method = "loess", se = F, color = "blue")+
-  geom_line(aes(x = vsci_bound_order, y = pred_5th), linetype = "dashed", color = "black")+
-  geom_line(aes(x = vsci_bound_order, y = pred_95th), linetype = "dashed", color = "black")+
-  geom_abline(intercept = 0, slope = 1, color = "red")+
-  labs(x="vsci predicted",
-       y ="vsci observed",
-       title = "SSN Withheld Obs vs Pred a5 reml n=48 interval 0.90, tlh method")
-print(p)
-ggplotly(p)
-
-# identify does not work in RStudio
-# identify(tx, ty, labels = station_id_2, plot=TRUE)
-
-# number of points outside 90% prediction limits
-os90pl.sp <-(ty < spat.Pred.pct[,"Q05"]) |  (ty > spat.Pred.pct[,"Q95"]) 
-summary(os90pl.sp)
-
-# which observations are outside [5%, 95%] prediction limits?
-# these are the Site IDs of the unusual values
-aug_a5predict1ws_vsci[which(os90pl.sp),"station_id_2"]
-
-mapview(aug_a5predict1ws_vsci[which(os90pl.sp),"station_id_2"])
-
-rm(fitted_vals, resid_SD, spat, spat.Pred.pct, spat.Pred.median, ty, tx, ox, op05, op95, plot_dat, p, os90pl.sp)
-
-# plot using base plot with all components called separately into the plot
-# plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value 2019-2022",ylab="VSCI Observed Value 2019-2022",main="SSN Withheld Obs vs. Pred a5 Model SE n =48")
-# abline(0,1,col="red")
-# lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
-# 
-# # 5th percentile of predictive distribution
-# lines(tx[ox],op05,lty=2,col='black')
-# # 95th percentile of predictive distribution
-# lines(tx[ox],op95,lty=2,col='black')
-# #legend
-# legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
-```
-
-
-
-# TLH Fitted interval preds (quasi-LOOCV method)
-On 01/10/2025 merged Travis'branch to make this as a ggplotly plot
-
-On 12/27/2024, is ribbon prediction interval in chunk 20, Preds for Distance Hypothesis, equivalent to chunk 22, fitted_interval_plot_loocv-preds, below? Doing head(aug_a5predict1ws_vsci$vsci_lwr) and same to vsci_upr show ribbon prediction intervals wider than Q05 and Q95. Consequently, the narrower Q05 and Q95 prediction intervals identify more points outside the intervals.
-
-Based on 12/24/2024 email from Travis this uses standard error of each prediction point so get squiggly lines.
-```{r fitted_interval_plot_loocv-preds}
-# Alrighty, so this method mimics John's method
-# which gives a loocv estimate of fitted value an se.
-# However, as we're looking at new predicted data it doesn't actually refit the model n times so we don't have proper loocv fitted values.
-# This results in the squiggly lines because he's giving that 
-# se at each individual value.
-fitted_vals = aug_a5predict1ws_vsci$.fitted
-resid_Se = aug_a5predict1ws_vsci$.se.fit
-
-# combine to a dataframe and se.fit/variance differs for each observation
-spat<-cbind(fitted_vals,resid_Se^2)
-head(spat)
-
-# spatial prediction percentiles
-# qnorm arguments include
-# p a vector of probabilities
-# mean a vector of means, which are our fitted values
-# sd a vector of standard deviations, the square root of the squared .se.fit
-(spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
-
-spat.Pred.median = spat.Pred.pct[,4]
-head(spat.Pred.median)
-
-
-# observed and median of our prediction intervals
-ty<-round(aug_a5predict1ws_vsci$vsci,1)
-tx<-round(spat.Pred.median,1) ## these just are the fitted values
-
-#percentiles
-ox<-order(tx)
-op05<-spat.Pred.pct[ox,"Q05"]
-op95 <- spat.Pred.pct[ox,"Q95"]
-
-# put all components into data frame for ggplot
-plot_dat = data.frame("vsci_pred" = tx, "vsci" = ty, "pred_5th" = op05, "pred_95th" = op95,"vsci_bound_order"=tx[ox],"station_id"=aug_a5predict1ws_vsci$station_id_2)
-
-
-p = ggplot(data = plot_dat)+
-  geom_point(aes(x = vsci_pred, y = vsci,label = station_id), color = "black")+
-  geom_smooth(aes(x = vsci_pred, y = vsci), method = "loess", se = F, color = "blue")+
-  geom_line(aes(x = vsci_bound_order, y = pred_5th), linetype = "dashed", color = "black")+
-  geom_line(aes(x = vsci_bound_order, y = pred_95th), linetype = "dashed", color = "black")+
-  geom_abline(intercept = 0, slope = 1, color = "red")+
-  labs(x="vsci predicted",
-       y ="vsci observed",
-       title = "SSN Withheld Obs vs Pred a5 reml n=48 interval 0.90, jhc method")
-
-print(p)
-ggplotly(p)
-
-# Carson Code Points Outside LOOCV 90% Prediction Limit for n=48 Withheld Obs
-# This code comes from local_SSN_FINAL_20160126_modelling.html that was used in the Scown et al. 2017 paper.
-
-# number of points outside 90% prediction limits
-os90pl.sp <-(ty < spat.Pred.pct[,"Q05"]) |  (ty > spat.Pred.pct[,"Q95"]) 
-summary(os90pl.sp)
-
-# which observations are outside [5%, 95%] prediction limits?
-# these are the Site IDs of the unusual values
-aug_a5predict1ws_vsci[which(os90pl.sp),"station_id_2"]
-
-mapview(aug_a5predict1ws_vsci[which(os90pl.sp),"station_id_2"])
-
-rm(fitted_vals, resid_Se, spat, spat.Pred.pct, spat.Pred.median, ty, tx, ox, op05, op95, plot_dat, p, os90pl.sp)
-
-# plot using base plot with all components called in separatel to plot
-# plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value 2019-2022",ylab="VSCI Observed Value 2019-2022",main="SSN Withheld Obs vs. Pred a5 reml se.fit n =48")
-# abline(0,1,col="red")
-# lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
-# 
-# # 5th percentile of predictive distribution
-# lines(tx[ox],op05,lty=2,col='black')
-# # 95th percentile of predictive distribution
-# lines(tx[ox],op95,lty=2,col='black')
-# #legend
-# legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
-
-# cor(tx,ty, method = "pearson")
-
-```
 
 # Ribbon Prediction Interval
 This is producing a 90% prediction interval because that was the level set when augmented predictions were made. Is the spatial prediction percentiles using qnorm from TLH and JC code more accurate?
@@ -2242,5 +1685,417 @@ tmap_save(j_map_vsci_predse, "figures_nmc_2025/j_map_vsci_predse_v1_20250213.jpe
 
 ```
 
+# TLH Code
+Code from Neptune statistician, Travis Linscome-Hatfield, base R plot code to make predictions versus observed. That base R code was replaced with ggplot2 code using geo_ribbon to make prediction intervals for that plot.
+# TLH fitted to obs interval plot
+On 12/23/2024 commenting this code out b/c this is not the model I need for fitted interval obs plot.
+
+On 12/16/2024 first using a4 reml model and will compare to z5 reml model with distance covariate as that provides a better fit based on smaller AICc value.
+```{r fitted_interval_obs_plot}
+# z4 model was run above
+
+## fit model
+# z4ssn_wswq_ml1 <- ssn_lm(
+#   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
+#   ssn.object = j_ssn3,
+#   tailup_type = "none",
+#   taildown_type = "exponential",
+#   euclid_type = "exponential",
+#   nugget_type = "nugget",
+#   estmethod = "ml",
+#   additive = "afv_area",
+#   partition_factor = ~ju
+# )
+# summary(z4ssn_wswq_reml1)
+
+# how do residuals and fitted values below compare to what comes out with augment function?
 
 
+
+# class(aug_z4_wswq_reml1)
+# names(aug_z4_wswq_reml1)
+# 
+# head(round(aug_z4_wswq_reml1$.fitted))
+# head(round(aug_z4_wswq_reml1$vsci))
+
+
+# get spatial residuals from model
+# spatResids<-residuals(z4ssn_wswq_reml1)
+# zspatResids<-residuals(z4ssn_wswq_reml1)
+# head(aug_z4ssn_wswq_reml1$.resid)
+# the three statements above all return same results
+
+# pull sd of residuals and fitted values
+# resid_SD = sd(spatResids)
+# fitted_vals = z4ssn_wswq_reml1$fitted$response
+
+# combine to a dataframe
+# spat<-cbind(fitted_vals,resid_SD^2)
+# head(spat)
+
+# spatial prediction percentiles
+# (spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
+
+# spat.Pred.median = spat.Pred.pct[,4]
+# head(spat.Pred.median)
+
+# make sure I've got the right obj
+# DFobs<-ssn_get_data(j_ssn3)
+# observed and median of our prediction intervals
+# ty<-DFobs$vsci
+# tx<-spat.Pred.median
+
+#percentiles
+# ox<-order(tx)
+# op05<-spat.Pred.pct[ox,"Q05"]
+# op95 <- spat.Pred.pct[ox,"Q95"]
+
+# plot
+# plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value",ylab="VSCI Observed Value",main="Spatial Model Observed vs. Predicted z4 reml n = 199")
+# abline(0,1,col="red")
+# lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
+
+# 5th percentile of predictive distribution
+# lines(tx[ox],op05,lty=2,col='black')
+# 95th percentile of predictive distribution
+# lines(tx[ox],op95,lty=2,col='black')
+ #legend
+# legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
+
+# cor(tx,ty, method = "pearson")
+
+# these object names are used again downstream for preds so remove here
+
+# rm(spatResids,resid_SD,fitted_vals,spat,spat.Pred.pct,spat.Pred.median,ty,tx,ox,op05,op95)
+```
+
+# TLH fitted to obs interval plot (LOOCV method)
+On 12/26/2024 commenting this code because this is not the model I need for fitted interval obs plot.
+```{r fitted_interval_plot_loocv}
+# Alrighty, so this method mimics John's method
+# which gives a loocv estimate of fitted value an se.
+# This results in the squiggly lines because he's giving that 
+# se at each individual value.
+# cv_resids = loocv(z4ssn_wswq_reml1,
+ #                 cv_predict = T,
+#                  se.fit = T)
+# pull sd of residuals and fitted values
+# resid_Se = cv_resids$se.fit
+# fitted_vals = cv_resids$cv_predict
+
+# combine to a dataframe
+# spat<-cbind(fitted_vals,resid_Se^2)
+# head(spat)
+
+# spatial prediction percentiles
+# (spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
+
+# spat.Pred.median = spat.Pred.pct[,4]
+# head(spat.Pred.median)
+
+# make sure I've got the right obj
+# DFobs<-ssn_get_data(j_ssn3)
+# observed and median of our prediction intervals
+# ty<-DFobs$vsci
+# tx<-spat.Pred.median
+
+#percentiles
+# ox<-order(tx)
+# op05<-spat.Pred.pct[ox,"Q05"]
+# op95 <- spat.Pred.pct[ox,"Q95"]
+
+# plot
+# plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value",ylab="VSCI Observed Value",main="LOOCV Spatial Model Observed vs. Predicted z4 reml")
+# abline(0,1,col="red")
+# lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
+
+# 5th percentile of predictive distribution
+# lines(tx[ox],op05,lty=2,col='black')
+# 95th percentile of predictive distribution
+# lines(tx[ox],op95,lty=2,col='black')
+#legend
+# legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
+
+```
+# Carson Code Points Outside LOOCV 90% Prediction Limit for n=199 Obs
+Added this code on 12/24/2024 and commented out because this is not the final SSN model.
+This code comes from local_SSN_FINAL_20160126_modelling.html 
+```{r loocv_pts_outside}
+# number of points outside 90% prediction limits
+# os90pl.sp <-(ty < spat.Pred.pct[,"Q05"]) |  (ty > spat.Pred.pct[,"Q95"]) 
+# summary(os90pl.sp)
+
+# which observations are outside [5%, 95%] prediction limits?
+# these are the Site IDs of the unusual values
+# DFobsz[which(os90pl.sp),"station_id_2"]
+```
+# TLH fitted to obs interval plot for a5 model
+01/14/2025 added Travis' code to make prediction of 199 sites vsci versus observed vsci as ggplot using same variance for each obs so get straight 90th percentile lines. 18 Stations fell outside of those lines.
+
+Now that diagnostics checked out make an observed to fitted interval plot on model a5ssn_wswq_reml1 by augmenting to get diagnostics.
+```{r fitted_interval_obs_plot}
+# z4 model was run above
+
+a5ssn_wswq_reml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area",
+  partition_factor = ~ju
+)
+
+tidy(a5ssn_wswq_reml1)
+summary(a5ssn_wswq_reml1)
+varcomp(a5ssn_wswq_reml1)
+loocv(a5ssn_wswq_reml1)
+
+# how do residuals and fitted values below compare to what comes out with augment function?
+
+aug_a5obs1ws_vsci <- augment(a5ssn_wswq_reml1, drop = FALSE)
+
+class(aug_a5obs1ws_vsci)
+names(aug_a5obs1ws_vsci)
+
+head(round(aug_a5obs1ws_vsci$.fitted,1))
+head(round(aug_a5obs1ws_vsci$vsci,1))
+
+
+# get spatial residuals from model
+spatResids<-residuals(a5ssn_wswq_reml1)
+# zspatResids<-residuals(a5ssn_wswq_reml1)
+# head(aug_a5obs1ws_vsci$.resid)
+# the three statements above all return same results
+
+# pull out fitted values and sd of residuals
+fitted_vals = a5ssn_wswq_reml1$fitted$response
+resid_SD = sd(spatResids)
+
+
+# combine to a dataframe note variance same for all obs
+spat<-cbind(fitted_vals,resid_SD^2)
+head(spat)
+
+# spatial prediction percentiles
+(spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
+
+spat.Pred.median = spat.Pred.pct[,4]
+head(spat.Pred.median)
+
+# observed and median of our fitted values from 199 obs
+ty<-aug_a5obs1ws_vsci$vsci
+tx<-round(spat.Pred.median,1)
+
+#percentiles
+ox<-order(tx)
+op05<-spat.Pred.pct[ox,"Q05"]
+op95 <- spat.Pred.pct[ox,"Q95"]
+
+# put all components into data frame for ggplot
+plot_dat = data.frame("vsci_pred" = tx, "vsci" = ty, "pred_5th" = op05, "pred_95th" = op95,"vsci_bound_order"=tx[ox],"station_id"=aug_a5obs1ws_vsci$station_id_2)
+
+
+p = ggplot(data = plot_dat)+
+  geom_point(aes(x = vsci_pred, y = vsci,label = station_id), color = "black")+
+  geom_smooth(aes(x = vsci_pred, y = vsci), method = "loess", se = F, color = "blue")+
+  geom_line(aes(x = vsci_bound_order, y = pred_5th), linetype = "dashed", color = "black")+
+  geom_line(aes(x = vsci_bound_order, y = pred_95th), linetype = "dashed", color = "black")+
+  geom_abline(intercept = 0, slope = 1, color = "red")+
+  labs(x="vsci predicted",
+       y ="vsci observed")
+print(p)
+ggplotly(p)
+
+cor(tx,ty, method = "pearson")
+
+# number of points outside 90% prediction limits
+os90pl.sp <-(ty < spat.Pred.pct[,"Q05"]) |  (ty > spat.Pred.pct[,"Q95"]) 
+summary(os90pl.sp)
+
+# which observations are outside [5%, 95%] prediction limits?
+# these are the Site IDs of the unusual values
+aug_a5obs1ws_vsci[which(os90pl.sp),"station_id_2"]
+
+mapview(aug_a5obs1ws_vsci[which(os90pl.sp),"station_id_2"])
+
+# these object names are used again downstream for preds so remove here
+rm(spatResids,resid_SD,fitted_vals,spat,spat.Pred.pct,spat.Pred.median,ty,tx,ox,op05,op95,p)
+
+# plot using base plot with all components called separately into the plot
+# plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value",ylab="VSCI Observed Value",main="SSN Obs vs. Pred a5 reml n = 199")
+# abline(0,1,col="red")
+# lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
+
+# 5th percentile of predictive distribution
+# lines(tx[ox],op05,lty=2,col='black')
+# 95th percentile of predictive distribution
+# lines(tx[ox],op95,lty=2,col='black')
+#legend
+# legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
+
+```
+
+# TLH Fitted interval preds
+On 01/10/2025 merged Travis' branch to make this as a ggplotly plot
+Based on 12/24/2024 email this graph of preds is using standard error of model so that gives straight prediction interval lines
+On 12/23/2024, merged Travis' code so that predictions from 48 pred sites also used residuals from the 48 predictions to build the fitted interval.
+On 12/19/2025 removed a5ssn_wswq_reml1 and replaced with aug_a5predict1ws_vsci, with that SSN model based on the 48 pred sites.
+I believe this coding is fitting to 199 obs because using a5ssn_wswq_reml1. I think it should be using aug_a5predict1ws_vsci as it has 48 predicted sites from 2019-2022.
+```{r fitted_interval_preds_plot}
+# create residuals in the new prediction frame as they don't provide from the prediction augment call
+aug_a5predict1ws_vsci$.residuals <- aug_a5predict1ws_vsci$vsci-aug_a5predict1ws_vsci$.fitted
+
+# use fitted values and calculate sd of residuals
+fitted_vals = aug_a5predict1ws_vsci$.fitted
+resid_SD = sd(aug_a5predict1ws_vsci$.residuals)
+
+# combine to a dataframe note variance/se is same for all obs
+spat<-cbind(fitted_vals,resid_SD^2)
+head(spat)
+# spatial prediction percentiles
+(spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
+
+spat.Pred.median = spat.Pred.pct[,4]
+
+# observed and median of our prediction intervals
+ty<-round(aug_a5predict1ws_vsci$vsci,1)
+tx<-round(spat.Pred.median,1)
+
+#percentiles
+ox<-order(tx)
+op05<-spat.Pred.pct[ox,"Q05"]
+op95 <- spat.Pred.pct[ox,"Q95"]
+
+# put all components into data frame for ggplot
+plot_dat = data.frame("vsci_pred" = tx, "vsci" = ty, "pred_5th" = op05, "pred_95th" = op95,"vsci_bound_order"=tx[ox],"station_id"=aug_a5predict1ws_vsci$station_id_2)
+
+
+p = ggplot(data = plot_dat)+
+  geom_point(aes(x = vsci_pred, y = vsci,label = station_id), color = "black")+
+  geom_smooth(aes(x = vsci_pred, y = vsci), method = "loess", se = F, color = "blue")+
+  geom_line(aes(x = vsci_bound_order, y = pred_5th), linetype = "dashed", color = "black")+
+  geom_line(aes(x = vsci_bound_order, y = pred_95th), linetype = "dashed", color = "black")+
+  geom_abline(intercept = 0, slope = 1, color = "red")+
+  labs(x="vsci predicted",
+       y ="vsci observed",
+       title = "SSN Withheld Obs vs Pred a5 reml n=48 interval 0.90, tlh method")
+print(p)
+ggplotly(p)
+
+# identify does not work in RStudio
+# identify(tx, ty, labels = station_id_2, plot=TRUE)
+
+# number of points outside 90% prediction limits
+os90pl.sp <-(ty < spat.Pred.pct[,"Q05"]) |  (ty > spat.Pred.pct[,"Q95"]) 
+summary(os90pl.sp)
+
+# which observations are outside [5%, 95%] prediction limits?
+# these are the Site IDs of the unusual values
+aug_a5predict1ws_vsci[which(os90pl.sp),"station_id_2"]
+
+mapview(aug_a5predict1ws_vsci[which(os90pl.sp),"station_id_2"])
+
+rm(fitted_vals, resid_SD, spat, spat.Pred.pct, spat.Pred.median, ty, tx, ox, op05, op95, plot_dat, p, os90pl.sp)
+
+# plot using base plot with all components called separately into the plot
+# plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value 2019-2022",ylab="VSCI Observed Value 2019-2022",main="SSN Withheld Obs vs. Pred a5 Model SE n =48")
+# abline(0,1,col="red")
+# lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
+# 
+# # 5th percentile of predictive distribution
+# lines(tx[ox],op05,lty=2,col='black')
+# # 95th percentile of predictive distribution
+# lines(tx[ox],op95,lty=2,col='black')
+# #legend
+# legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
+```
+
+# TLH Fitted interval preds (quasi-LOOCV method)
+On 01/10/2025 merged Travis'branch to make this as a ggplotly plot
+
+On 12/27/2024, is ribbon prediction interval in chunk 20, Preds for Distance Hypothesis, equivalent to chunk 22, fitted_interval_plot_loocv-preds, below? Doing head(aug_a5predict1ws_vsci$vsci_lwr) and same to vsci_upr show ribbon prediction intervals wider than Q05 and Q95. Consequently, the narrower Q05 and Q95 prediction intervals identify more points outside the intervals.
+
+Based on 12/24/2024 email from Travis this uses standard error of each prediction point so get squiggly lines.
+```{r fitted_interval_plot_loocv-preds}
+# Alrighty, so this method mimics John's method
+# which gives a loocv estimate of fitted value an se.
+# However, as we're looking at new predicted data it doesn't actually refit the model n times so we don't have proper loocv fitted values.
+# This results in the squiggly lines because he's giving that 
+# se at each individual value.
+fitted_vals = aug_a5predict1ws_vsci$.fitted
+resid_Se = aug_a5predict1ws_vsci$.se.fit
+
+# combine to a dataframe and se.fit/variance differs for each observation
+spat<-cbind(fitted_vals,resid_Se^2)
+head(spat)
+
+# spatial prediction percentiles
+# qnorm arguments include
+# p a vector of probabilities
+# mean a vector of means, which are our fitted values
+# sd a vector of standard deviations, the square root of the squared .se.fit
+(spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
+
+spat.Pred.median = spat.Pred.pct[,4]
+head(spat.Pred.median)
+
+
+# observed and median of our prediction intervals
+ty<-round(aug_a5predict1ws_vsci$vsci,1)
+tx<-round(spat.Pred.median,1) ## these just are the fitted values
+
+#percentiles
+ox<-order(tx)
+op05<-spat.Pred.pct[ox,"Q05"]
+op95 <- spat.Pred.pct[ox,"Q95"]
+
+# put all components into data frame for ggplot
+plot_dat = data.frame("vsci_pred" = tx, "vsci" = ty, "pred_5th" = op05, "pred_95th" = op95,"vsci_bound_order"=tx[ox],"station_id"=aug_a5predict1ws_vsci$station_id_2)
+
+
+p = ggplot(data = plot_dat)+
+  geom_point(aes(x = vsci_pred, y = vsci,label = station_id), color = "black")+
+  geom_smooth(aes(x = vsci_pred, y = vsci), method = "loess", se = F, color = "blue")+
+  geom_line(aes(x = vsci_bound_order, y = pred_5th), linetype = "dashed", color = "black")+
+  geom_line(aes(x = vsci_bound_order, y = pred_95th), linetype = "dashed", color = "black")+
+  geom_abline(intercept = 0, slope = 1, color = "red")+
+  labs(x="vsci predicted",
+       y ="vsci observed",
+       title = "SSN Withheld Obs vs Pred a5 reml n=48 interval 0.90, jhc method")
+
+print(p)
+ggplotly(p)
+
+# Carson Code Points Outside LOOCV 90% Prediction Limit for n=48 Withheld Obs
+# This code comes from local_SSN_FINAL_20160126_modelling.html that was used in the Scown et al. 2017 paper.
+
+# number of points outside 90% prediction limits
+os90pl.sp <-(ty < spat.Pred.pct[,"Q05"]) |  (ty > spat.Pred.pct[,"Q95"]) 
+summary(os90pl.sp)
+
+# which observations are outside [5%, 95%] prediction limits?
+# these are the Site IDs of the unusual values
+aug_a5predict1ws_vsci[which(os90pl.sp),"station_id_2"]
+
+mapview(aug_a5predict1ws_vsci[which(os90pl.sp),"station_id_2"])
+
+rm(fitted_vals, resid_Se, spat, spat.Pred.pct, spat.Pred.median, ty, tx, ox, op05, op95, plot_dat, p, os90pl.sp)
+
+# plot using base plot with all components called in separatel to plot
+# plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value 2019-2022",ylab="VSCI Observed Value 2019-2022",main="SSN Withheld Obs vs. Pred a5 reml se.fit n =48")
+# abline(0,1,col="red")
+# lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
+# 
+# # 5th percentile of predictive distribution
+# lines(tx[ox],op05,lty=2,col='black')
+# # 95th percentile of predictive distribution
+# lines(tx[ox],op95,lty=2,col='black')
+# #legend
+# legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
+
+# cor(tx,ty, method = "pearson")
+
+```
