@@ -1112,10 +1112,10 @@ glances(d_ssn_wswq_ml1, st_ssn_wswq_rand1)
 ```
 
 # 9.0 NMC Distance Model w/ and w/o Partition Factor
-This compares the distance SSN model from section 5, which has a partition factor, to a distance model with no partition factor. The better model is the distance SSN model with the partition factor. This result was used in the NMC 2025 presentation.
+This compares the distance SSN model from section 7, which has a partition factor, to a distance model with no partition factor. The better model is the distance SSN model with the partition factor. This result was used in the NMC 2025 presentation.
 02/19/2025 Making this comparison to include results in NMC 2025 presentation
 ```{r distance_with_without_partition}
-#np stands for no parititon factor
+#np stands for no partition factor
 
 np_ssn_wswq_reml1 <- ssn_lm(
   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
@@ -1138,7 +1138,7 @@ glances(d_ssn_wswq_reml1, np_ssn_wswq_reml1)
 ```
 
 
-# Preds for Distance Hypothesis
+# 10 Predictands from Distance WsWQ SSN Model
 
 02/14/2025 trying to make scatter plot showing prediction error for status and trend stations
 On 01/23/2025 the abrupt change from saw tooth prediction interval to
@@ -1277,8 +1277,8 @@ as.data.frame(aug_a5predict1ws_vsci)|>
 
 ```
 
-
-# VAHUSB Polygons
+# 11 Mapping Predictands
+## 11.1 VAHUSB Polygons
 ```{r vahusb_poly}
 vahusb_poly <- st_read("data/vahusb.shp")
 # names(vahusb_poly)
@@ -1305,7 +1305,7 @@ mapview(vahusb_poly, zcol="subbasin")
 
 ```
 
-# Synced Maps
+# 11.2 Synced Maps
 Synced maps are good for a quick, interactive visualization, but the workflow of make synced maps, use Rstudio export to save html locally, then open html in browser, snip a screenshot and paste into Powerpoint does not make publication-quality maps. I could not get the mapshot or mapshot2 functions in mapview to make a png.
 ```{r synced_maps}
 names(DFobs3a)
@@ -1338,59 +1338,7 @@ sync3 <- sync(vsci_pred, vsci_predse, ncol=1)
 
 ```
 
-
-
-# Preds for ST_rand model reml
-Using reml estimate as testing predictions.
-```{r st_rand1_hypothesis}
-
-ssn_wswq_rand1_st_reml <- ssn_lm(
-  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km + st_type,
-  ssn.object = j_ssn3,
-  tailup_type = "none",
-  taildown_type = "exponential",
-  euclid_type = "exponential",
-  nugget_type = "nugget",
-  estmethod = "reml",
-  additive = "afv_area",
-  partition_factor = ~ju,
-  random = ~ (1 | station_id)
-)
-
-summary(ssn_wswq_rand1_st_reml)
-varcomp(ssn_wswq_rand1_st_reml) # now space varcomp small
-loocv(ssn_wswq_rand1_st_reml)
-
-# augment returns an sf object
-# note level set to 0.90
-aug_st5predict1ws_vsci <- augment(ssn_wswq_rand1_st_reml, newdata = "Preds_2019_2022", se_fit = TRUE, interval = c("prediction"), level = 0.90)
-# class(aug_a5predict1ws_vsci)
-# names(aug_a5predict1ws_vsci)
-aug_st5predict1ws_vsci$vsci_pred <- round(aug_st5predict1ws_vsci$.fitted,1)
-aug_st5predict1ws_vsci$vsci_lwr <- round(aug_st5predict1ws_vsci$.lower,1)
-aug_st5predict1ws_vsci$vsci_upr <- round(aug_st5predict1ws_vsci$.upper,1)
-head(aug_st5predict1ws_vsci$.se.fit)
-# Pineiro 2008 put observed on y and predict on x
-# label specific points
-# https://stackoverflow.com/questions/15624656/label-points-in-geom-point
-
-select(aug_st5predict1ws_vsci, station_id_2, st_type, vsci, vsci_pred, .se.fit) %>% arrange(.se.fit) %>% print(n =48)
-
-cor(aug_st5predict1ws_vsci$vsci_pred,aug_st5predict1ws_vsci$vsci, method = "pearson")
-
-#2019-2022 a5reml correlation with partition factor of ju and distance covariate is 0.57
-
-as.data.frame(aug_st5predict1ws_vsci)|>
-  dplyr::select(vsci_pred,vsci)|>
-  correlate()
-
-```
-
-
-
-
-
-# Ribbon Prediction Interval
+# 12 Ribbon Predictand Interval
 This is producing a 90% prediction interval because that was the level set when augmented predictions were made. Is the spatial prediction percentiles using qnorm from TLH and JC code more accurate?
 ```{r ribbon_pred_interval}
 # ribbon prediction interval based on + or - 1.96*.se.fit
