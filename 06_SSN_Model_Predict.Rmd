@@ -83,7 +83,8 @@ library(leafpop) # for popups in mapview
 library(leafsync) # sync mapview maps
 library(webshot2) # png of mapview maps
 library(GGally)  # parallel coordinate plot
-library(performance)
+library(performance) # mlr diagnostics
+library(car) # added variable plots visualize slopes
 library(plotly)
 library(corrr) # tidyverse correlation package
 library(tmap) # for publication quality maps note this is version tmap_3.3-4 and version 4 is now out
@@ -1000,32 +1001,32 @@ ggplot(DFobs3a, aes(x = dist_nearest_up_wb_km, y = vsci)) + geom_point() + facet
 
 ggplot(DFobs3a, aes(x = dist_nearest_up_wb_km, y = vsci)) + geom_point() + geom_smooth(method = "lm", se =TRUE)
 
-ztg <- Torgegram(
+d_tg <- Torgegram(
   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
   ssn.object = j_ssn3,
   type = c("flowcon", "flowuncon", "euclid")
 )
-plot(ztg)
-plot(ztg, separate = TRUE)
-View(ztg$euclid)
-View(ztg$flowuncon)  
-View(ztg$flowcon) # low np
+plot(d_tg)
+plot(d_tg, separate = TRUE)
+View(d_tg$euclid)
+View(d_tg$flowuncon)  
+View(d_tg$flowcon) # low np
 ```
 
-## 7.2 Check Nonspatial Diagnostics on a5 model
+## 7.2 Check Nonspatial Diagnostics on Distance MLR Model
 Get checks on collinearity, added variable plots and other diagnostics. Typical MLR diagnostics look good. 
 ```{r a5_mlr_diagnostics}
-a5_mlr1 <- lm(vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
+d_mlr1 <- lm(vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
   data = DFobs3a)
 
-summary(a5_mlr1)
-check_model(a5_mlr1)
-# avPlots(a5_mlr1)
+summary(d_mlr1)
+check_model(d_mlr1)
+avPlots(d_mlr1)
 ```
 
-
-```{r}
-a5ssn_wswq_ml1 <- ssn_lm(
+## 7.3 d_ssn_wswq_ml1
+```{r d_ssn_wswq_ml1}
+d_ssn_wswq_ml1 <- ssn_lm(
   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
   ssn.object = j_ssn3,
   tailup_type = "none",
@@ -1037,42 +1038,56 @@ a5ssn_wswq_ml1 <- ssn_lm(
   partition_factor = ~ju
 )
 
-tidy(a5ssn_wswq_ml1)
-summary(a5ssn_wswq_ml1)
-varcomp(a5ssn_wswq_ml1)
-loocv(a5ssn_wswq_ml1)
+summary(d_ssn_wswq_ml1)
+varcomp(d_ssn_wswq_ml1)
+loocv(d_ssn_wswq_ml1)
+tidy(d_ssn_wswq_ml1)
 
-glances(z4ssn_wswq_ml1,a5ssn_wswq_ml1)
-
-# plot(a5ssn_wswq_ml1, which = c(1:6))
+# plot(d_ssn_wswq_reml1, which = c(1:6))
 
 
-#### TLH lm discussion
+```
 
+## 7.4 d_ssn_wswq_rem1
+The reml estimation method is the one we want to use for obtainging variance composition from the varcomp function and for making predictions.
+```{r d_ssn_wswq_ml1}
+d_ssn_wswq_reml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area",
+  partition_factor = ~ju
+)
 
-# test = ssn_get_data(j_ssn3)
-# fit = lm(vsci ~pct_imp_w_emplog + elev_ws + do + vahusb_JL + wbc*dist_nearest_up_wb_km - dist_nearest_up_wb_km,data = test)
-# summary(fit)
-# check_model(fit)
-# avPlots(fit)
-### as you can see we get a nice output with wbcabsent:dist_nearest_up_wb_km NA'd out. So this is what I'm trying to replicate in the ssn2 formulation. 
+summary(d_ssn_wswq_reml1)
+varcomp(d_ssn_wswq_reml1)
+loocv(d_ssn_wswq_reml1)
 
-# I added test1 code with only distance covariate
+tidy(d_ssn_wswq_reml1)
 
-# test = ssn_get_data(j_ssn3)
-# fit1 = lm(vsci ~pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,data = test)
-# summary(fit1)
-# check_model(fit1)
-# avPlots(fit1)
+# plot(d_ssn_wswq_reml1, which = c(1:6))
+
+```
+
+## 7.5 Mapview Standardized Residuals
+```{r mapview aug_d_wswq_reml1}
+aug_d_wswq_reml1 <- augment(d_ssn_wswq_reml1, drop = FALSE)
+summary(aug_d_wswq_reml1$.std.resid)
+
+mapview(aug_d_wswq_reml1, zcol = ".std.resid",  alpha.regions = .8, legend = TRUE, popup = popupTable(aug_d_wswq_reml1, zcol = c(".std.resid"))) 
+
 ```
 
 
-
-
-# 8.0 ST_rand Model vs Distance Model
+# 8.0 Status and Trend WsWq SSN model
+Using a more complex model with a covariate of station type, status versus trend, and a randome effect for repeated observations at trend stations, does not produce a better fitting or predictive model compared to the distance SSN model.
 On 01/24/2025 inserted this code chunk to run status/trend random effects model, ssn_wswq_rand1_st, and compare it to distance model, with both models estimated by ml given different covariates.
 ```{r st_vs_distance}
-ssn_wswq_rand1_st <- ssn_lm(
+st_ssn_wswq_rand1 <- ssn_lm(
   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km + st_type,
   ssn.object = j_ssn3,
   tailup_type = "none",
@@ -1085,24 +1100,24 @@ ssn_wswq_rand1_st <- ssn_lm(
   random = ~ (1 | station_id)
 )
 
-summary(ssn_wswq_rand1_st)
-varcomp(ssn_wswq_rand1_st)
-loocv(ssn_wswq_rand1_st)
+summary(st_ssn_wswq_rand1)
+varcomp(st_ssn_wswq_rand1)
+loocv(st_ssn_wswq_rand1)
 
-plot(ssn_wswq_rand1_st, which = c(1:6))
+plot(st_ssn_wswq_rand1, which = c(1:6))
 
-glances(a5ssn_wswq_ml1, ssn_wswq_rand1_st)
+glances(d_ssn_wswq_ml1, st_ssn_wswq_rand1)
 
 
 ```
 
-
-## NMC Distance Model w/ and w/o Partition Factor
+# 9.0 NMC Distance Model w/ and w/o Partition Factor
+This compares the distance SSN model from section 5, which has a partition factor, to a distance model with no partition factor. The better model is the distance SSN model with the partition factor. This result was used in the NMC 2025 presentation.
 02/19/2025 Making this comparison to include results in NMC 2025 presentation
 ```{r distance_with_without_partition}
 #np stands for no parititon factor
 
-np5ssn_wswq_reml1 <- ssn_lm(
+np_ssn_wswq_reml1 <- ssn_lm(
   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
   ssn.object = j_ssn3,
   tailup_type = "none",
@@ -1113,12 +1128,13 @@ np5ssn_wswq_reml1 <- ssn_lm(
   additive = "afv_area"
 )
 
-tidy(np5ssn_wswq_reml1)
-summary(np5ssn_wswq_reml1)
-varcomp(np5ssn_wswq_reml1)
-loocv(np5ssn_wswq_reml1)
 
-glances(a5ssn_wswq_reml1, np5ssn_wswq_reml1)
+summary(np_ssn_wswq_reml1)
+varcomp(np_ssn_wswq_reml1)
+loocv(np_ssn_wswq_reml1)
+tidy(np_ssn_wswq_reml1)
+
+glances(d_ssn_wswq_reml1, np_ssn_wswq_reml1)
 ```
 
 
