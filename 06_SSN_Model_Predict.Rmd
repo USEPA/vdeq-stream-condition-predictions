@@ -1176,13 +1176,13 @@ Looking to see if distance to nearest upstream waterbody covariate pulls outlier
 
 # augment returns an sf object
 # note level set to 0.90
-aug_a5predict1ws_vsci <- augment(a5ssn_wswq_reml1, newdata = "Preds_2019_2022", se_fit = TRUE, interval = c("prediction"), level = 0.90)
+aug_d_predict1ws_vsci <- augment(d_ssn_wswq_reml1, newdata = "Preds_2019_2022", se_fit = TRUE, interval = c("prediction"), level = 0.90)
 # class(aug_a5predict1ws_vsci)
 # names(aug_a5predict1ws_vsci)
-aug_a5predict1ws_vsci$vsci_pred <- round(aug_a5predict1ws_vsci$.fitted,1)
-aug_a5predict1ws_vsci$vsci_lwr <- round(aug_a5predict1ws_vsci$.lower,1)
-aug_a5predict1ws_vsci$vsci_upr <- round(aug_a5predict1ws_vsci$.upper,1)
-head(aug_a5predict1ws_vsci$.se.fit)
+aug_d_predict1ws_vsci$vsci_pred <- round(aug_d_predict1ws_vsci$.fitted,1)
+aug_d_predict1ws_vsci$vsci_lwr <- round(aug_d_predict1ws_vsci$.lower,1)
+aug_d_predict1ws_vsci$vsci_upr <- round(aug_d_predict1ws_vsci$.upper,1)
+head(aug_d_predict1ws_vsci$.se.fit)
 # Pineiro 2008 put observed on y and predict on x
 # label specific points
 # https://stackoverflow.com/questions/15624656/label-points-in-geom-point
@@ -1280,7 +1280,7 @@ as.data.frame(aug_a5predict1ws_vsci)|>
 # 11 Mapping Predictands
 ## 11.1 VAHUSB Polygons
 ```{r vahusb_poly}
-vahusb_poly <- st_read("data/vahusb.shp")
+vahusb_poly <- sf::st_read("data/vahusb.shp")
 # names(vahusb_poly)
 # mapview(vahusb_poly)
 mapview(vahusb_poly, zcol="VAHUSB", burst = TRUE)
@@ -1427,7 +1427,7 @@ small_obs_n = small_obs%>% select(station_id,st_type)%>%
 
 ```{r nmc_pred_true_vsci_stationtype}
 # This one is closest
-a5preds2019_2022_v3 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type, color = st_type)) + geom_point() + labs(x = "Predicted VSCI", y = "True VSCI, 2019-2022", title = "SSN Prediction Sites", shape = "Station Type", color = "Station Type") + xlim(35,80) + ylim(35,80) + scale_size_binned(name = "Standard Error") + guides(color = guide_legend(override.aes = list(size = 6))) + theme(legend.text = element_text(size = 12))
+a5preds2019_2022_v3 <- ggplot(aug_d_predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type, color = st_type)) + geom_point() + labs(x = "Predicted VSCI", y = "True VSCI, 2019-2022", title = "SSN Prediction Sites", shape = "Station Type", color = "Station Type") + xlim(35,80) + ylim(35,80) + scale_size_binned(name = "Standard Error") + guides(color = guide_legend(override.aes = list(size = 6))) + theme(legend.text = element_text(size = 12))
 
 png(file="figures_nmc_2025/a5preds2019_2022_v3.png",width=6,height=3,units="in",res=150)
 a5preds2019_2022_v3
@@ -1499,7 +1499,7 @@ tmap_save(j_map_vsci_obs, "figures_nmc_2025/j_map_vsci_obs_v1_20250212.jpeg", wi
 # map for true vsci predictands
 
 j_map_vsci_true <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show = F) +
-  tm_shape(aug_a5predict1ws_vsci) + 
+  tm_shape(aug_d_predict1ws_vsci) + 
   tm_bubbles(
   size = "vsci",
   legend.size.show = FALSE,
@@ -1525,7 +1525,7 @@ tmap_save(j_map_vsci_true, "figures_nmc_2025/j_map_vsci_true_v1_20250212.jpeg", 
 # map for vsci predictands
 
 j_map_vsci_predicted <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show = F) +
-  tm_shape(aug_a5predict1ws_vsci) + 
+  tm_shape(aug_d_predict1ws_vsci) + 
   tm_bubbles(
   size = "vsci_pred",
   legend.size.show = FALSE,
@@ -1550,7 +1550,7 @@ tmap_save(j_map_vsci_predicted, "figures_nmc_2025/j_map_vsci_predictedv1_2025021
 # map for predictand se
 
 j_map_vsci_predse <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show = F) +
-  tm_shape(aug_a5predict1ws_vsci) + 
+  tm_shape(aug_d_predict1ws_vsci) + 
   tm_bubbles(
   size = ".se.fit",
   legend.size.show = FALSE,
@@ -1558,7 +1558,7 @@ j_map_vsci_predse <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show
   legend.col.is.portrait = FALSE,
   style = "cont",
   palette = "viridis",
-  title.col = "Standard Error of Predictand VSCI at Prediction Sites 2019-2022 (n = 48)",
+  title.col = "Standard Error of Predictand VSCI 2019-2022 (n = 48)",
   legend.hist = FALSE,
 ) + tm_layout(asp=0,
   legend.width = 2, legend.text.size = 1.5, legend.title.size = 3.0,
@@ -1568,7 +1568,7 @@ j_map_vsci_predse <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show
 ) + tm_scale_bar(position = c("center", "BOTTOM", text.size = 1.0)) + tm_compass(position = c("left", "top")) +
   tm_legend(legend.outside=T, legend.outside.position="top",legend.hist.height = 1.0, legend.hist.width = 1.0, legend.hist.size = 1.5)
 
-tmap_save(j_map_vsci_predse, "figures_nmc_2025/j_map_vsci_predse_v1_20250213.jpeg", width = 7, height = 3.5, dpi = 150)
+tmap_save(j_map_vsci_predse, "figures_nmc_2025/j_map_vsci_predse_v1_20250225.jpeg", width = 7, height = 3.5, dpi = 150)
 
 ```
 
