@@ -1441,9 +1441,9 @@ RColorBrewer::display.brewer.all()
 viridis::viridis(7)
 tmaptools::palette_explorer() # zoomed to this and checked options Print color values to get color codes for Brewer Categorical Set3 so I could specify fill colors to match tmaps
 
-boxplot_elev_ws <- ggplot(data=DFobs3a, aes(y= elev_ws, x= vahusb)) + geom_boxplot(aes(fill = vahusb), outlier.color = "Red") + geom_jitter() + labs(y = "Watershed Elevation (m)", x = "Subbasins", fill = "Subbasin") + scale_fill_manual(values = c("#8DD3C7", "#FFFFB3", "#BEBADA", "#FB8072", "#80B1D3"))
+boxplot_elev_ws <- ggplot(data=DFobs3a, aes(y= elev_ws, x= vahusb)) + geom_boxplot(aes(fill = vahusb), outlier.shape = NA) + geom_jitter() + labs(y = "Watershed Elevation (m)", x = "Subbasins", fill = "Subbasin") + scale_fill_manual(values = c("#8DD3C7", "#FFFFB3", "#BEBADA", "#FB8072", "#80B1D3"))
   
-png(file="figures_nmc_2025/boxplot_elev_ws.png",width=6,height=3,units="in",res=150)
+png(file="figures_nmc_2025/boxplot_elev_ws_v1_20250225.png",width=6,height=3,units="in",res=150)
 boxplot_elev_ws
 dev.off()
 
