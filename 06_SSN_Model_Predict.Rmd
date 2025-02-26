@@ -1175,7 +1175,7 @@ as.data.frame(aug_d_predict1ws_vsci)|>
 
 ```
 
-# 11 Mapping Predictands
+# 11 Interactive Mapping of Predictands
 ## 11.1 VAHUSB Polygons
 ```{r vahusb_poly}
 vahusb_poly <- sf::st_read("data/vahusb.shp")
@@ -1203,7 +1203,7 @@ mapview(vahusb_poly, zcol="subbasin")
 
 ```
 
-# 11.2 Synced Maps
+## 11.2 Synced Maps
 Synced maps are good for a quick, interactive visualization, but the workflow of make synced maps, use Rstudio export to save html locally, then open html in browser, snip a screenshot and paste into Powerpoint does not make publication-quality maps. I could not get the mapshot or mapshot2 functions in mapview to make a png.
 ```{r synced_maps}
 names(DFobs3a)
@@ -1226,48 +1226,41 @@ vsci_pred
 # synced maps1
 predict(sync2 <- sync(vsci_true, vsci_pred, ncol =1))
 
-
 vsci_predse <- mapview(aug_d_predict1ws_vsci, zcol = ".se.fit",  alpha.regions = .8, legend = TRUE,layer.name = 'Predictands VSCI SE', popup = popupTable(aug_d_predict1ws_vsci, zcol = c("station_id_2", "st_type", "vsci", "vsci_pred", ".se.fit"))) + mapview(vahusb_poly, zcol="subbasin")
 
 vsci_predse
 # synced maps2
 print(sync3 <- sync(vsci_pred, vsci_predse, ncol=1))
 
-
 ```
 
 # 12 Ribbon Predictand Interval
-This is producing a 90% prediction interval because that was the level set when augmented predictions were made. Is the spatial prediction percentiles using qnorm from TLH and JC code more accurate?
+This is producing a 90% prediction interval because that was the level set when augmented predictions were made.
 ```{r ribbon_pred_interval}
-# ribbon prediction interval based on + or - 1.96*.se.fit
-# ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_ribbon(aes(ymin = vsci_pred - (1.96*.se.fit), ymax = vsci_pred + (1.96*.se.fit)), fill = "grey", alpha = .8) + geom_line(aes( y = vsci_pred)) + labs(x = "VSCI Predicted 2019-2022", y = "VSCI Observed 2019-2022", title = "SSN Withheld Obs vs Pred a5 reml n=48")
 
 # ribbon using lower and upper SSN2 prediction intervals
-# seems to give same results as 1.96*.se.fit above
-ribbon_pi1 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_ribbon(aes(ymin = vsci_lwr, ymax = vsci_upr), fill = "grey", alpha = .8) + geom_line(aes( y = vsci_pred)) + labs(x = "VSCI Predicted 2019-2022", y = "VSCI Observed 2019-2022", title = "SSN Withheld Obs vs Pred a5 reml n=48 interval 0.90, mgm method")
+
+ggplot(aug_d_predict1ws_vsci, aes(x = vsci_pred, y = vsci, shape = st_type, color = st_type, label = station_id_2)) +   geom_point(aes(size = .se.fit)) + 
+  geom_abline() + 
+  geom_ribbon(aes(ymin = vsci_lwr, ymax = vsci_upr), fill = "grey", alpha = .4) + 
+  geom_line(aes( y = vsci_pred)) + 
+  labs(x = "Predicted VSCI", y = "TRUE VSCI 2019-2022", title = "SSN Predictions (prediction interval 0.90", subtitle = "Pearson Correlation = 0.57", shape = "Station Type", color = "Station Type") +
+  scale_size_binned(name = "Standard Error") + guides(color = guide_legend(override.aes = list(size = 6))) + theme(legend.text = element_text(size = 12))
 
 print(ribbon_pi1)
 ggplotly(ribbon_pi1)
 
-ribbon_pi2 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, shape = st_type, label = station_id_2)) +
-  geom_point(aes(size = .se.fit)) + 
-  geom_abline() + 
-  geom_ribbon(aes(ymin = vsci_lwr, ymax = vsci_upr), fill = "grey", alpha = .4) +
-  geom_line(aes( y = vsci_pred)) + 
-  labs(x = "VSCI Predicted 2019-2022", y = "VSCI Observed 2019-2022", title = "SSN Withheld Obs vs Pred a5 reml n=48 interval 0.90, mgm method")
-
-print(ribbon_pi2)
-
-# number of points outside 90% prediction limits (opl)
-# opl_stations1 <- filter(aug_a5predict1ws_vsci, vsci < (vsci_pred - (1.96*.se.fit)) | vsci > (vsci_pred + (1.96*.se.fit)))
-
-opl_stations2 <- filter(aug_a5predict1ws_vsci, vsci < vsci_lwr | vsci > vsci_upr)
+# opl stands for outside prediction limits
+opl_stations2 <- filter(aug_d_predict1ws_vsci, vsci < vsci_lwr | vsci > vsci_upr)
 
 class(opl_stations2)
-mapview(opl_stations2)
+mapview(opl_stations2, zcol = "station_id_2",  alpha.regions = .8, legend = TRUE,layer.name = 'Outside Prediction Limits', popup = popupTable(aug_d_predict1ws_vsci, zcol = c("station_id_2", "st_type", "vsci", "vsci_pred", ".se.fit"))) + mapview(vahusb_poly, zcol="subbasin")
+
 opl_stations2
 # given comment "Target and Sampled (no fish or PHAB in 2019?) Dry,no staff", should this site 2-DCK003.94_2019 been sampled?
 
+
+vsci_predse <- mapview(aug_d_predict1ws_vsci, zcol = ".se.fit",  alpha.regions = .8, legend = TRUE,layer.name = 'Predictands VSCI SE', popup = popupTable(aug_d_predict1ws_vsci, zcol = c("station_id_2", "st_type", "vsci", "vsci_pred", ".se.fit"))) + mapview(vahusb_poly, zcol="subbasin")
 ```
 
 #Exploring residuals and counts at trend vs status
@@ -1321,7 +1314,7 @@ small_obs_n = small_obs%>% select(station_id,st_type)%>%
 ```
 
 # NMC 2025
-## NMC Pred VSCI vs True VSCI
+## NMC True VSCI vs Pred VSCI Scatter Plot
 
 ```{r nmc_pred_true_vsci_stationtype}
 # This one is closest
@@ -1332,6 +1325,27 @@ a5preds2019_2022_v3
 dev.off()
 
 ```
+
+## NMC True VSCI vs Pred VSCI Ribbon Plot
+```{r}
+ribbon_pi1 <- ggplot(aug_d_predict1ws_vsci, aes(x = vsci_pred, y = vsci, shape = st_type, color = st_type, label = station_id_2)) + 
+  geom_point(aes(size = .se.fit)) + 
+  geom_abline() + 
+  geom_ribbon(aes(ymin = vsci_lwr, ymax = vsci_upr), fill = "grey", alpha = .4) + 
+  geom_line(aes( y = vsci_pred)) + 
+  labs(x = "Predicted VSCI", y = "TRUE VSCI 2019-2022", title = "SSN Predictions (prediction interval 0.90)", subtitle = "Pearson Correlation = 0.57", shape = "Station Type", color = "Station Type") +
+  scale_size_binned(name = "Standard Error") + guides(color = guide_legend(override.aes = list(size = 6))) + theme(legend.text = element_text(size = 12))
+
+print(ribbon_pi1)
+ggplotly(ribbon_pi1)
+
+png(file="figures_nmc_2025/ribbon_pi1.png",width=6,height=3,units="in",res=150)
+ribbon_pi1
+dev.off()
+
+```
+
+
 
 ## NMC Elevation Boxplots by Subbasin
 ```{r nmc_boxplots}
