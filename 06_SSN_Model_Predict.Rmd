@@ -1269,7 +1269,7 @@ vsci_predse <- mapview(aug_d_predict1ws_vsci, zcol = ".se.fit",  alpha.regions =
 
 ## adding in some additional looks at .se.fit vs station type and number of samples.
 
-small_preds = aug_a5predict1ws_vsci%>% select(station_id,st_type,vsci,vsci_pred,.se.fit,.fitted,.residuals)
+small_preds = aug_d_predict1ws_vsci%>% select(station_id,st_type,vsci,vsci_pred,.se.fit,.fitted,.residuals)
 
 p = ggplot(small_preds, aes(x = .se.fit, y = .residuals,color = st_type))+
   geom_point(aes(label = station_id))
@@ -1279,7 +1279,7 @@ ggplotly(p,hoverinfo = "text")
 small_preds_n = small_preds%>% group_by(station_id,st_type)%>% summarise(n = n())
 
 ## loocv
-aug_a5obs1ws_vsci$se.fit <- loocv(a5ssn_wswq_reml1,se.fit = T)[[2]]
+aug_a5obs1ws_vsci$se.fit <- loocv(d_ssn_wswq_reml1,se.fit = T)[[2]]
 
 # small obs
 small_obs = aug_a5obs1ws_vsci %>% select(station_id,st_type,vsci,.fitted,.resid,se.fit)
