@@ -1260,40 +1260,60 @@ opl_stations2
 
 ```
 
-#Exploring residuals and counts at trend vs status
-
+# Exploring residuals and counts at trend vs status
+While trend stations have smaller .se.fit than status stations, it appears this may simply be a function of more samples at trend stations than single-visit status stations.
 ```{r}
 
 ## adding in some additional looks at .se.fit vs station type and number of samples.
 
-small_preds = aug_d_predict1ws_vsci%>% select(station_id,st_type,vsci,vsci_pred,.se.fit,.fitted,.residuals)
+# using preds data (n=48)
+# create residuals in the new prediction frame as they don't provide from the prediction augment call
+aug_d_predict1ws_vsci$.residuals <- aug_d_predict1ws_vsci$vsci-aug_d_predict1ws_vsci$.fitted
 
-small_preds_mgm = aug_d_predict1ws_vsci%>% select(station_id2,st_type,vsci,vsci_pred,.se.fit,.fitted,.residuals)
 
+small_preds = aug_d_predict1ws_vsci%>% select(station_id_2,st_type,vsci,vsci_pred,.se.fit,.fitted,.residuals)
 
 p = ggplot(small_preds, aes(x = .se.fit, y = .residuals,color = st_type))+
-  geom_point(aes(label = station_id))
+  geom_point(aes(label = station_id_2)) +
+  labs(title = "Predictands .se.fit and .residual")
 ggplotly(p,hoverinfo = "text")
 
-#small_preds n
-small_preds_n = small_preds%>% group_by(station_id,st_type)%>% summarise(n = n())
+filter(small_preds, st_type == "trend") %>% 
+  select(station_id_2,st_type, .se.fit) %>% 
+  arrange(station_id_2) %>% 
+  print(n = Inf)
 
+#small_preds n
+small_preds_n = small_preds%>% group_by(station_id_2,st_type)%>% summarise(n = n())
+
+# Using obs data (n=199)
 ## loocv
-aug_a5obs1ws_vsci$se.fit <- loocv(d_ssn_wswq_reml1,se.fit = T)[[2]]
+# already run in a chunk above aug_d_wswq_reml1 <- augment(d_ssn_wswq_reml1, drop = FALSE) to get .residual
+
+# use loocv to get se.fit out of n = 199 obs
+
+aug_d_wswq_reml1$se.fit <- loocv(d_ssn_wswq_reml1,se.fit = T)[[2]]
+names(aug_d_wswq_reml1)
 
 # small obs
-small_obs = aug_a5obs1ws_vsci %>% select(station_id,st_type,vsci,.fitted,.resid,se.fit)
+small_obs = aug_d_wswq_reml1 %>% select(station_id_2,st_type,vsci,.fitted,.resid,se.fit)
 
 p3 = ggplot(small_obs, aes(x = se.fit, y = .resid,color = st_type))+
-  geom_point(aes(label = station_id))
+  geom_point(aes(label = station_id_2)) +
+  labs(title = "Observed loocv .se.fit and .residuals")
 ggplotly(p3,hoverinfo = "text")
 
 # is the .se.fit basically just based on number of samples?
-small_obs_n = small_obs%>% select(station_id,st_type)%>%
-  group_by(station_id,st_type)%>%
-  summarise(n = n())
+small_obs_n = small_obs%>% select(station_id_2,st_type, se.fit)%>%
+  group_by(station_id_2,st_type)%>%
+  summarise(n = n()) 
 
-# so looking at these is appears we maybe have slightly tighter residuals at the trend stations but that would require some more specific distribtuional tests. However the main takeaway is that while the sample size at a point is likely impacting that se.fit value it is not the only driving factor as there are mure se.fit values than there are uniqu sample sizes. 
+filter(small_obs, st_type == "trend") %>% 
+  select(station_id_2,st_type, se.fit) %>% 
+  arrange(station_id_2) %>% 
+  print(n = Inf)
+
+# so looking at these is appears we maybe have slightly tighter residuals at the trend stations but that would require some more specific distributional tests. However the main takeaway is that while the sample size at a point is likely impacting that se.fit value it is not the only driving factor as there are more se.fit values than there are unique sample sizes. 
 
 ```
 
