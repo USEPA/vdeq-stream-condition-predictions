@@ -1223,13 +1223,12 @@ vsci_pred <- mapview(aug_d_predict1ws_vsci, zcol = "vsci_pred", at=seq(0, 90, 15
 
 vsci_pred
 
-# synced maps1
-predict(sync2 <- sync(vsci_true, vsci_pred, ncol =1))
+print(sync2 <- sync(vsci_true, vsci_pred, ncol =1))
 
 vsci_predse <- mapview(aug_d_predict1ws_vsci, zcol = ".se.fit",  alpha.regions = .8, legend = TRUE,layer.name = 'Predictands VSCI SE', popup = popupTable(aug_d_predict1ws_vsci, zcol = c("station_id_2", "st_type", "vsci", "vsci_pred", ".se.fit"))) + mapview(vahusb_poly, zcol="subbasin")
 
 vsci_predse
-# synced maps2
+
 print(sync3 <- sync(vsci_pred, vsci_predse, ncol=1))
 
 ```
@@ -1240,7 +1239,7 @@ This is producing a 90% prediction interval because that was the level set when 
 
 # ribbon using lower and upper SSN2 prediction intervals
 
-ggplot(aug_d_predict1ws_vsci, aes(x = vsci_pred, y = vsci, shape = st_type, color = st_type, label = station_id_2)) +   geom_point(aes(size = .se.fit)) + 
+ribbon_pi1 <- ggplot(aug_d_predict1ws_vsci, aes(x = vsci_pred, y = vsci, shape = st_type, color = st_type, label = station_id_2)) +   geom_point(aes(size = .se.fit)) + 
   geom_abline() + 
   geom_ribbon(aes(ymin = vsci_lwr, ymax = vsci_upr), fill = "grey", alpha = .4) + 
   geom_line(aes( y = vsci_pred)) + 
@@ -1259,8 +1258,6 @@ mapview(opl_stations2, zcol = "station_id_2",  alpha.regions = .8, legend = TRUE
 opl_stations2
 # given comment "Target and Sampled (no fish or PHAB in 2019?) Dry,no staff", should this site 2-DCK003.94_2019 been sampled?
 
-
-vsci_predse <- mapview(aug_d_predict1ws_vsci, zcol = ".se.fit",  alpha.regions = .8, legend = TRUE,layer.name = 'Predictands VSCI SE', popup = popupTable(aug_d_predict1ws_vsci, zcol = c("station_id_2", "st_type", "vsci", "vsci_pred", ".se.fit"))) + mapview(vahusb_poly, zcol="subbasin")
 ```
 
 #Exploring residuals and counts at trend vs status
@@ -1270,6 +1267,9 @@ vsci_predse <- mapview(aug_d_predict1ws_vsci, zcol = ".se.fit",  alpha.regions =
 ## adding in some additional looks at .se.fit vs station type and number of samples.
 
 small_preds = aug_d_predict1ws_vsci%>% select(station_id,st_type,vsci,vsci_pred,.se.fit,.fitted,.residuals)
+
+small_preds_mgm = aug_d_predict1ws_vsci%>% select(station_id2,st_type,vsci,vsci_pred,.se.fit,.fitted,.residuals)
+
 
 p = ggplot(small_preds, aes(x = .se.fit, y = .residuals,color = st_type))+
   geom_point(aes(label = station_id))
