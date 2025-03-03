@@ -22,7 +22,7 @@ Start with a clean environment. This script like all the scripts runs as a stand
 The purpose of this script is to make sure both obs and preds have the same covariates. This is required so that the SSN model built from the obs can then applied to make predictions at the preds. The 48 preds where withheld from from the SSN model building to provide an independent data set for measuring the predictive performance of the SSN model. The 48 preds were collected from spatially balanced probabilistic surveys done from 2019-2022.
 
 Three modifications were made to the SSN WS-WQ model, ssn_wswq_reml1, from script 05 in attempts to get a better predictive model. Those modifications included:
-1) Added a partition factor statement to the model based on parallel coordinate plot in script 05 and a boxplot of evelvation made in this script (see NMC Elevation Boxplots by Subbasins
+1) Added a partition factor statement to the model based on parallel coordinate plot in script 05 and a boxplot of evelvation made in this script (see NMC Elevation Boxplots by Subbasins)
 2) Based on the literature, tested 3 additional covariates to try and get a better fitting and predictive model,
 3) Tested the hypothesis that monitoring sites having upstream waterbodies furthest away would have higher VSCI.
 
@@ -111,7 +111,7 @@ knitr::opts_chunk$set(message=FALSE, warning=FALSE,collapse = T)
 ```
 
 # 1.0 Load SSN Observations and Preds
-Notice this import explicitly brings in the prediction points. The SSN object alwyas contained obs and preds, but until now we never called out the preds. Both the obs and preds to have the same covariates.
+Notice this import explicitly brings in the prediction points. The SSN object always contained obs and preds, but until now we never called out the preds. Both the obs and preds to have the same covariates.
 ```{r ssn_obs_preds}
 # now bringing predpts 2019-2022 combined
 # current ssn
@@ -811,6 +811,7 @@ tidy(ssn_wswq_reml1)
 ```
 
 ## 4.1 Mapview Standardized Residuals
+Here the augment function is applied the SSN model, and this creates an sf object that has the following diagnostics variables: .fitted for fitted values; .resid for response residuals; .hat for leverage, .cooks for Cook's distance, .std.resid for standaredized residuals, and .se.fit for standard error of the fitted values.
 ```{r mapview_wswq_ssn_residuals}
 aug_ssn_wswq_reml1 <- augment(ssn_wswq_reml1, drop = FALSE)
 class(aug_ssn_wswq_reml1)
@@ -821,7 +822,8 @@ mapview(aug_ssn_wswq_reml1, zcol = ".std.resid", alpha.regions = .8, legend = TR
 
 ```
 
-## 4.2 Parallel Coordinate Plot of Covariates by Subbasin
+## 4.2 Parallel Coordinates Plot of Covariates by Subbasin
+A parallel coordinates plot standardizes all the variables, and when grouped, such as be subbasins, lets one see if subbasins have similar or dissimilar values. The elevation pattern for JU shown in the parallel coordinates plot motivated the idea of using the partition factor.
 ```{r pcp_covariates_subbasin}
 # names(aug_ssn_wswq_reml1)
 pcpobs <- ggparcoord(data = aug_ssn_wswq_reml1, columns = c(123, 136, 38, 167), groupColumn = "vahusb", scale = "std", showPoint = TRUE, title = "Observed Sites", alphaLines = 0.8, boxplot = FALSE)
@@ -860,13 +862,9 @@ View(res_tg1$flowuncon)
 ```
 
 # 5.0 Partitioned Ws-Wq Model
-The p_ssn_wswq model below has the partitioned factor of ju, Upper James. The models z1-z3 tested different coding and how different fixed and random effects compared to ssn_wswq_reml1. Finally, z4 model had a better fit, based on AIcc, than ssn_wswq_reml1. Also, the RMSPE is slightly smaller for the z4 model, and its cor2 is slightly larger.
+Note the nomenclature of this model is p_ssn_wswq_rem1 with the p indicating the paritioning factor.
 
-On 12/26/2024 commented out models z1-z3
-
-On 11/25/2024 why does z4ssn_wswq_ml1 model give much more reasonable range estimates than reml model?
-On 07/03/2024 need to look at diagnostic plots of partition model. Diagnostic plots are saved as Word files at E:\R_vdeq_sci\Working\Data\neptune_analysis\scripts_by_basin.
-On 06/28/2024, I coded for a partition factor base on JU subbasin versus non-JU subasins , partly because parallel coordinate plot showed JU to differ in covariates and vsci from rest of subbasins. Results from dummy coded model above match factor coded model below. Also, on 06/20/2024 compared the Watershed ssn model to a model with a random effect of year. The Watershed ssn model had a much lower AICc than the model with a random effect of year.
+The p_ssn_wswq model below has the partitioned factor of ju, Upper James versus the 4 lower subbasins. What the partition factor is doing is saying the observations in the Upper James are uncorrelated, or indepdent, from the observations in the lower 4 subbasins. You can think of the partition factor as the "Las Vegas Effect". What happens in Vegas stays in Vegas. Likewise, what spatailly occurs in the Upper James stays in the Upper James.
 ```{r wswq_ssn_partition}
 
 p_ssn_wswq_reml1 <- ssn_lm(
