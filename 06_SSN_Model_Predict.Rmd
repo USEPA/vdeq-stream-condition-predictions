@@ -917,7 +917,7 @@ plot(res_tg2, main = "Torgegram of Standardized Residuals from Partitioned WS-WQ
 
 
 ## 5.3 p_WsWq SSN Model:  ML Estimation
-Because we want to compare p_WsWq SSN model fit and predictions to models with different covariates, see additionaly hypotheses model in section 6.0, we need to  specify estimation method as ml.
+Because we want to compare p_WsWq SSN model fit and predictions to models with different covariates, see additional hypotheses model in section 6.0, we need to  specify estimation method as ml.
 ```{r p_ssn_wswq_ml}
 p_ssn_wswq_ml1 <- ssn_lm(
   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
@@ -978,18 +978,11 @@ mapview(a_rssn_wswq_ml1, zcol = ".std.resid",  alpha.regions = .8, legend = TRUE
 ```
 
 # 7.0 Distance Hypothesis for WsWq SSN Model
-On 12/26/2024 used geom_ribbon to make prediction interval.
+Here we use the distance covariate to test the hypothesis that monitoring sites having upstream waterbodies furthest away would have higher VSCI.
 
-On 12/16/2024 testing distance hypothesis of upstream waterbodies by now using wbc_bin and 
-dist_nearest_up_wb_km with those covariates entered into the model as 
-wbc_bin
-wbc_bin:dist_nearest_up_wb_km.
-This follows coding as used in Dumelle et al. 2023 paper. Using that coding produced a poorer fitting more complicated model than z4. Using just the continuous covariate of distance, as done on 11/19/2024, produces a better fitting model a5ssn_wswq_ml1. Model a5ssn_wswq_ml1 has slightly better values for RMSPE and cor2 than z4ssn_wswq_ml1. What does added variable plot of that model look like?
+There are 4 parts to this section:  a) exploratory spatial data analysis, b) diagnostics on the non-spatial model, c) ML estimation of d_ssn_wswq_ml1 for comparison to ssn models with other covaries, and d) REML estimation, d_ssn_wswq_reml1 that would be used for prediction. 
 
-
-Run ML estimation when comparing to models with different covariates. Run with REML when comparing to models with different spatial autocovariances and for prediction.
-On 11/19/2024 Tried running interaction of wbc*dist_nearest_up_wb_km, but got error of singular matrix. Consequently, only tested model using continuous covariate dist_nearest_up_wb_km.
-Again, commented out plot(a5ssn_wswq_ml1, which = c(1:6)) as seems to prevent code running straight through. The a5ssn_wswq_ml1 model with only continuous covariate dist_nearest_up_wb_km has smaller AICc than z4 model.
+The d_ssn_wswq_ml1 beats the p_ssn_wswq_ml1 model both on model fit, having a smaller AICc, and model performance, smaller rmspe and larger cor2.
 
 ## 7.1 ESDA on Distance Hypothesis
 Running torgegram on SSN0 nugget mlr model as shown in section 4.1.1 of SSN2 vignette. Not seeing much in Torgegram plot.
@@ -1043,10 +1036,11 @@ tidy(d_ssn_wswq_ml1)
 
 # plot(d_ssn_wswq_reml1, which = c(1:6))
 
+glances(p_ssn_wswq_ml1,d_ssn_wswq_ml1)
 
 ```
 
-## 7.4 d_ssn_wswq_rem1
+## 7.4 d_ssn_wswq_reml1
 The reml estimation method is the one we want to use for obtainging variance composition from the varcomp function and for making predictions.
 ```{r d_ssn_wswq_ml1}
 d_ssn_wswq_reml1 <- ssn_lm(
@@ -1082,8 +1076,11 @@ mapview(aug_d_wswq_reml1, zcol = ".std.resid",  alpha.regions = .8, legend = TRU
 
 
 # 8.0 Status and Trend WsWq SSN model
-Using a more complex model with a covariate of station type, status versus trend, and a randome effect for repeated observations at trend stations, does not produce a better fitting or predictive model compared to the distance SSN model.
-On 01/24/2025 inserted this code chunk to run status/trend random effects model, ssn_wswq_rand1_st, and compare it to distance model, with both models estimated by ml given different covariates.
+The status stations have single observation whereas trend stations have repeated observations made over several years.
+
+Using a more complex model, st_ssn_wswq_rand1, with a covariate of station type, status versus trend, and a random effect for repeated observations at trend stations, does not produce a better fitting or predictive model compared to the distance SSN model.
+
+
 ```{r st_vs_distance}
 st_ssn_wswq_rand1 <- ssn_lm(
   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km + st_type,
@@ -1102,7 +1099,7 @@ summary(st_ssn_wswq_rand1)
 varcomp(st_ssn_wswq_rand1)
 loocv(st_ssn_wswq_rand1)
 
-plot(st_ssn_wswq_rand1, which = c(1:6))
+# plot(st_ssn_wswq_rand1, which = c(1:6))
 
 glances(d_ssn_wswq_ml1, st_ssn_wswq_rand1)
 
@@ -1111,7 +1108,8 @@ glances(d_ssn_wswq_ml1, st_ssn_wswq_rand1)
 
 # 9.0 NMC Distance Model w/ and w/o Partition Factor
 This compares the distance SSN model from section 7, which has a partition factor, to a distance model with no partition factor. The better model is the distance SSN model with the partition factor. This result was used in the NMC 2025 presentation.
-02/19/2025 Making this comparison to include results in NMC 2025 presentation
+
+Because the partition factor affects the covariance matrix I am use REML estimation for model comparison. See Details of partition factor in the help of the ssn_lm function.
 ```{r distance_with_without_partition}
 #np stands for no partition factor
 
@@ -1137,14 +1135,9 @@ glances(d_ssn_wswq_reml1, np_ssn_wswq_reml1)
 
 
 # 10 Predictands from Distance WsWQ SSN Model
+Now we want to d_ssn_wswq_reml1 as the ssn model to get predictions for the independent 48 observations from 2019-2022.
 
-02/14/2025 trying to make scatter plot showing prediction error for status and trend stations
-On 01/23/2025 the abrupt change from saw tooth prediction interval to
-steady prediction interval is driven by the shorter range of vsci obs and vsci predictions for trend stations compared to the status status stations.
-On 01/21/2025 added station type, st_type, of status or trend station as noticed first 11 stations with smallest .se.fit were trend stations.
-
-Note for predictions want estimation method to be reml.
-Looking to see if distance to nearest upstream waterbody covariate pulls outliers closer to 1:1 line, which is the a5 model.
+Note we are using the augment function again, but this time is used with ssn_lm, d_ssn_wswq_reml1, plus specifying the new data of the prediction points. After getting the predictions, we 1) examine the 48 predictions, 2) plot them against their observed, or "true" values of vsci and 3) calculate a correlation between the true values and predicted values.
 ```{r distance_hypothesis_preds}
 
 # augment returns an sf object
@@ -1174,7 +1167,10 @@ as.data.frame(aug_d_predict1ws_vsci)|>
 ```
 
 # 11 Interactive Mapping of Predictands
+With spatial data analysis, we are interested in two distributions. One is the statistical distribution, such as the correlation above, and the other is the spatial distribution. For example, are there regions, or subbasin, with outliers?
+
 ## 11.1 VAHUSB Polygons
+Slight edits to vahusb polygons to make for better maps.
 ```{r vahusb_poly}
 vahusb_poly <- sf::st_read("data/vahusb.shp")
 # names(vahusb_poly)
@@ -1232,7 +1228,7 @@ print(sync3 <- sync(vsci_pred, vsci_predse, ncol=1))
 ```
 
 # 12 Ribbon Predictand Interval
-This is producing a 90% prediction interval because that was the level set when augmented predictions were made.
+I call this a ribbon predictand interval graph simply because it uses the geom_ribbon function to easily make a prediction interval. This is producing a 90% prediction interval because that was the level set when augmented predictions were made. Ggplotly is used to identify observations falling outside of the prediction interval. Some observations, by chance, should follow outside the prediction interval. We want to investigate if there is a systematic basis why some might be outliers, such as local construction of ponds or a new point source close upstream.
 ```{r ribbon_pred_interval}
 
 # ribbon using lower and upper SSN2 prediction intervals
