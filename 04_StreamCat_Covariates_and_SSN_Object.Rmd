@@ -209,15 +209,14 @@ summary(dists_knn1)
 # Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
 # 0.161  2014.809  4765.854  5034.192  7320.395 16006.036 
 
-# based on VDEQ stream order (SO) entries, compare to SSN sites and edges
-# comment out figure out later why error
-# vahusb <- as.data.frame(DFobs) %>%
-#   group_by(vahusb, order) %>%
-#   summarize(n = dplyr::n()) %>% 
-#   print(n = Inf)
+# based on VDEQ stream order (SO) entries, compare these 199 sites and to the population of SSN edges
+vahusb_so <- as.data.frame(DFobs) %>%
+  group_by(vahusb, order) %>%
+  summarize(n = dplyr::n()) %>%
+  print(n = Inf)
 
 # remove datasets not used downstream
-rm(z, z1, z1, z1_nn, station_nn, dists, dists_knn1,vahusb)
+rm(z, z1, z1_nn, station_nn, dists, dists_knn1 ,vahusb_so)
 ```
 
 
@@ -677,12 +676,12 @@ trend <- dplyr::filter(DFobs, st_type == "trend")
 rm(trend)
 ```
 
-## 3.3.1 SFS Trend Stations
+## 3.3.1 SFS Meeting Trend Stations
 
 ```{r sfs_trend_stations}
 # trend_stations <- ggplot(trend, aes(x=year_f, y = vscivcpmi)) + geom_point() + facet_wrap(vars(vahusb_nam, station_id), nrow = 2, ncol=4) +labs(x = "Survey Year", y = "VSCI")
 # 
-# png(file="figures_sfs/trend_stations.png",width=12,height=3,units="in",res=150)
+# png(file="figures_sfs_2024/trend_stations.png",width=12,height=3,units="in",res=150)
 # trend_stations
 # dev.off()
 
@@ -1068,7 +1067,7 @@ Scatter plots used in SFS 2024 talk.
 # 
 # scat_tothab1 <- ggplot(DFobs2, aes(x=tothab, y=vsci)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + labs(x="Total Habitat", y = "VSCI")
 # 
-# png(file="figures_sfs/scat_tothab1.png",width=6,height=3,units="in",res=150)
+# png(file="figures_sfs_2024/scat_tothab1.png",width=6,height=3,units="in",res=150)
 # scat_tothab1
 # dev.off()
 
@@ -1264,13 +1263,13 @@ j_ssn3 <-  SSN2::ssn_put_data(DFobs2a,j_ssn3)
 
 ```
 
-## 5.50 SFS StreamCat Plots
+## 5.50 SFS 2024 StreamCat Plots
 
 ```{r sfs_streamcat}
 # scat_cat2 <- ggplot(DFobs2a, aes(x = pct_imp_c_emplog, y = vsci, colour = vahusb)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + labs(x="Catchment Impervious (empirical logit)", y = "VSCI") + expand_limits(x=-10) + scale_colour_discrete(name="Subbasin")
 # 
 # scat_cat2
-# png(file="figures_sfs/scat_cat2.png",width=4,height=3,units="in",res=150)
+# png(file="figures_sfs_2024/scat_cat2.png",width=4,height=3,units="in",res=150)
 #   scat_cat2
 # dev.off()
 

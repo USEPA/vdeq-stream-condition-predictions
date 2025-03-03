@@ -15,12 +15,14 @@ editor_options:
   chunk_output_type: console
 ---
 
-Here's what I added in this script for the example!
+
 # Outline
+Start with a clean environment. This script like all the scripts runs as a stand-alone so that means there is some redundancy in having to modify and transform covariates.
+
 The purpose of this script is to make sure both obs and preds have the same covariates. This is required so that the SSN model built from the obs can then applied to make predictions at the preds. The 48 preds where withheld from from the SSN model building to provide an independent data set for measuring the predictive performance of the SSN model. The 48 preds were collected from spatially balanced probabilistic surveys done from 2019-2022.
 
 Three modifications were made to the SSN WS-WQ model, ssn_wswq_reml1, from script 05 in attempts to get a better predictive model. Those modifications included:
-1) Added a partition factor statement to the model based on parallel coordinate plot,
+1) Added a partition factor statement to the model based on parallel coordinate plot in script 05 and a boxplot of evelvation made in this script (see NMC Elevation Boxplots by Subbasins
 2) Based on the literature, tested 3 additional covariates to try and get a better fitting and predictive model,
 3) Tested the hypothesis that monitoring sites having upstream waterbodies furthest away would have higher VSCI.
 
@@ -81,10 +83,11 @@ library(leafpop) # for popups in mapview
 library(leafsync) # sync mapview maps
 library(webshot2) # png of mapview maps
 library(GGally)  # parallel coordinate plot
-library(performance)
+library(performance) # mlr diagnostics
+library(car) # added variable plots visualize slopes
 library(plotly)
 library(corrr) # tidyverse correlation package
-library(tmap) # for publication quality maps
+library(tmap) # for publication quality maps note this is version tmap_3.3-4 and version 4 is now out
 library(tmaptools)
 library(shiny)
 library(shinyjs) # for tmap color palette
@@ -107,20 +110,14 @@ sessionInfo()
 knitr::opts_chunk$set(message=FALSE, warning=FALSE,collapse = T)
 ```
 
-# SSN Observations and Preds
-Notice this import explicitly brings in the prediction points. Also, this version of the SSN requires that both the obs and predpts to have the same covariates.
+# 1.0 Load SSN Observations and Preds
+Notice this import explicitly brings in the prediction points. The SSN object alwyas contained obs and preds, but until now we never called out the preds. Both the obs and preds to have the same covariates.
 ```{r ssn_obs_preds}
 # now bringing predpts 2019-2022 combined
 # current ssn
 j_ssn1a <- SSN2::ssn_import("ssn_object/James_071024_pluspreds.ssn", predpts = c("Preds_2019_2022"),
 overwrite = FALSE)
 
-# previous ssn
-# j_ssn1a <- SSN2::ssn_import("E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/James041724.ssn", predpts = c("Preds_2019_2020", "Preds_2021_2022"),
-#overwrite = FALSE)
-
-# j_ssn1a <- SSN2::ssn_import("E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/James.ssn", predpts = c("Preds_2019_2020", "Preds_2021_2022"),
-# overwrite = FALSE)
 names(j_ssn1a)
 summary(j_ssn1a)
 
@@ -128,29 +125,11 @@ DFobs <- SSN2::ssn_get_data(j_ssn1a) %>% clean_names(.)
 
 preds1 <- SSN2::ssn_get_data(j_ssn1a, name = "Preds_2019_2022") %>% clean_names(.)
 
-# str(preds1)
-# str(preds2)
-
 
 ```
 
-## SFS Meeting Torgegram
-```{r sfs_torgegram}
 
-# torg2 <- ggplot(flowuncon, aes(x=dist, y=gamma)) + geom_point(size =3) + labs(x = "Flow-Unconnected Stream Distance (m)", y = "Semivariance", title = "VSCI Torgegram Stream Network Distance") + scale_x_continuous(labels=comma)
-# png(file="figures_sfs/torg2.png",width=6,height=3,units="in",res=150)
-#   torg2
-# dev.off()
-
-
-# esv2 <- ggplot(euclid, aes(x=dist, y=gamma)) + geom_point(size =3) + labs(x = "Euclidean Distance (m)", y = "Semivariance", title = "VSCI Semivariogram Euclidean Distance") + scale_x_continuous(labels=comma)
-# png(file="figures_sfs/esv2.png",width=6,height=3,units="in",res=150)
-#   esv2
-# dev.off()
-```
-
-
-## Steps for working with preds based on obs
+# 2.0 Steps for working with preds based on obs
 
 Note that both obs and preds need to be in the SSN object that is modeled. This results in the SSN model object having all the variables needed for the SSN predict function.
 	1. Make factors of vahusb and year.
@@ -161,7 +140,7 @@ Note that both obs and preds need to be in the SSN object that is modeled. This 
 
 On 03/04/2029, realized I needed to add in imputing of 2 observed sites for total habitat scores. I need tot_hab for catchment and catchment-riparian in the mixed geographies SSN analysis. Saw this when I made scatter plot of covariates.
 
-## 1.20 Total Habitat (RBP) score
+# 2.1 Total Habitat (RBP) score
 Bring Total Habitat Score (TotHab) in from Wadeable_ProbMon_2001-2018_Final_Final.xslx spreadsheet so it can be joined to DFobs and then j_ssn1a. These 2 stations:  2-JKS070.97 and 2-DDY000.75_2017 do not have tothab as Emma confirmed in her 11/24/2023 email. Both sites are in Central Appalachian Ridges and Valleys. Both have high VSCI scores of 73.8 and 84.5 (the latter is max VSCI), respectively. I will impute their tothab scores. For trend station 2-DDY000.75_2017, I will average the scores of 172.5, 173.5, and 178 from 2011, 2013, and 2015, respectively. For  2-JKS070.97 on 3rd order, I averaged nearby sites 2-JKS076.16, has tothab of 162.0 on 3rd order, is upstream of 2-JKS070.97, about 16 km apart. Also used Back Creek site, 2-BCC001.90 (has tothab of 189.0 on 2nd order),  that flows parallel to Jackson River, where the 2 sites are, and Back Creek site is near confluence to Jackson River.  2-BCC001.90 is about 9 stream km from 2-JKS070.97. Added new variable tothab.
 
 ```{r tothab}
@@ -210,7 +189,7 @@ names(DFobs)
 rm(tothab_ds1, tothab_ds2, dr_na, tothab_ds3, jr_na, tothab_ds4)
 ```
 
-# Transform Obs Covariates
+# 2.2 Transform Obs Covariates
 On 01/24/2025 added code for st_type, status or trend station type.
 
 On 12/16/2024 added binomial wbc, wbc_bin, coded as numeric 0 or 1 similar to Dumelle et al. 2023 coding in National Lake assessment conductivity paper.
@@ -473,20 +452,22 @@ names(DFobs3a)
 j_ssn3 <-  SSN2::ssn_put_data(DFobs3a,j_ssn3)
 ```
 
-# Transform Pred Covariates
+# 2.2 Transform Pred Covariates
 On 01/24/2025 added code for st_type, status or trend station type.
 
 On 12/16/2024 added binomial wbc, wbc_bin, coded as numeric 0 or 1 similar to Dumelle et al. 2023 coding in National Lake assessment conductivity paper.
 
 On 11/25/2024 have to assign 0's for 31 of 48 preds that had distances of NA and additional covariates.
 
-
-```{r transform_preds}
+Create station type, noting that 34 preds are status stations. Have 7 trends stations with 2 measurements for a total of 14 observatons. Compare summaries of obs to preds to see if distributions overlap or if a pred value might be outside of the range of obs. The latter situation might identify a potential extrapolation or outlier.
+```{r transform_preds_stationtype}
 # did this assignment so would not have to change all the object names below
 preds3 <- preds1
 
 # create same name as in obs models
 preds3$tothab <- preds3$tot_hab
+summary(preds3$tothab)
+summary(DFobs3a$tothab)
 
 preds3 <- preds3 %>%
   mutate(
@@ -498,11 +479,38 @@ preds3 <- preds3 %>%
 
 summary(as.factor(preds3$st_type))
 
-ggplot(preds3, aes(x = st_type, y = vscivcpmi)) + geom_boxplot() + labs(title = "Preds 2019-2022 (n=48)")
+preds3$vsci <- round(preds3$vscivcpmi,1)
+summary(preds3$vsci)
 
-select(preds3, station_id_2, st_type, vscivcpmi) %>% arrange(st_type, station_id_2, vscivcpmi) %>% print(n =Inf)
+ggplot(preds3, aes(x = st_type, y = vsci)) + geom_boxplot() + labs(title = "Preds 2019-2022 (n=48)")
 
+select(preds3, station_id_2, st_type, vsci) %>% arrange(st_type, station_id_2, vsci) %>% print(n =Inf)
 
+preds3 %>%
+  group_by(st_type) %>%
+  summarize(min = fivenum(vsci)[1],
+            low = fivenum(vsci)[2],
+            median = fivenum(vsci)[3],
+            mean = mean(vsci, na.rm = TRUE),
+            upper = fivenum(vsci)[4],
+            max = fivenum(vsci)[5],
+            count = dplyr::n()) %>%
+  print(n = Inf)
+
+DFobs3a %>%
+  group_by(st_type) %>%
+  summarize(min = fivenum(vsci)[1],
+            low = fivenum(vsci)[2],
+            median = fivenum(vsci)[3],
+            mean = mean(vsci, na.rm = TRUE),
+            upper = fivenum(vsci)[4],
+            max = fivenum(vsci)[5],
+            count = dplyr::n()) %>%
+  print(n = Inf)
+```
+
+Creating subbasin factors and logging total nitrogen.
+```{r }
 preds3$year_f <- as.factor(preds3$year)
 preds3$vahusb <- factor(preds3$vahusb, levels = c("JU", "JM", "JR", "JA", "JL"))
 summary(preds3$vahusb)
@@ -527,9 +535,13 @@ summary(preds3$ju)
 
 
 preds3$l_tn <- log(preds3$tn)
+summary(preds3$l_tn)
+summary(DFobs3a$l_tn)
 
-preds3$vsci <- round(preds3$vscivcpmi,1)
+```
 
+Wastewater treatment plants and statsgo2 covariates for preds
+```{r wwtp_preds}
 # WWTP data loaded from obs so comment  out
 # wwtp_ds1 <- read.csv("E:/R_vdeq_nhdplus/WWTP_VA.csv") %>% clean_names(.)
 
@@ -553,7 +565,10 @@ summary(preds3$wwtp)
 names(statsgo_set2)
 
 preds3 <- left_join(preds3, statsgo_set2, by = join_by(feature_id == comid))
+```
 
+Waterbody dat for preds.
+```{r preds_waterbody}
 # Preds Waterbody data
 preds1wb_ds1 <- read.csv("data/PredictionPoints_2019_2020_DistancesUpstream_091924.csv") %>% clean_names(.)
 
@@ -576,16 +591,8 @@ summary(predsallwb_ds1$dist_nearest_up_wb_km)
 predsallwb_ds1$dist_nearest_up_wb_km[is.na(predsallwb_ds1$dist_nearest_up_wb_km)] <- 0
 
 summary(predsallwb_ds1$dist_nearest_up_wb_km)
+summary(DFobs3a$dist_nearest_up_wb_km)
 
-# file below provides a link to waterbody, and subsequently to DFobs data so commented out for pred
-# StationIDs_UniqLocIDs <- read.csv("E:/R_vdeq_sci/Working/StationIDs_UniqLocIDs.csv") %>% clean_names(.)
-# 
-# names(StationIDs_UniqLocIDs)
-# 
-# wb_ds2 <- left_join(StationIDs_UniqLocIDs, wb_ds1, by=join_by(uniq_loc_id))
-# names(wb_ds2)
-
-# from help by = join_by(name == artist)
 # station_id_2 and station_id are both long station trend names
 preds3 <- left_join(preds3, predsallwb_ds1, by = join_by(station_id_2 == station_id))
 names(preds3)
@@ -620,6 +627,10 @@ summary(j_ssn3)
 
 # saveRDS(j_ssn3, file = "j_ssn3.rds")
 
+```
+
+Empirical logit transformation for preds.
+```{r empirical_logit_preds}
 # VARIABLE ADJUSTMENT ZONE 4
 ### Variables to apply empirical logit transformation
 # emplog_vars <- c("pct_for_w","pct_imp_w","pct_crop_w","pct_hay_w","pct_grs_w","pct_shrb_w","pct_for_wr","pct_imp_rp_w","pct_crop_wr","pct_hay_wr","pct_grs_wr","pct_shrb_wr","pct_for_c","pct_imp_c","pct_crop_c","pct_hay_c","pct_grs_c", "pct_shrb_c", "pct_for_cr","pct_imp_rp_c","pct_crop_cr","pct_hay_cr","pct_grs_cr","pct_shrb_cr")
@@ -712,8 +723,14 @@ class(preds3a)
 # put SF object into SSN
 j_ssn3 <-  SSN2::ssn_put_data(preds3a,j_ssn3, name = "Preds_2019_2022", resize_data = FALSE)
 summary(j_ssn3$preds$Preds_2019_2022$pct_imp_w_emplog)
+summary(j_ssn3$obs$pct_imp_w_emplog)
 
+summary(j_ssn3$preds$Preds_2019_2022$pct_imp_w)
+summary(j_ssn3$obs$pct_imp_w)
+```
 
+Dummy code for preds
+```{r dummycode_preds}
 # dummy code 5 vahusb with base being JU, James Upper
 vahusb <- dplyr::select(predsz, vahusb)
 summary(vahusb)
@@ -752,7 +769,7 @@ summary(j_ssn3)
 str(j_ssn3$preds$Preds_2019_2022$afv_area)
 ```
 
-# Create Distance Matrix
+# 3.0 Create Distance Matrix
 When using a new SSN object, such as James_071024_pluspreds.ssn have to create distance matrices. Ran first set of code and now see a distance matrix folder in where the SSN object is stored at:
 ssn_object/James_071024_pluspreds.ssn and see sub folders for obs and Preds_2019_2022 subfolder.
 Already run so commented out.
@@ -765,78 +782,11 @@ Already run so commented out.
 ```
 
 
-## Torgegrams DO, TN and Partitioning
-In the coefficent plot, the flip-flop in instream stressor, being dissolved oxygen at Watershed and Watershed-Riparian, and then total nitrogen for Catchment and Catchment-Riparian suggests that different stressors have their effects on stream condition index at different spatial extents. I thought of following that up in two ways. First, see if semivariograms and Torgegrams of dissolved oxygen and total nitrogen show different ranges, the distance at which observations are independent. My hypothesis is that dissolved oxygen will have a larger range than total nitrogen. Second, I want to see if I update the watershed model to include all 3 instream stressors does that beat the current watershed model having only dissolved oxygen.
 
-On 05/03/2024, not seeing that much spatial structure in DO or Log(TN). On 07/12/2024 still need to test if 3 instream stressors in a model outperforms just DO in the model. Try subsetting ssn objectby ju factor and then making separate Torgegrams.
-```{r do_tn_toregrams}
-# 
-# class(j_ssn3)
-# ztg <- SSN2::Torgegram(vscivcpmi ~ 1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
-# # SSN2::plot.Torgegram(ztg)
-# torg <- ztg[["euclid"]]
-# names(torg)
-# class(torg)
-# ggplot(torg, aes(x=dist, y=gamma,size=np)) + geom_point()
-# 
-# summary(j_ssn3$obs$ju)
-# glimpse(j_ssn3$obs$ju)
-# 
-# #ju yes has 71 obs and no has 128 obs
-# # esv_separate <- map(c(yes, no), ~ SSN2::Torgegram(vscivcpmi ~ 1, j_ssn3 |> filter(ju == .x)))
-# # 
-# # esv_separate
-# # 
-# # # plot(esv_separate[[1]]) not helpful
-# # 
-# # esv_ju_yes <- esv_separate[[1]] 
-# # esv_ju_no <- esv_separate[[2]]
-# # 
-# # names(esv_ju_yes)
-# # 
-# # esv1 <- ggplot(esv_ju_yes, aes(x=dist, y=gamma, size=np)) + geom_point() + labs(x = "Euclidean Distance (m)", y = "Semivariance", title = "JU yes") + scale_x_continuous(labels=comma)
-# # 
-# # esv2 <- ggplot(esv_ju_no, aes(x=dist, y=gamma, size=np)) + geom_point() + labs(x = "Euclidean Distance (m)", y = "Semivariance", title = "JU no") + scale_x_continuous(labels=comma)
-# # 
-# 
-# 
-# 
-# ztg <- SSN2::Torgegram(l_tn ~1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
-# plot(ztg, main = "Torgegram Log(TN)")
-# plot(ztg, type = "flowcon", main = "Torgegram Log(TN)")
-# plot(ztg, type = "flowuncon", main = "Torgegram Log(TN)")
-# plot(ztg, type = "euclid", main = "Torgegram Log(TN)")
-# plot(ztg, separate = TRUE, main = "Torgegram Log(TN)")
-# 
-# flowcon <- ztg[["flowcon"]]
-# ggplot(flowcon, aes(x=dist, y=gamma)) + geom_point()
-# flowcon$dist_type <- "flow_conn"
-# 
-# flowuncon <- ztg[["flowuncon"]]
-# names(flowuncon)
-# class(flowuncon)
-# ggplot(flowuncon, aes(x=dist, y=gamma)) + geom_point()
-# flowuncon$dist_type <- "flow_unconn"
-# 
-# euclid <- ztg[["euclid"]]
-# names(euclid)
-# class(euclid)
-# ggplot(euclid, aes(x=dist, y=gamma)) + geom_point()
-# euclid$dist_type <- "euclid"
-# 
-# torg <- bind_rows(flowuncon,euclid)
-# ggplot(torg, aes(x=dist, y=gamma, colour = dist_type)) + geom_point()
-# 
-# # test if Torgegram would work using similar code below
-# # esv_separate <- map(c(2001, 2006), ~ esv(log_Zn ~ log_dist2road, moss |> filter(year == .x)))
-# 
+# 4.0 Ws-Wq Model
+This is the SSN Ws-Wq model that was evaluated in script 05. Here is it run again and augmented with diagnostic and fitted values. The parallel coordinate plot of the augmented data frame was grouped by the 5 vahusb. The clustering of the JU variables in that plot is what suggested using the partition factor. See also, the NMC Elevation Boxplots under Figures for Presentation. See the description of partition factor under section 4.1.3 Advanced Features in An Introduction to Spatial Stream Network Modeling in R using SSN2.
 
-```
-
-
-# Ws-Wq Model
-This is the SSN Ws-Wq model that was evaluated in script 05. Here is it run again and augmented with diagnostic and fitted values. The parallel coordinate plot of the augmented data frame was grouped by the 5 vahusb. The clustering of the JU variables in that plot is what suggested using the partition factor. See the description of partition factor under section 4.1.3 Advanced Features in An Introduction to Spatial Stream Network Modeling in R using SSN2.
-
+The ssn_wswq is the base model, and subsequent models derived from the base model will be preceded by prefix and underscore to identify the essential purpose or hypothesis of the new model.
 On 04/19/2024 kept tail down exponential and changed Euclidean to exponential based on models_yintercept.csv table.
 On 04/10/2023 evaluated model using vsci, untransformed, and added imp_w_pres, a binary presence indicator of impervious cover. This was approach was used by Dumelle et al. 2023 in their spatial modeling of NLA conductivity.
 ```{r wswq_ssn_obs_fitted}
@@ -858,48 +808,59 @@ loocv(ssn_wswq_reml1)
 
 tidy(ssn_wswq_reml1)
 
+```
+
+## 4.1 Mapview Standardized Residuals
+```{r mapview_wswq_ssn_residuals}
 aug_ssn_wswq_reml1 <- augment(ssn_wswq_reml1, drop = FALSE)
 class(aug_ssn_wswq_reml1)
-names(aug_ssn_wswq_reml1)
 
-mapview(aug_ssn_wswq_reml1)
+summary(aug_ssn_wswq_reml1$.std.resid)
 
-mapview(aug_ssn_wswq_reml1, zcol = ".std.resid", cex = ".std.resid", alpha.regions = .8, legend = TRUE, popup = popupTable(aug_ssn_wswq_reml1, zcol = c(".std.resid")))# + mapview(stream)
+mapview(aug_ssn_wswq_reml1, zcol = ".std.resid", alpha.regions = .8, legend = TRUE, popup = popupTable(aug_ssn_wswq_reml1, zcol = c(".std.resid")))
 
-# parallel coordinate plot
+```
+
+## 4.2 Parallel Coordinate Plot of Covariates by Subbasin
+```{r pcp_covariates_subbasin}
 # names(aug_ssn_wswq_reml1)
-pcpobs <- ggparcoord(data = aug_ssn_wswq_reml1, columns = c(136,155,38,161,165,204,166,232), groupColumn = "vahusb", scale = "std", showPoint = TRUE, title = "Observed Sites", alphaLines = 0.8, boxplot = FALSE)
+pcpobs <- ggparcoord(data = aug_ssn_wswq_reml1, columns = c(123, 136, 38, 167), groupColumn = "vahusb", scale = "std", showPoint = TRUE, title = "Observed Sites", alphaLines = 0.8, boxplot = FALSE)
 pcpobs
 
-ggplot(aug_ssn_wswq_reml1, aes(x = pct_imp_w_emplog, y = .fitted, colour = vahusb)) + geom_point() + geom_smooth(method = "lm")
+```
 
-ggplot(aug_ssn_wswq_reml1, aes(x = vahusb, y = .fitted)) + geom_boxplot()
-
+## 4.3 Torgegram of Ws-Wq SSN Model Residuals
+```{r torg_wswq_resids}
 resid_ssn1 <- as.data.frame(aug_ssn_wswq_reml1)|>
    dplyr::select(station_id_2, .fitted, .resid, .std.resid)
 
 class(resid_ssn1)
-names(resid_ssn1)
-
-ssn_wswq_fit_reml1 <- dplyr::select(aug_ssn_wswq_reml1, c(station_id, station_id_2, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, pct_imp_w, elev_ws, pct_imp_w_emplog, vsci, .fitted, .std.resid))
-
-# saveRDS(ssn_wswq_fit_reml1, file = "outputs/ssn_wswq_fit_reml1.rds")
-
-# st_write(ssn_wswq_fit_reml1, dsn = file.path(getwd(), "ssn_wswq_fit_reml1.gpkg"), layer = "ssn_wswq_fit_reml1", driver = "GPKG", quiet = FALSE, append = FALSE)
+# names(resid_ssn1)
 
 # put selected covariates in an SF object
 DFobs4 <- full_join(DFobs3a, resid_ssn1, by = join_by(station_id_2))
-names(DFobs4)
 
 # put SF object into SSN
 j_ssn4 <-  SSN2::ssn_put_data(DFobs4,j_ssn3)
 
 res_tg1 <- SSN2::Torgegram(.std.resid ~ 1, j_ssn4, type = c("flowuncon", "euclid"))
-plot(res_tg1, main = "Torgegram of Standardized Residuals from Watershed SSN")
+plot(res_tg1, main = "Torgegram of Standardized Residuals from WS-WQ SSN")
+
+# do View to check the np is reasonably larger, greater than 30
+View(res_tg1$euclid)
+View(res_tg1$flowuncon)
+# Follow three steps below for saving output as RDS and a geopackage geodatabase
+
+# ssn_wswq_fit_reml1 <- dplyr::select(aug_ssn_wswq_reml1, c(station_id, station_id_2, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, pct_imp_w, elev_ws, pct_imp_w_emplog, vsci, .fitted, .std.resid))
+
+# saveRDS(ssn_wswq_fit_reml1, file = "outputs/ssn_wswq_fit_reml1.rds")
+
+# st_write(ssn_wswq_fit_reml1, dsn = file.path(getwd(), "ssn_wswq_fit_reml1.gpkg"), layer = "ssn_wswq_fit_reml1", driver = "GPKG", quiet = FALSE, append = FALSE)
+
 ```
 
-# Ws-Wq Partitioned
-The z4 model below has the partitioned factor of ju, Upper James. The models z1-z3 tested different coding and how different fixed and random effects compared to ssn_wswq_reml1. Finally, z4 model had a better fit, based on AIcc, than ssn_wswq_reml1. Also, the RMSPE is slightly smaller for the z4 model, and its cor2 is slightly larger.
+# 5.0 Partitioned Ws-Wq Model
+The p_ssn_wswq model below has the partitioned factor of ju, Upper James. The models z1-z3 tested different coding and how different fixed and random effects compared to ssn_wswq_reml1. Finally, z4 model had a better fit, based on AIcc, than ssn_wswq_reml1. Also, the RMSPE is slightly smaller for the z4 model, and its cor2 is slightly larger.
 
 On 12/26/2024 commented out models z1-z3
 
@@ -907,66 +868,8 @@ On 11/25/2024 why does z4ssn_wswq_ml1 model give much more reasonable range esti
 On 07/03/2024 need to look at diagnostic plots of partition model. Diagnostic plots are saved as Word files at E:\R_vdeq_sci\Working\Data\neptune_analysis\scripts_by_basin.
 On 06/28/2024, I coded for a partition factor base on JU subbasin versus non-JU subasins , partly because parallel coordinate plot showed JU to differ in covariates and vsci from rest of subbasins. Results from dummy coded model above match factor coded model below. Also, on 06/20/2024 compared the Watershed ssn model to a model with a random effect of year. The Watershed ssn model had a much lower AICc than the model with a random effect of year.
 ```{r wswq_ssn_partition}
-# z1 model shows that jl as factor gives same results at dummy coded vahusb_JL
-# z1ssn_wswq_reml1 <- ssn_lm(
-#   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + jl,
-#   ssn.object = j_ssn3,
-#   tailup_type = "none",
-#   taildown_type = "exponential",
-#   euclid_type = "exponential",
-#   nugget_type = "nugget",
-#   estmethod = "reml",
-#   additive = "afv_area"
-# )
-# summary(z1ssn_wswq_reml1)
 
-# random effect of year
-# z2ssn_wswq_reml1 <- ssn_lm(
-#    formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
-#    ssn.object = j_ssn3,
-#    tailup_type = "none",
-#    taildown_type = "exponential",
-#    euclid_type = "exponential",
-#    nugget_type = "nugget",
-#    estmethod = "reml",
-#    additive = "afv_area",
-#    random = ~ year_f
-# )
-# 
-# summary(z2ssn_wswq_reml1)
-# varcomp(z2ssn_wswq_reml1)
-# loocv(z2ssn_wswq_reml1)
-
-#plot(z2ssn_wswq_reml1, which = c(1:6))
-# 
-# glances(ssn_wswq_reml1,z2ssn_wswq_reml1)
-# AICc ssn_ws_reml1 1415 vs. AICc z2ssn_wswq_reml1 1424
-
-# fixed effect of year
-# z3ssn_wswq_reml1 <- ssn_lm(
-#    formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + year_f,
-#    ssn.object = j_ssn3,
-#    tailup_type = "none",
-#    taildown_type = "exponential",
-#    euclid_type = "exponential",
-#    nugget_type = "nugget",
-#    estmethod = "reml",
-#    additive = "afv_area"
-#  )
-# 
-# summary(z3ssn_wswq_reml1)
-# varcomp(z3ssn_wswq_reml1)
-# loocv(z3ssn_wswq_reml1)
-
-#plot(z3ssn_wswq_reml1, which = c(1:6))
-
-# glances(ssn_wswq_reml1,z2ssn_wswq_reml1,z3ssn_wswq_reml1)
-# AICc ssn_ws_reml1 1415 vs. AICc z2ssn_wswq_reml1 1423 vs AICc z3ssn 1327
-# RMSPE/cor2 ssn_ws_reml1 8/38/0.41 vs. RMSPE/cor2 z2ssn_wswq_reml1 8.46/0.40 vs RMSPE/cor2 z3ssn 8.70/0.378
-
-# On 06/28/2024 partition factor on ju motivated by parallel coordinate plots of obs and preds.  Partition factor, from help, affects covariance portion of the model while fixed effects affect the mean portion. Therefore I think I can compare 2 models based on AICc derived from reml. 
-
-z4ssn_wswq_reml1 <- ssn_lm(
+p_ssn_wswq_reml1 <- ssn_lm(
   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
   ssn.object = j_ssn3,
   tailup_type = "none",
@@ -977,29 +880,48 @@ z4ssn_wswq_reml1 <- ssn_lm(
   additive = "afv_area",
   partition_factor = ~ ju
 )
-summary(z4ssn_wswq_reml1)
-varcomp(z4ssn_wswq_reml1)
-loocv(z4ssn_wswq_reml1) %>% print(n = Inf)
+summary(p_ssn_wswq_reml1)
+varcomp(p_ssn_wswq_reml1)
+loocv(p_ssn_wswq_reml1) %>% print(n = Inf)
 
-glances(ssn_wswq_reml1,z4ssn_wswq_reml1)
+glances(ssn_wswq_reml1,p_ssn_wswq_reml1)
 
-#plot(z4ssn_wswq_reml1, which = c(1:6))
+# plot(p_ssn_wswq_reml1, which = c(1:6))
 
-tidy(z4ssn_wswq_reml1)
+tidy(p_ssn_wswq_reml1)
+```
+ 
+## 5.1 Mapview Standardized Residuals
+```{r mapview aug_p_wswq_reml1}
+aug_p_wswq_reml1 <- augment(p_ssn_wswq_reml1, drop = FALSE)
+summary(aug_p_wswq_reml1$.std.resid)
 
-aug_z4_wswq_reml1 <- augment(z4ssn_wswq_reml1, drop = FALSE)
-summary(aug_z4_wswq_reml1$.std.resid)
-mapview(aug_z4_wswq_reml1, zcol = ".std.resid", cex = ".std.resid", alpha.regions = .8, legend = TRUE, popup = popupTable(aug_ssn_wswq_reml1, zcol = c(".std.resid"))) 
+mapview(aug_p_wswq_reml1, zcol = ".std.resid",  alpha.regions = .8, legend = TRUE, popup = popupTable(aug_p_wswq_reml1, zcol = c(".std.resid"))) 
 
-aug_z4_wswq_reml1 <- dplyr::select(aug_z4_wswq_reml1, c(station_id, station_id_2, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, pct_imp_w, elev_ws, pct_imp_w_emplog, vsci, .fitted, .std.resid))
+```
 
-# saveRDS(aug_z4_wswq_reml1, file = "outputs/aug_z4_wswq_reml1.rds")
+## 5.2 Torgegram of p_WsWq SSN Residuals
+```{r torg_wswq_resids}
+p_resid_ssn1 <- as.data.frame(aug_p_wswq_reml1)|>
+   dplyr::select(station_id_2, .fitted, .resid, .std.resid)
 
-# st_write(aug_z4_wswq_reml1, dsn = file.path(getwd(), "aug_z4_wswq_reml1.gpkg"), layer = "aug_z4_wswq_reml1", driver = "GPKG", quiet = FALSE, append=FALSE)
+# put selected covariates in an SF object
+DFobs5 <- full_join(DFobs3a, p_resid_ssn1, by = join_by(station_id_2))
 
-# B/c want to compare predictions from models having different covariates specifying estimation method as ml
+# put SF object into SSN
+j_ssn5 <-  SSN2::ssn_put_data(DFobs5,j_ssn3)
 
-z4ssn_wswq_ml1 <- ssn_lm(
+res_tg2 <- SSN2::Torgegram(.std.resid ~ 1, j_ssn5, type = c("flowuncon", "euclid"))
+plot(res_tg2, main = "Torgegram of Standardized Residuals from Partitioned WS-WQ SSN")
+
+
+```
+
+
+## 5.3 p_WsWq SSN Model:  ML Estimation
+Because we want to compare p_WsWq SSN model fit and predictions to models with different covariates, see additionaly hypotheses model in section 6.0, we need to  specify estimation method as ml.
+```{r p_ssn_wswq_ml}
+p_ssn_wswq_ml1 <- ssn_lm(
   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
   ssn.object = j_ssn3,
   tailup_type = "none",
@@ -1010,14 +932,580 @@ z4ssn_wswq_ml1 <- ssn_lm(
   additive = "afv_area",
   partition_factor = ~ ju
 )
-summary(z4ssn_wswq_ml1)
-varcomp(z4ssn_wswq_ml1)
-loocv(z4ssn_wswq_ml1) %>% print(n = Inf)
+summary(p_ssn_wswq_ml1)
+varcomp(p_ssn_wswq_ml1)
+loocv(p_ssn_wswq_ml1) %>% print(n = Inf)
 
+```
+
+
+# 6.0 Additional Hypotheses for Ws-Wq SSN model
+The partitioned model, using ML estimation, beat out the additional hypotheses model based on AICc, RMSPE, and cor2. See Ver Hoef et al. 2014 for description of using ML estimation when comparing models with different covariates.
+
+```{r additional_hypotheses}
+
+a_ssn_wswq_ml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + rck_dep_ws + wwtp + wbc,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "ml",
+  additive = "afv_area",
+  partition_factor = ~ju
+)
+summary(a_ssn_wswq_ml1)
+varcomp(a_ssn_wswq_ml1)
+loocv(a_ssn_wswq_ml1) %>% print(n = Inf)
+
+glances(p_ssn_wswq_ml1,a_ssn_wswq_ml1)
+loocv(a_ssn_wswq_ml1)
+
+# plot(a_ssn_wswq_ml1, which = c(1:6))
+
+# tidy(a_ssn_wswq_ml1)
+```
+
+## 6.1 Mapview Standardized Residuals
+```{r mapview_a_ssn_wswq_reml1}
+# inserted r in file name to indicate residuals now included
+a_rssn_wswq_ml1 <- augment(a_ssn_wswq_ml1, drop = FALSE)
+# note on 10/04/2024 fixed mapview so popupTable using correct object, had been pointing to ssn_wswq_reml1
+summary(a_rssn_wswq_ml1$.std.resid)
+
+mapview(a_rssn_wswq_ml1, zcol = ".std.resid",  alpha.regions = .8, legend = TRUE, popup = popupTable(a_rssn_wswq_ml1, zcol = c(".std.resid"))) 
 
 
 ```
 
+# 7.0 Distance Hypothesis for WsWq SSN Model
+On 12/26/2024 used geom_ribbon to make prediction interval.
+
+On 12/16/2024 testing distance hypothesis of upstream waterbodies by now using wbc_bin and 
+dist_nearest_up_wb_km with those covariates entered into the model as 
+wbc_bin
+wbc_bin:dist_nearest_up_wb_km.
+This follows coding as used in Dumelle et al. 2023 paper. Using that coding produced a poorer fitting more complicated model than z4. Using just the continuous covariate of distance, as done on 11/19/2024, produces a better fitting model a5ssn_wswq_ml1. Model a5ssn_wswq_ml1 has slightly better values for RMSPE and cor2 than z4ssn_wswq_ml1. What does added variable plot of that model look like?
+
+
+Run ML estimation when comparing to models with different covariates. Run with REML when comparing to models with different spatial autocovariances and for prediction.
+On 11/19/2024 Tried running interaction of wbc*dist_nearest_up_wb_km, but got error of singular matrix. Consequently, only tested model using continuous covariate dist_nearest_up_wb_km.
+Again, commented out plot(a5ssn_wswq_ml1, which = c(1:6)) as seems to prevent code running straight through. The a5ssn_wswq_ml1 model with only continuous covariate dist_nearest_up_wb_km has smaller AICc than z4 model.
+
+## 7.1 ESDA on Distance Hypothesis
+Running torgegram on SSN0 nugget mlr model as shown in section 4.1.1 of SSN2 vignette. Not seeing much in Torgegram plot.
+```{r esda_distance_hypothesis}
+
+ggplot(DFobs3a, aes(x = dist_nearest_up_wb_km, y = vsci)) + geom_point() + facet_wrap(vars(wbc))  + geom_smooth(method = "lm", se =TRUE)
+
+ggplot(DFobs3a, aes(x = dist_nearest_up_wb_km, y = vsci)) + geom_point() + geom_smooth(method = "lm", se =TRUE)
+
+d_tg <- Torgegram(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
+  ssn.object = j_ssn3,
+  type = c("flowcon", "flowuncon", "euclid")
+)
+plot(d_tg)
+plot(d_tg, separate = TRUE)
+View(d_tg$euclid)
+View(d_tg$flowuncon)  
+View(d_tg$flowcon) # low np
+```
+
+## 7.2 Check Nonspatial Diagnostics on Distance MLR Model
+Get checks on collinearity, added variable plots and other diagnostics. Typical MLR diagnostics look good. 
+```{r a5_mlr_diagnostics}
+d_mlr1 <- lm(vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
+  data = DFobs3a)
+
+summary(d_mlr1)
+check_model(d_mlr1)
+avPlots(d_mlr1)
+```
+
+## 7.3 d_ssn_wswq_ml1
+```{r d_ssn_wswq_ml1}
+d_ssn_wswq_ml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "ml",
+  additive = "afv_area",
+  partition_factor = ~ju
+)
+
+summary(d_ssn_wswq_ml1)
+varcomp(d_ssn_wswq_ml1)
+loocv(d_ssn_wswq_ml1)
+tidy(d_ssn_wswq_ml1)
+
+# plot(d_ssn_wswq_reml1, which = c(1:6))
+
+
+```
+
+## 7.4 d_ssn_wswq_rem1
+The reml estimation method is the one we want to use for obtainging variance composition from the varcomp function and for making predictions.
+```{r d_ssn_wswq_ml1}
+d_ssn_wswq_reml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area",
+  partition_factor = ~ju
+)
+
+summary(d_ssn_wswq_reml1)
+varcomp(d_ssn_wswq_reml1)
+loocv(d_ssn_wswq_reml1)
+
+tidy(d_ssn_wswq_reml1)
+
+# plot(d_ssn_wswq_reml1, which = c(1:6))
+
+```
+
+## 7.5 Mapview Standardized Residuals
+```{r mapview aug_d_wswq_reml1}
+aug_d_wswq_reml1 <- augment(d_ssn_wswq_reml1, drop = FALSE)
+summary(aug_d_wswq_reml1$.std.resid)
+
+mapview(aug_d_wswq_reml1, zcol = ".std.resid",  alpha.regions = .8, legend = TRUE, popup = popupTable(aug_d_wswq_reml1, zcol = c(".std.resid"))) 
+
+```
+
+
+# 8.0 Status and Trend WsWq SSN model
+Using a more complex model with a covariate of station type, status versus trend, and a randome effect for repeated observations at trend stations, does not produce a better fitting or predictive model compared to the distance SSN model.
+On 01/24/2025 inserted this code chunk to run status/trend random effects model, ssn_wswq_rand1_st, and compare it to distance model, with both models estimated by ml given different covariates.
+```{r st_vs_distance}
+st_ssn_wswq_rand1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km + st_type,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "ml",
+  additive = "afv_area",
+  partition_factor = ~ju,
+  random = ~ (1 | station_id)
+)
+
+summary(st_ssn_wswq_rand1)
+varcomp(st_ssn_wswq_rand1)
+loocv(st_ssn_wswq_rand1)
+
+plot(st_ssn_wswq_rand1, which = c(1:6))
+
+glances(d_ssn_wswq_ml1, st_ssn_wswq_rand1)
+
+
+```
+
+# 9.0 NMC Distance Model w/ and w/o Partition Factor
+This compares the distance SSN model from section 7, which has a partition factor, to a distance model with no partition factor. The better model is the distance SSN model with the partition factor. This result was used in the NMC 2025 presentation.
+02/19/2025 Making this comparison to include results in NMC 2025 presentation
+```{r distance_with_without_partition}
+#np stands for no partition factor
+
+np_ssn_wswq_reml1 <- ssn_lm(
+  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
+  ssn.object = j_ssn3,
+  tailup_type = "none",
+  taildown_type = "exponential",
+  euclid_type = "exponential",
+  nugget_type = "nugget",
+  estmethod = "reml",
+  additive = "afv_area"
+)
+
+
+summary(np_ssn_wswq_reml1)
+varcomp(np_ssn_wswq_reml1)
+loocv(np_ssn_wswq_reml1)
+tidy(np_ssn_wswq_reml1)
+
+glances(d_ssn_wswq_reml1, np_ssn_wswq_reml1)
+```
+
+
+# 10 Predictands from Distance WsWQ SSN Model
+
+02/14/2025 trying to make scatter plot showing prediction error for status and trend stations
+On 01/23/2025 the abrupt change from saw tooth prediction interval to
+steady prediction interval is driven by the shorter range of vsci obs and vsci predictions for trend stations compared to the status status stations.
+On 01/21/2025 added station type, st_type, of status or trend station as noticed first 11 stations with smallest .se.fit were trend stations.
+
+Note for predictions want estimation method to be reml.
+Looking to see if distance to nearest upstream waterbody covariate pulls outliers closer to 1:1 line, which is the a5 model.
+```{r distance_hypothesis_preds}
+
+# augment returns an sf object
+# note level set to 0.90
+aug_d_predict1ws_vsci <- augment(d_ssn_wswq_reml1, newdata = "Preds_2019_2022", se_fit = TRUE, interval = c("prediction"), level = 0.90)
+# class(aug_a5predict1ws_vsci)
+# names(aug_a5predict1ws_vsci)
+aug_d_predict1ws_vsci$vsci_pred <- round(aug_d_predict1ws_vsci$.fitted,1)
+aug_d_predict1ws_vsci$vsci_lwr <- round(aug_d_predict1ws_vsci$.lower,1)
+aug_d_predict1ws_vsci$vsci_upr <- round(aug_d_predict1ws_vsci$.upper,1)
+head(aug_d_predict1ws_vsci$.se.fit)
+# Pineiro 2008 put observed on y and predict on x
+# label specific points
+# https://stackoverflow.com/questions/15624656/label-points-in-geom-point
+
+select(aug_d_predict1ws_vsci, station_id_2, st_type, vsci, vsci_pred, .se.fit) %>% arrange(.se.fit) %>% print(n =48)
+
+ggplot(aug_d_predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type, color = st_type)) + geom_point() + labs(x = "Predicted VSCI", y = "True VSCI, 2019-2022", title = "SSN Prediction Sites", shape = "Station Type", color = "Station Type") + xlim(35,80) + ylim(35,80) + scale_size_binned(name = "Standard Error") + guides(color = guide_legend(override.aes = list(size = 6))) + theme(legend.text = element_text(size = 12))
+
+cor(aug_d_predict1ws_vsci$vsci_pred,aug_d_predict1ws_vsci$vsci, method = "pearson")
+
+as.data.frame(aug_d_predict1ws_vsci)|>
+  dplyr::select(vsci_pred,vsci)|>
+  correlate()
+
+
+```
+
+# 11 Interactive Mapping of Predictands
+## 11.1 VAHUSB Polygons
+```{r vahusb_poly}
+vahusb_poly <- sf::st_read("data/vahusb.shp")
+# names(vahusb_poly)
+# mapview(vahusb_poly)
+mapview(vahusb_poly, zcol="VAHUSB", burst = TRUE)
+
+vahusb_poly <- vahusb_poly %>% 
+  mutate(
+    subbasin = case_when(
+      VAHUSB == "James River, Upper (Mountain)" ~ "JU",
+      VAHUSB == "James River, Middle (Piedmont)" ~ "JM",
+      VAHUSB == "James River- Rivanna River" ~ "JR",
+      VAHUSB == "James River- Appomattox River" ~ "JA",
+      VAHUSB == "James River, Lower (Tidal)" ~ "JL"
+    )
+  )
+names(vahusb_poly)
+mapview(vahusb_poly, zcol="subbasin", burst = TRUE)
+
+vahusb_poly$subbasin <- factor(vahusb_poly$subbasin, levels = c("JU", "JM", "JR", "JA", "JL"))
+
+# once made a factor do not need to do burst
+mapview(vahusb_poly, zcol="subbasin")
+
+```
+
+## 11.2 Synced Maps
+Synced maps are good for a quick, interactive visualization, but the workflow of make synced maps, use Rstudio export to save html locally, then open html in browser, snip a screenshot and paste into Powerpoint does not make publication-quality maps. I could not get the mapshot or mapshot2 functions in mapview to make a png.
+```{r synced_maps}
+names(DFobs3a)
+names(aug_d_predict1ws_vsci)
+
+vsci_obs <- mapview(DFobs3a, zcol = "vsci", at=seq(0, 90, 15), alpha.regions = .8, legend = TRUE,layer.name = 'Observed Sites VSCI', popup = popupTable(aug_d_predict1ws_vsci, zcol = c("station_id_2", "vsci"))) + mapview(vahusb_poly, zcol="subbasin")
+vsci_obs
+
+vsci_true <- mapview(aug_d_predict1ws_vsci, zcol = "vsci", at=seq(0, 90, 15), alpha.regions = .8, legend = TRUE,layer.name = 'Prediction Sites True VSCI', popup = popupTable(aug_d_predict1ws_vsci, zcol = c("station_id_2", "vsci"))) + mapview(vahusb_poly, zcol="subbasin")
+
+vsci_true
+
+print(sync1 <- sync(vsci_obs, vsci_true, ncol=1))
+
+
+vsci_pred <- mapview(aug_d_predict1ws_vsci, zcol = "vsci_pred", at=seq(0, 90, 15), alpha.regions = .8, legend = TRUE,layer.name = 'Predictands VSCI', popup = popupTable(aug_d_predict1ws_vsci, zcol = c("station_id_2", "vsci_pred"))) + mapview(vahusb_poly, zcol="subbasin")
+
+vsci_pred
+
+print(sync2 <- sync(vsci_true, vsci_pred, ncol =1))
+
+vsci_predse <- mapview(aug_d_predict1ws_vsci, zcol = ".se.fit",  alpha.regions = .8, legend = TRUE,layer.name = 'Predictands VSCI SE', popup = popupTable(aug_d_predict1ws_vsci, zcol = c("station_id_2", "st_type", "vsci", "vsci_pred", ".se.fit"))) + mapview(vahusb_poly, zcol="subbasin")
+
+vsci_predse
+
+print(sync3 <- sync(vsci_pred, vsci_predse, ncol=1))
+
+```
+
+# 12 Ribbon Predictand Interval
+This is producing a 90% prediction interval because that was the level set when augmented predictions were made.
+```{r ribbon_pred_interval}
+
+# ribbon using lower and upper SSN2 prediction intervals
+
+ribbon_pi1 <- ggplot(aug_d_predict1ws_vsci, aes(x = vsci_pred, y = vsci, shape = st_type, color = st_type, label = station_id_2)) +   geom_point(aes(size = .se.fit)) + 
+  geom_abline() + 
+  geom_ribbon(aes(ymin = vsci_lwr, ymax = vsci_upr), fill = "grey", alpha = .4) + 
+  geom_line(aes( y = vsci_pred)) + 
+  labs(x = "Predicted VSCI", y = "TRUE VSCI 2019-2022", title = "SSN Predictions (prediction interval 0.90", subtitle = "Pearson Correlation = 0.57", shape = "Station Type", color = "Station Type") +
+  scale_size_binned(name = "Standard Error") + guides(color = guide_legend(override.aes = list(size = 6))) + theme(legend.text = element_text(size = 12))
+
+print(ribbon_pi1)
+ggplotly(ribbon_pi1)
+
+# opl stands for outside prediction limits
+opl_stations2 <- filter(aug_d_predict1ws_vsci, vsci < vsci_lwr | vsci > vsci_upr)
+
+class(opl_stations2)
+mapview(opl_stations2, zcol = "station_id_2",  alpha.regions = .8, legend = TRUE,layer.name = 'Outside Prediction Limits', popup = popupTable(aug_d_predict1ws_vsci, zcol = c("station_id_2", "st_type", "vsci", "vsci_pred", ".se.fit"))) + mapview(vahusb_poly, zcol="subbasin")
+
+opl_stations2
+# given comment "Target and Sampled (no fish or PHAB in 2019?) Dry,no staff", should this site 2-DCK003.94_2019 been sampled?
+
+```
+
+# Exploring residuals and counts at trend vs status
+While trend stations have smaller .se.fit than status stations, it appears this may simply be a function of more samples at trend stations than single-visit status stations.
+```{r}
+
+## adding in some additional looks at .se.fit vs station type and number of samples.
+
+# using preds data (n=48)
+# create residuals in the new prediction frame as they don't provide from the prediction augment call
+aug_d_predict1ws_vsci$.residuals <- aug_d_predict1ws_vsci$vsci-aug_d_predict1ws_vsci$.fitted
+
+
+small_preds = aug_d_predict1ws_vsci%>% select(station_id_2,st_type,vsci,vsci_pred,.se.fit,.fitted,.residuals)
+
+p = ggplot(small_preds, aes(x = .se.fit, y = .residuals,color = st_type))+
+  geom_point(aes(label = station_id_2)) +
+  labs(title = "Predictands .se.fit and .residual")
+ggplotly(p,hoverinfo = "text")
+
+filter(small_preds, st_type == "trend") %>% 
+  select(station_id_2,st_type, .se.fit) %>% 
+  arrange(station_id_2) %>% 
+  print(n = Inf)
+
+#small_preds n
+small_preds_n = small_preds%>% group_by(station_id_2,st_type)%>% summarise(n = n())
+
+# Using obs data (n=199)
+## loocv
+# already run in a chunk above aug_d_wswq_reml1 <- augment(d_ssn_wswq_reml1, drop = FALSE) to get .residual
+
+# use loocv to get se.fit out of n = 199 obs
+
+aug_d_wswq_reml1$se.fit <- loocv(d_ssn_wswq_reml1,se.fit = T)[[2]]
+names(aug_d_wswq_reml1)
+
+# small obs
+small_obs = aug_d_wswq_reml1 %>% select(station_id_2,st_type,vsci,.fitted,.resid,se.fit)
+
+p3 = ggplot(small_obs, aes(x = se.fit, y = .resid,color = st_type))+
+  geom_point(aes(label = station_id_2)) +
+  labs(title = "Observed loocv .se.fit and .residuals")
+ggplotly(p3,hoverinfo = "text")
+
+# is the .se.fit basically just based on number of samples?
+small_obs_n = small_obs%>% select(station_id_2,st_type, se.fit)%>%
+  group_by(station_id_2,st_type)%>%
+  summarise(n = n()) 
+
+filter(small_obs, st_type == "trend") %>% 
+  select(station_id_2,st_type, se.fit) %>% 
+  arrange(station_id_2) %>% 
+  print(n = Inf)
+
+# so looking at these is appears we maybe have slightly tighter residuals at the trend stations but that would require some more specific distributional tests. However the main takeaway is that while the sample size at a point is likely impacting that se.fit value it is not the only driving factor as there are more se.fit values than there are unique sample sizes. 
+
+```
+
+# Figures for Presentations
+## SFS 2024 Meeting Torgegram
+```{r sfs_torgegram}
+
+# torg2 <- ggplot(flowuncon, aes(x=dist, y=gamma)) + geom_point(size =3) + labs(x = "Flow-Unconnected Stream Distance (m)", y = "Semivariance", title = "VSCI Torgegram Stream Network Distance") + scale_x_continuous(labels=comma)
+# png(file="figures_sfs/torg2.png",width=6,height=3,units="in",res=150)
+#   torg2
+# dev.off()
+
+
+# esv2 <- ggplot(euclid, aes(x=dist, y=gamma)) + geom_point(size =3) + labs(x = "Euclidean Distance (m)", y = "Semivariance", title = "VSCI Semivariogram Euclidean Distance") + scale_x_continuous(labels=comma)
+# png(file="figures_sfs_2024/esv2.png",width=6,height=3,units="in",res=150)
+#   esv2
+# dev.off()
+```
+
+# NMC 2025
+## NMC True VSCI vs Pred VSCI Scatter Plot
+
+```{r nmc_pred_true_vsci_stationtype}
+# This one is closest
+a5preds2019_2022_v3 <- ggplot(aug_d_predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type, color = st_type)) + geom_point() + labs(x = "Predicted VSCI", y = "True VSCI, 2019-2022", title = "SSN Prediction Sites", shape = "Station Type", color = "Station Type") + xlim(35,80) + ylim(35,80) + scale_size_binned(name = "Standard Error") + guides(color = guide_legend(override.aes = list(size = 6))) + theme(legend.text = element_text(size = 12))
+
+png(file="figures_nmc_2025/a5preds2019_2022_v3.png",width=6,height=3,units="in",res=150)
+a5preds2019_2022_v3
+dev.off()
+
+```
+
+## NMC True VSCI vs Pred VSCI Ribbon Plot
+```{r}
+ribbon_pi1 <- ggplot(aug_d_predict1ws_vsci, aes(x = vsci_pred, y = vsci, shape = st_type, color = st_type, label = station_id_2)) + 
+  geom_point(aes(size = .se.fit)) + 
+  geom_abline() + 
+  geom_ribbon(aes(ymin = vsci_lwr, ymax = vsci_upr), fill = "grey", alpha = .4) + 
+  geom_line(aes( y = vsci_pred)) + 
+  labs(x = "Predicted VSCI", y = "TRUE VSCI 2019-2022", title = "SSN Predictions (prediction interval 0.90)", subtitle = "Pearson Correlation = 0.57", shape = "Station Type", color = "Station Type") +
+  scale_size_binned(name = "Standard Error") + guides(color = guide_legend(override.aes = list(size = 6))) + theme(legend.text = element_text(size = 12))
+
+print(ribbon_pi1)
+ggplotly(ribbon_pi1)
+
+png(file="figures_nmc_2025/ribbon_pi1.png",width=6,height=3,units="in",res=150)
+ribbon_pi1
+dev.off()
+
+```
+
+
+
+## NMC Elevation Boxplots by Subbasin
+```{r nmc_boxplots}
+RColorBrewer::display.brewer.all()
+viridis::viridis(7)
+tmaptools::palette_explorer() # zoomed to this and checked options Print color values to get color codes for Brewer Categorical Set3 so I could specify fill colors to match tmaps
+
+boxplot_elev_ws <- ggplot(data=DFobs3a, aes(y= elev_ws, x= vahusb)) + geom_boxplot(aes(fill = vahusb), outlier.shape = NA) + geom_jitter() + labs(y = "Watershed Elevation (m)", x = "Subbasins", fill = "Subbasin") + scale_fill_manual(values = c("#8DD3C7", "#FFFFB3", "#BEBADA", "#FB8072", "#80B1D3"))
+  
+png(file="figures_nmc_2025/boxplot_elev_ws_v1_20250225.png",width=6,height=3,units="in",res=150)
+boxplot_elev_ws
+dev.off()
+
+
+```
+
+## NMC tmap: Prediction Maps
+
+```{r jprobmon}
+
+
+legend_title = "Subbasin"
+tm_shape(vahusb_poly) + tm_polygons("subbasin") +
+  tm_layout(asp=0,
+  legend.width = 2, legend.text.size = 1.5, legend.title.size = 3.0,
+  frame = FALSE,
+  legend.position = c("right", "TOP"),
+  title.position = c('right', 'TOP')
+) + tm_scale_bar(position = c("center", "BOTTOM", text.size = 1.0)) + tm_compass(position = c("left", "top")) +
+  tm_legend(legend.outside=T,  legend.outside.position="top",legend.hist.height = 1.0, legend.hist.width = 1.0, legend.hist.size = 1.5)
+
+# trying to make subasins legends only so can put in Powerpoint
+sb_legend <- tm_shape(vahusb_poly) + tm_polygons("subbasin") +
+  tm_layout(legend.only = TRUE)
+tmap_save(sb_legend, "figures_nmc_2025/sb_legend.jpeg", width = 2, height = 2, dpi = 150)
+
+# Observed sites
+### doing legend.show = F for polygons as I will be placing sb_legend on Powerpoint
+
+j_map_vsci_obs <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show = F) +
+  tm_shape(DFobs3a) + 
+  tm_bubbles(
+  size = "vsci",
+  legend.size.show = FALSE,
+  col = "vsci",
+  legend.col.is.portrait = FALSE,
+  style = "fixed",
+  palette = "viridis",
+  title.col = "VSCI at Observed Sites 2001-2018 (n = 199)",
+  breaks = seq(0, 90, by = 15),
+  sizes.legend=seq(0, 90, by=15),
+  legend.hist = FALSE,
+) + tm_layout(asp=0,
+  legend.width = 2, legend.text.size = 1.5, legend.title.size = 3.0,
+  frame = FALSE,
+  legend.position = c("center", "TOP"),
+  title.position = c('center', 'TOP')
+) + tm_scale_bar(position = c("center", "BOTTOM", text.size = 1.0)) + tm_compass(position = c("left", "top")) +
+  tm_legend(legend.outside=T, legend.outside.position="top",legend.hist.height = 1.0, legend.hist.width = 1.0, legend.hist.size = 1.5)
+
+tmap_save(j_map_vsci_obs, "figures_nmc_2025/j_map_vsci_obs_v1_20250212.jpeg", width = 7, height = 3.5, dpi = 150)
+
+# map for true vsci predictands
+
+j_map_vsci_true <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show = F) +
+  tm_shape(aug_d_predict1ws_vsci) + 
+  tm_bubbles(
+  size = "vsci",
+  legend.size.show = FALSE,
+  col = "vsci",
+  legend.col.is.portrait = FALSE,
+  style = "fixed",
+  palette = "viridis",
+  title.col = "True VSCI at Prediction Sites 2019-2022 (n = 48)",
+  breaks = seq(0, 90, by = 15),
+  sizes.legend=seq(0, 90, by=15),
+  legend.hist = FALSE,
+) + tm_layout(asp=0,
+  legend.width = 2, legend.text.size = 1.5, legend.title.size = 3.0,
+  frame = FALSE,
+  legend.position = c("center", "TOP"),
+  title.position = c('center', 'TOP')
+) + tm_scale_bar(position = c("center", "BOTTOM", text.size = 1.0)) + tm_compass(position = c("left", "top")) +
+  tm_legend(legend.outside=T, legend.outside.position="top",legend.hist.height = 1.0, legend.hist.width = 1.0, legend.hist.size = 1.5)
+
+tmap_save(j_map_vsci_true, "figures_nmc_2025/j_map_vsci_true_v1_20250212.jpeg", width = 7, height = 3.5, dpi = 150)
+
+
+# map for vsci predictands
+
+j_map_vsci_predicted <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show = F) +
+  tm_shape(aug_d_predict1ws_vsci) + 
+  tm_bubbles(
+  size = "vsci_pred",
+  legend.size.show = FALSE,
+  col = "vsci_pred",
+  legend.col.is.portrait = FALSE,
+  style = "fixed",
+  palette = "viridis",
+  title.col = "Predictand VSCI at Prediction Sites 2019-2022 (n = 48)",
+  breaks = seq(0, 90, by = 15),
+  sizes.legend=seq(0, 90, by=15),
+  legend.hist = FALSE,
+) + tm_layout(asp=0,
+  legend.width = 2, legend.text.size = 1.5, legend.title.size = 3.0,
+  frame = FALSE,
+  legend.position = c("center", "TOP"),
+  title.position = c('center', 'TOP')
+) + tm_scale_bar(position = c("center", "BOTTOM", text.size = 1.0)) + tm_compass(position = c("left", "top")) +
+  tm_legend(legend.outside=T, legend.outside.position="top",legend.hist.height = 1.0, legend.hist.width = 1.0, legend.hist.size = 1.5)
+
+tmap_save(j_map_vsci_predicted, "figures_nmc_2025/j_map_vsci_predictedv1_20250213.jpeg", width = 7, height = 3.5, dpi = 150)
+
+# map for predictand se
+
+j_map_vsci_predse <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show = F) +
+  tm_shape(aug_d_predict1ws_vsci) + 
+  tm_bubbles(
+  size = ".se.fit",
+  legend.size.show = FALSE,
+  col = ".se.fit",
+  legend.col.is.portrait = FALSE,
+  style = "cont",
+  palette = "viridis",
+  title.col = "Standard Error of Predictand VSCI 2019-2022 (n = 48)",
+  legend.hist = FALSE,
+) + tm_layout(asp=0,
+  legend.width = 2, legend.text.size = 1.5, legend.title.size = 3.0,
+  frame = FALSE,
+  legend.position = c("center", "TOP"),
+  title.position = c('center', 'TOP')
+) + tm_scale_bar(position = c("center", "BOTTOM", text.size = 1.0)) + tm_compass(position = c("left", "top")) +
+  tm_legend(legend.outside=T, legend.outside.position="top",legend.hist.height = 1.0, legend.hist.width = 1.0, legend.hist.size = 1.5)
+
+tmap_save(j_map_vsci_predse, "figures_nmc_2025/j_map_vsci_predse_v1_20250225.jpeg", width = 7, height = 3.5, dpi = 150)
+
+```
+
+# TLH Code
+Code from Neptune statistician, Travis Linscome-Hatfield, base R plot code to make predictions versus observed. That base R code was replaced with ggplot2 code using geo_ribbon to make prediction intervals for that plot.
 # TLH fitted to obs interval plot
 On 12/23/2024 commenting this code out b/c this is not the model I need for fitted interval obs plot.
 
@@ -1148,7 +1636,6 @@ On 12/26/2024 commenting this code because this is not the model I need for fitt
 # legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
 
 ```
-
 # Carson Code Points Outside LOOCV 90% Prediction Limit for n=199 Obs
 Added this code on 12/24/2024 and commented out because this is not the final SSN model.
 This code comes from local_SSN_FINAL_20160126_modelling.html 
@@ -1161,175 +1648,6 @@ This code comes from local_SSN_FINAL_20160126_modelling.html
 # these are the Site IDs of the unusual values
 # DFobsz[which(os90pl.sp),"station_id_2"]
 ```
-
-
-# Additional Hypotheses for a4 model
-On 12/16/2024 in near future will likely comment out this code chunk as no support found for including these additional covariates, which are included in model a4ssn_wswq_ml1.
-
-On 11/25/2024 From Miller et al. 2017's results, suggested hypotheses about WWTPs and upstream reservoirs. Also, I will test a depth to bedrock soils hypothesis. The goal of adding these covariates is to get improvements in predictions for 2019-2022 data. This is referred to as the a4 model, for additional hypotheses. Note because of new covariates using ml estimation (Ver Hoef 2014 page 23). Commented out SSN diagnostic plot which statement as seemed cause error with following residual assignment.
-```{r additional_hypotheses}
-
-a4ssn_wswq_ml1 <- ssn_lm(
-  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + rck_dep_ws + wwtp + wbc,
-  ssn.object = j_ssn3,
-  tailup_type = "none",
-  taildown_type = "exponential",
-  euclid_type = "exponential",
-  nugget_type = "nugget",
-  estmethod = "ml",
-  additive = "afv_area",
-  partition_factor = ~ju
-)
-summary(a4ssn_wswq_ml1)
-varcomp(a4ssn_wswq_ml1)
-loocv(a4ssn_wswq_ml1) %>% print(n = Inf)
-
-glances(z4ssn_wswq_ml1,a4ssn_wswq_ml1)
-loocv(z4ssn_wswq_ml1)
-
-# plot(a4ssn_wswq_ml1, which = c(1:6))
-
-# tidy(a4ssn_wswq_reml1)
-
-# inserted r in file name to indicate residuals now included
-a4rssn_wswq_ml1 <- augment(a4ssn_wswq_ml1, drop = FALSE)
-# note on 10/04/2024 fixed mapview so popupTable using correct object, had been pointing to ssn_wswq_reml1
-summary(a4rssn_wswq_ml1$.std.resid)
-mapview(a4rssn_wswq_ml1, zcol = ".std.resid", cex = ".std.resid", alpha.regions = .8, legend = TRUE, popup = popupTable(a4rssn_wswq_ml1, zcol = c(".std.resid"))) 
-
-a4rssn_wswq_ml1 <- dplyr::select(a4rssn_wswq_ml1, c(station_id, station_id_2, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, pct_imp_w, elev_ws, pct_imp_w_emplog, vsci, .fitted, .std.resid))
-
-# saveRDS(a4rssn_wswq_ml1, file = "a4rssn_wswq_ml1.rds")
-# 
-# st_write(a4rssn_wswq_ml1, dsn = file.path(getwd(), "a4rssn_wswq_ml1.gpkg"), layer = "a4rssn_wswq_ml1", driver = "GPKG", quiet = FALSE)
-
-```
-
-# Distance Hypothesis
-On 12/26/2024 used geom_ribbon to make prediction interval.
-
-On 12/16/2024 testing distance hypothesis of upstream waterbodies by now using wbc_bin and 
-dist_nearest_up_wb_km with those covariates entered into the model as 
-wbc_bin
-wbc_bin:dist_nearest_up_wb_km.
-This follows coding as used in Dumelle et al. 2023 paper. Using that coding produced a poorer fitting more complicated model than z4. Using just the continuous covariate of distance, as done on 11/19/2024, produces a better fitting model a5ssn_wswq_ml1. Model a5ssn_wswq_ml1 has slightly better values for RMSPE and cor2 than z4ssn_wswq_ml1. What does added variable plot of that model look like?
-
-
-Run ML estimation when comparing to models with different covariates. Run with REML when comparing to models with different spatial autocovariances and for prediction.
-On 11/19/2024 Tried running interaction of wbc*dist_nearest_up_wb_km, but got error of singular matrix. Consequently, only tested model using continuous covariate dist_nearest_up_wb_km.
-Again, commented out plot(a5ssn_wswq_ml1, which = c(1:6)) as seems to prevent code running straight through. The a5ssn_wswq_ml1 model with only continuous covariate dist_nearest_up_wb_km has smaller AICc than z4 model.
-
-Running torgegram on SSN0 nugget mlr model as shown in section 4.1.1 of SSN2 vignette. Not seeing much in Torgegram plot.
-```{r distance_hypothesis}
-# test distance covariate in model a5
-
-ggplot(DFobs3a, aes(x = dist_nearest_up_wb_km, y = vsci)) + geom_point() + facet_wrap(vars(wbc))  + geom_smooth(method = "lm", se =TRUE)
-
-ggplot(DFobs3a, aes(x = dist_nearest_up_wb_km, y = vsci)) + geom_point() + geom_smooth(method = "lm", se =TRUE)
-
-ztg <- Torgegram(
-  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
-  ssn.object = j_ssn3,
-  type = c("flowcon", "flowuncon", "euclid")
-)
-plot(ztg)
-plot(ztg, separate = TRUE)
-View(ztg$euclid)
-View(ztg$flowuncon)  
-View(ztg$flowcon) # kind of  low np
-
-ztg1 <- Torgegram(
-  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
-  ssn.object = j_ssn3,
-  type = c("flowcon", "flowuncon", "euclid"),
-  cutoff = 20000
-)
-
-plot(ztg1)
-View(ztg1$euclid)
-View(ztg1$flowuncon)  #very low np
-View(ztg1$flowcon) #very low np
-
-a5ssn_wswq_ml1 <- ssn_lm(
-  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
-  ssn.object = j_ssn3,
-  tailup_type = "none",
-  taildown_type = "exponential",
-  euclid_type = "exponential",
-  nugget_type = "nugget",
-  estmethod = "ml",
-  additive = "afv_area",
-  partition_factor = ~ju
-)
-
-tidy(a5ssn_wswq_ml1)
-summary(a5ssn_wswq_ml1)
-varcomp(a5ssn_wswq_ml1)
-loocv(a5ssn_wswq_ml1)
-
-glances(z4ssn_wswq_ml1,a5ssn_wswq_ml1)
-
-# plot(a5ssn_wswq_ml1, which = c(1:6))
-
-
-#### TLH lm discussion
-
-
-# test = ssn_get_data(j_ssn3)
-# fit = lm(vsci ~pct_imp_w_emplog + elev_ws + do + vahusb_JL + wbc*dist_nearest_up_wb_km - dist_nearest_up_wb_km,data = test)
-# summary(fit)
-# check_model(fit)
-# avPlots(fit)
-### as you can see we get a nice output with wbcabsent:dist_nearest_up_wb_km NA'd out. So this is what I'm trying to replicate in the ssn2 formulation. 
-
-# I added test1 code with only distance covariate
-
-# test = ssn_get_data(j_ssn3)
-# fit1 = lm(vsci ~pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,data = test)
-# summary(fit1)
-# check_model(fit1)
-# avPlots(fit1)
-```
-
-# Check Nonspatial Diagnostics on a5 model
-Get checks on collinearity, added variable plots and other diagnostics. Typical MLR diagnostics look good. 
-```{r a5_mlr_diagnostics}
-a5_mlr1 <- lm(vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
-  data = DFobs3a)
-
-summary(a5_mlr1)
-check_model(a5_mlr1)
-# avPlots(a5_mlr1)
-```
-
-
-# ST_rand Model vs Distance Model
-On 01/24/2025 inserted this code chunk to run status/trend random effects model, ssn_wswq_rand1_st, and compare it to distance model, with both models estimated by ml given different covariates.
-```{r st_vs_distance}
-ssn_wswq_rand1_st <- ssn_lm(
-  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km + st_type,
-  ssn.object = j_ssn3,
-  tailup_type = "none",
-  taildown_type = "exponential",
-  euclid_type = "exponential",
-  nugget_type = "nugget",
-  estmethod = "ml",
-  additive = "afv_area",
-  partition_factor = ~ju,
-  random = ~ (1 | station_id)
-)
-
-summary(ssn_wswq_rand1_st)
-varcomp(ssn_wswq_rand1_st)
-loocv(ssn_wswq_rand1_st)
-
-plot(ssn_wswq_rand1_st, which = c(1:6))
-
-glances(a5ssn_wswq_ml1, ssn_wswq_rand1_st)
-
-
-```
-
 # TLH fitted to obs interval plot for a5 model
 01/14/2025 added Travis' code to make prediction of 199 sites vsci versus observed vsci as ggplot using same variance for each obs so get straight 90th percentile lines. 18 Stations fell outside of those lines.
 
@@ -1439,645 +1757,6 @@ rm(spatResids,resid_SD,fitted_vals,spat,spat.Pred.pct,spat.Pred.median,ty,tx,ox,
 
 ```
 
-## NMC Distance Model w/ and w/o Partition Factor
-02/19/2025 Making this comparison to include results in NMC 2025 presentation
-```{r distance_with_without_partition}
-#np stands for no parititon factor
-
-np5ssn_wswq_reml1 <- ssn_lm(
-  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
-  ssn.object = j_ssn3,
-  tailup_type = "none",
-  taildown_type = "exponential",
-  euclid_type = "exponential",
-  nugget_type = "nugget",
-  estmethod = "reml",
-  additive = "afv_area"
-)
-
-tidy(np5ssn_wswq_reml1)
-summary(np5ssn_wswq_reml1)
-varcomp(np5ssn_wswq_reml1)
-loocv(np5ssn_wswq_reml1)
-
-glances(a5ssn_wswq_reml1, np5ssn_wswq_reml1)
-```
-
-
-# TLH fitted to obs interval plot (LOOCV method)
-On 01/14/2025 inserted TLH's code using observation-specific LOOCV variance with qnorm so get squiggly 90th percentile lines in ggplot.
-Returns 19 obs sites falling outside LOOCV 90th percentile lines, and sorting by station_id_2 in mapview label highlight Tye River sites.
-Uses se.fit from loocv with qnorm to make squiggly lines for 90th percentile.
-On 12/16/2024 insert TLH's code so applied to a5ssn_wswq_reml1 model on 199 obs.
-```{r fitted_interval_plot_loocv}
-# Alrighty, so this method mimics John's method
-# which gives a loocv estimate of fitted value an se.
-# This results in the squiggly lines because he's giving that 
-# se at each individual value.
-
-cv_resids = loocv(a5ssn_wswq_reml1,
-                  cv_predict = T,
-                  se.fit = T)
-# pull out fitted values and resids se
-fitted_vals = cv_resids$cv_predict
-resid_Se = cv_resids$se.fit
-
-
-# combine to a dataframe and se.fit/variance differs for each observation
-spat<-cbind(fitted_vals,resid_Se^2)
-head(spat)
-
-# spatial prediction percentiles
-# qnorm arguments include
-# p a vector of probabilities
-# mean a vector of means, which are our fitted values
-# sd a vector of standard deviations, the square root of the squared .se.fit
-(spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
-
-spat.Pred.median = spat.Pred.pct[,4]
-head(spat.Pred.median)
-
-# observed and median of our prediction intervals
-ty<-aug_a5obs1ws_vsci$vsci
-tx<-round(spat.Pred.median,1)
-
-#percentiles
-ox<-order(tx)
-op05<-spat.Pred.pct[ox,"Q05"]
-op95 <- spat.Pred.pct[ox,"Q95"]
-
-# put all components into data frame for ggplot
-plot_dat = data.frame("vsci_pred" = tx, "vsci" = ty, "pred_5th" = op05, "pred_95th" = op95,"vsci_bound_order"=tx[ox],"station_id"=aug_a5obs1ws_vsci$station_id_2)
-
-
-p = ggplot(data = plot_dat)+
-  geom_point(aes(x = vsci_pred, y = vsci,label = station_id), color = "black")+
-  geom_smooth(aes(x = vsci_pred, y = vsci), method = "loess", se = F, color = "blue")+
-  geom_line(aes(x = vsci_bound_order, y = pred_5th), linetype = "dashed", color = "black")+
-  geom_line(aes(x = vsci_bound_order, y = pred_95th), linetype = "dashed", color = "black")+
-  geom_abline(intercept = 0, slope = 1, color = "red")+
-  labs(x="vsci predicted",
-       y ="vsci observed")
-
-print(p)
-ggplotly(p)
-
-# Carson Code Points Outside LOOCV 90% Prediction Limit for 199 obs. This code comes from local_SSN_FINAL_20160126_modelling.html 
-
-# number of points outside 90% prediction limits
-os90pl.sp <-(ty < spat.Pred.pct[,"Q05"]) |  (ty > spat.Pred.pct[,"Q95"]) 
-summary(os90pl.sp)
-
-# which observations are outside [5%, 95%] prediction limits?
-# these are the Site IDs of the unusual values
-aug_a5obs1ws_vsci[which(os90pl.sp),"station_id_2"]
-
-mapview(aug_a5obs1ws_vsci[which(os90pl.sp),"station_id_2"])
-
-rm(cv_resids, resid_Se, fitted_vals, spat, spat.Pred.pct, spat.Pred.median, ty, tx, ox, op05, op95, os90pl.sp, p)
-
-# plot using base plot pulling in each component separately
-# plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value",ylab="VSCI Observed Value",main="LOOCV SSN Obs vs. Preds a5 reml n=199")
-# abline(0,1,col="red")
-# lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
-
-# 5th percentile of predictive distribution
-# lines(tx[ox],op05,lty=2,col='black')
-# 95th percentile of predictive distribution
-# lines(tx[ox],op95,lty=2,col='black')
-#legend
-# legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
-
-```
-
-# Ribbon LOOCV Fitted Interval
-From cv_resids, use fitted_vals and resid_Se to make ribbon for LOOCV fitted interval so to identify obs having interesting vsci values. Uses +/- 1.96*se.fit from loocv to make squiggly ribbon.
-```{r ribbon_loocv_fitted_interval}
-
-# a5ssn_wswq_reml1 <- ssn_lm(
-#   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
-#   ssn.object = j_ssn3,
-#   tailup_type = "none",
-#   taildown_type = "exponential",
-#   euclid_type = "exponential",
-#   nugget_type = "nugget",
-#   estmethod = "reml",
-#   additive = "afv_area",
-#   partition_factor = ~ju
-# )
-# 
-# summary(a5ssn_wswq_reml1)
-# varcomp(a5ssn_wswq_reml1)
-# loocv(a5ssn_wswq_reml1)
-
-cv_resids = loocv(a5ssn_wswq_reml1,
-                  cv_predict = T,
-                  se.fit = T)
-
-spat_loocv1 <- cbind(cv_resids$cv_predict, cv_resids$se.fit, aug_a5obs1ws_vsci$vsci)
-colnames(spat_loocv1) <- c("cv_predict", "se.fit", "vsci")
-
-spat_loocv1 <- as.data.frame(spat_loocv1)
-head(spat_loocv1)
-
-spat_loocv1$cv_predict <- round(spat_loocv1$cv_predict,1)
-
-station_id_2 <-dplyr::select(aug_a5obs1ws_vsci,station_id_2)
-
-# put sf object first so sticky geometry retained
-spat_loocv2 <- bind_cols(station_id_2, spat_loocv1)
-
-
-p <- ggplot(spat_loocv2, aes(x = cv_predict, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_ribbon(aes(ymin = cv_predict - (1.96*se.fit), ymax = cv_predict + (1.96*se.fit)), fill = "grey", alpha = .8) + geom_line(aes( y = cv_predict)) + labs(x = "VSCI LOOCV Fitted 2001-2018", y = "VSCI Observed 2001-2018", title = "SSN LVOOCV Obs vs Fitted a5 reml n=199")
-
-print(p)
-ggplotly(p)
-
-# number of points outside 90% loocv fitted limits (ofl)
-ofl_stations1 <- filter(spat_loocv2, vsci < (cv_predict - (1.96*se.fit)) | vsci > (cv_predict + (1.96*se.fit)))
-ofl_stations1
-
-mapview(ofl_stations1)
-
-edges <- st_read("ssn_object/James_071024_pluspreds.ssn/edges.shp")
-
-# now see 2 trend stations on Tye River
-# when zoom in
-# https://stackoverflow.com/questions/36469379/multiple-markers-on-same-coordinate
-st_jitter(ofl_stations1, factor = 0.001) %>% 
-  mapview(.) + mapview(edges)
-
-rm(cv_resids, spat_loocv1, spat_loocv2, p, ofl_stations1)
-```
-
-# Preds for Distance Hypothesis
-
-02/14/2025 trying to make scatter plot showing prediction error for status and trend stations
-On 01/23/2025 the abrupt change from saw tooth prediction interval to
-steady prediction interval is driven by the shorter range of vsci obs and vsci predictions for trend stations compared to the status status stations.
-On 01/21/2025 added station type, st_type, of status or trend station as noticed first 11 stations with smallest .se.fit were trend stations.
-
-Note for predictions want estimation method to be reml.
-Looking to see if distance to nearest upstream waterbody covariate pulls outliers closer to 1:1 line, which is the a5 model.
-```{r distance_hypothesis_preds}
-# check stats on pred covariates to make sure corrects preds ssn data frame being used
-# summary(j_ssn3$preds$Preds_2019_2022$pct_imp_w_emplog)
-# summary(j_ssn3$preds$Preds_2019_2022$elev_ws)
-# summary(j_ssn3$preds$Preds_2019_2022$do)
-# summary(j_ssn3$preds$Preds_2019_2022$vahusb_JL)
-# summary(j_ssn3$preds$Preds_2019_2022$dist_nearest_up_wb_km)
-# 
-# 
-# summary(j_ssn3)
-# str(j_ssn3$obs$pct_imp_w_emplog)
-
-# a5ssn_wswq_reml1 <- ssn_lm(
-#   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
-#   ssn.object = j_ssn3,
-#   tailup_type = "none",
-#   taildown_type = "exponential",
-#   euclid_type = "exponential",
-#   nugget_type = "nugget",
-#   estmethod = "reml",
-#   additive = "afv_area",
-#   partition_factor = ~ju
-# )
-# summary(a5ssn_wswq_reml1)
-# varcomp(a5ssn_wswq_reml1)
-# loocv(a5ssn_wswq_reml1)
-
-# augment returns an sf object
-# note level set to 0.90
-aug_a5predict1ws_vsci <- augment(a5ssn_wswq_reml1, newdata = "Preds_2019_2022", se_fit = TRUE, interval = c("prediction"), level = 0.90)
-# class(aug_a5predict1ws_vsci)
-# names(aug_a5predict1ws_vsci)
-aug_a5predict1ws_vsci$vsci_pred <- round(aug_a5predict1ws_vsci$.fitted,1)
-aug_a5predict1ws_vsci$vsci_lwr <- round(aug_a5predict1ws_vsci$.lower,1)
-aug_a5predict1ws_vsci$vsci_upr <- round(aug_a5predict1ws_vsci$.upper,1)
-head(aug_a5predict1ws_vsci$.se.fit)
-# Pineiro 2008 put observed on y and predict on x
-# label specific points
-# https://stackoverflow.com/questions/15624656/label-points-in-geom-point
-
-select(aug_a5predict1ws_vsci, station_id_2, st_type, vsci, vsci_pred, .se.fit) %>% arrange(.se.fit) %>% print(n =48)
-
-# aug_a5predict1ws_vsci <- aug_a5predict1ws_vsci %>%
-#   mutate(
-#     st_type = case_when(
-#     station_id ==  station_id_2 ~ "status",
-#     station_id != station_id_2 ~ "trend"
-#   )
-# )
-
-# select(aug_a5predict1ws_vsci, station_id_2, st_type, vsci, vsci_pred, .se.fit) %>% arrange(st_type, .se.fit) %>% print(n =48)
-
-ggplot(aug_a5predict1ws_vsci, aes(x = st_type, y = vsci)) + geom_boxplot() +labs(title = "Observed VSCI at n = 48 Preds Sites")
-
-ggplot(aug_a5predict1ws_vsci, aes(x = st_type, y = vsci_pred)) + geom_boxplot() + labs(title = "Predicted VSCI at n = 48 Preds Sites")
-
-ggplot(aug_a5predict1ws_vsci, aes(x = st_type, y = .se.fit)) + geom_boxplot() + labs(title = "Predicted VSCI at n = 48 Preds Sites")
-
-ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type)) + geom_point()
-
-ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type)) + geom_point()+ geom_smooth(aes(x = vsci_pred, y = vsci), method = "lm", se = F, color = "blue")
-
-# using linewidth instead of size b/c ggplot geom_smooth waring
-ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, linewidth = .se.fit, shape = st_type)) + geom_point()+ geom_smooth(aes(x = vsci_pred, y = vsci), method = "lm", se = F, color = "blue")
-
-# plotting without 1:1 abline shows how weak correlation is.
-ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci)) + geom_point() + geom_abline()
-
-a5preds2019_2022_v1 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_text(aes(label =ifelse(vsci<45, as.character(station_id_2), '')), hjust = -0.1, vjust = 0)+ labs(x = "Predicted VSCI", y = "True VSCI, 2019-2022", title = "a5reml Watershed SSN JU Partitioned & Upstream Waterbody Distance") + xlim(35,80) + ylim(35,80)
-
-# png(file="figures_sfs/a5preds2019_2022_v1.png",width=6,height=3,units="in",res=150)
-a5preds2019_2022_v1
-# dev.off()
-
-a5preds2019_2022_v2 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type, color = st_type)) + geom_point() + labs(x = "Predicted VSCI", y = "True VSCI, 2019-2022", title = "SSN Prediction Sites") + xlim(35,80) + ylim(35,80) + scale_size_binned(name = "Standard Error") + 
-scale_shape_manual(name = "Station Type", labels = c("Status", "Trend"))  
-  
-  guides(shape = guide_legend(title = "Station Type", override.aes = list(size = 6))) + theme(legend.text = element_text(size = 12))
-
-a5preds2019_2022_v2 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type, color = st_type)) + geom_point() + labs(x = "Predicted VSCI", y = "True VSCI, 2019-2022", title = "SSN Prediction Sites") + xlim(35,80) + ylim(35,80) + scale_size_binned(name = "Standard Error") + guides(shape = guide_legend(title = "Station Type", override.aes = list(size = 6))) + theme(legend.text = element_text(size = 12))
-
-# This one is closest
-a5preds2019_2022_v2 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type, color = st_type)) + geom_point() + labs(x = "Predicted VSCI", y = "True VSCI, 2019-2022",  title = "SSN Prediction Sites") + xlim(35,80) + ylim(35,80) + scale_size_binned(name = "Standard Error") + guides(color = guide_legend(override.aes = list(size = 6))) + theme(legend.text = element_text(size = 12))
-
-png(file="figures_nmc_2025/a5preds2019_2022_v2.png",width=6,height=3,units="in",res=150)
-a5preds2019_2022_v2
-dev.off()
-
-# https://stackoverflow.com/questions/15059093/ggplot2-adjust-the-symbol-size-in-legends
-# make the size of the points & lines in the legend larger
-g + guides(color = guide_legend(override.aes = list(size = 2)))
-
-ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type, color = st_type)) + geom_point() + labs(x = "Predicted VSCI", y = "True VSCI, 2019-2022", title = "SSN Prediction Sites") + xlim(35,80) + ylim(35,80) + scale_size(range = c(4,10), "Standard Error")
-
-ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type)) + geom_point()
-
-cor(aug_a5predict1ws_vsci$vsci_pred,aug_a5predict1ws_vsci$vsci, method = "pearson")
-
-#2019-2022 a5reml correlation with partition factor of ju and distance covariate is 0.57
-
-as.data.frame(aug_a5predict1ws_vsci)|>
-  dplyr::select(vsci_pred,vsci)|>
-  correlate()
-
-#check as outlier differs in 2019-20, 2-BSC001.58, vs 2021-22, 2-WPK002.93
-# as.data.frame(aug_a5predict1ws_vsci)|>
-#   dplyr::filter(station_id_2 != "2-WPK002.93" & station_id_2 != "2-BSC001.58") |>
-#   dplyr::select(vsci_pred,vsci)|>
-#   correlate()
-# dropping outliers a5reml gives corr 0.49 for 2019-2022
-
-# ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci)) + geom_point() + geom_abline() + geom_errorbar(aes(xmax = vsci_upr, xmin = vsci_lwr)) + labs(x = "Predicted VSCI", y = "Observed VSCI, 2019-2022")
-# 
-# mapview(aug_a5predict1ws_vsci)
-
-# gather covariates, preds, write out geopackage for 2 prediction datasets. Comment out code based if preds1 or preds2 is used
-
-# a4preds_cov_19_20 <- dplyr::select(a4predict1ws_vsci, c(station_id, st_id_tren, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, elev_ws, pct_imp_w_emplog, vsci, vahusb, vsci_pred, .se.fit, vsci_lwr,vsci_upr))
-# 
-# saveRDS(a4preds_cov_19_20, file = "a4preds_cov_19_20.rds")
-# 
-# st_write(a4preds_cov_19_20, dsn = file.path(getwd(), "a4preds_cov_1920.gpkg"), layer = "a4preds_cov_1920", driver = "GPKG", quiet = FALSE)
-
-# a4preds_cov_19_22 <- dplyr::select(a4predict1ws_vsci, c(station_id, st_id_tren, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, elev_ws, pct_imp_w_emplog, vahusb, vsci, vsci_pred, .se.fit, vsci_lwr,vsci_upr))
-# 
-# saveRDS(a4preds_cov_19_22, file = "a4preds_cov_19_22.rds")
-# 
-# st_write(a4preds_cov_19_22, dsn = file.path(getwd(), "preds_cov_19_22.gpkg"), layer = "preds_cov_1922", driver = "GPKG", quiet = FALSE)
-
-
-```
-
-## NMC Pred VSCI vs True VSCI
-
-```{r nmc_pred_true_vsci_stationtype}
-# This one is closest
-a5preds2019_2022_v3 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type, color = st_type)) + geom_point() + labs(x = "Predicted VSCI", y = "True VSCI, 2019-2022", title = "SSN Prediction Sites", shape = "Station Type", color = "Station Type") + xlim(35,80) + ylim(35,80) + scale_size_binned(name = "Standard Error") + guides(color = guide_legend(override.aes = list(size = 6))) + theme(legend.text = element_text(size = 12))
-
-png(file="figures_nmc_2025/a5preds2019_2022_v3.png",width=6,height=3,units="in",res=150)
-a5preds2019_2022_v3
-dev.off()
-
-# this plot comes closest
-# try ribbon matched to code above
-ribbon_pi3 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, shape = st_type, color = st_type)) +
-  geom_point(aes(size = .se.fit)) + 
-  geom_abline() + 
-  geom_ribbon(aes(ymin = vsci_lwr, ymax = vsci_upr), fill = "grey", alpha = .4) +
-  geom_line(aes( y = vsci_pred)) + 
-  labs(x = "Predicted VSCI", y = "True VSCI 2019-2022", title = "SSN Predictions (prediction interval 0.90)", shape = "Station Type", color = "Station Type", subtitle = ("Pearson Correlation = 0.57")) + scale_size_binned(name = "Standard Error")
-
-png(file="figures_nmc_2025/ribbon_pi3.png",width=6,height=3,units="in",res=150)
-ribbon_pi3
-dev.off()
-
-+ xlim(35,80) + ylim(35,80) + scale_size_binned(name = "Standard Error") + guides(color = guide_legend(override.aes = list(size = 6))) + theme(legend.text = element_text(size = 12))
-
-ribbon_pi2 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, shape = st_type, label = station_id_2)) +
-  geom_point(aes(size = .se.fit)) + 
-  geom_abline() + 
-  geom_ribbon(aes(ymin = vsci_lwr, ymax = vsci_upr), fill = "grey", alpha = .4) +
-  geom_line(aes( y = vsci_pred)) + 
-  labs(x = "Predicted VSCI", y = "True VSCI 2019-2022", title = "SSN Predictions (prediction interval 0.90")
-
-print(ribbon_pi2)
-```
-
-## NMC Elevation Boxplots by Subbasin
-```{r nmc_boxplots}
-RColorBrewer::display.brewer.all()
-viridis::viridis(7)
-tmaptools::palette_explorer() # zoomed to this and checked options Print color values to get color codes for Brewer Categorical Set3 so I could specify fill colors to match tmaps
-
-boxplot_elev_ws <- ggplot(data=DFobs3a, aes(y= elev_ws, x= vahusb)) + geom_boxplot(aes(fill = vahusb), outlier.color = "Red") + geom_jitter() + labs(y = "Watershed Elevation (m)", x = "Subbasins", fill = "Subbasin") + scale_fill_manual(values = c("#8DD3C7", "#FFFFB3", "#BEBADA", "#FB8072", "#80B1D3"))
-  
-png(file="figures_nmc_2025/boxplot_elev_ws.png",width=6,height=3,units="in",res=150)
-boxplot_elev_ws
-dev.off()
-
-
-```
-
-
-# VAHUSB Polygons
-```{r vahusb_poly}
-vahusb_poly <- st_read("E:/R_vdeq_nhdplus/vahusb.shp")
-# names(vahusb_poly)
-# mapview(vahusb_poly)
-mapview(vahusb_poly, zcol="VAHUSB", burst = TRUE)
-
-vahusb_poly <- vahusb_poly %>% 
-  mutate(
-    subbasin = case_when(
-      VAHUSB == "James River, Upper (Mountain)" ~ "JU",
-      VAHUSB == "James River, Middle (Piedmont)" ~ "JM",
-      VAHUSB == "James River- Rivanna River" ~ "JR",
-      VAHUSB == "James River- Appomattox River" ~ "JA",
-      VAHUSB == "James River, Lower (Tidal)" ~ "JL"
-    )
-  )
-names(vahusb_poly)
-mapview(vahusb_poly, zcol="subbasin", burst = TRUE)
-
-vahusb_poly$subbasin <- factor(vahusb_poly$subbasin, levels = c("JU", "JM", "JR", "JA", "JL"))
-
-# once made a factor do not need to do burst
-mapview(vahusb_poly, zcol="subbasin")
-
-```
-
-# Synced Maps
-Synced maps are good for a quick, interactive visualization, but the workflow of make synced maps, use Rstudio export to save html locally, then open html in browser, snip a screenshot and paste into Powerpoint does not make publication-quality maps. I could not get the mapshot or mapshot2 functions in mapview to make a png.
-```{r synced_maps}
-names(DFobs3a)
-names(aug_a5predict1ws_vsci)
-
-vsci_obs <- mapview(DFobs3a, zcol = "vsci", at=seq(0, 90, 15), cex = "vsci", alpha.regions = .8, legend = TRUE,layer.name = 'Observed Sites VSCI', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "vsci"))) + mapview(vahusb_poly, zcol="subbasin", burst = TRUE)
-vsci_obs
-
-vsci_true <- mapview(aug_a5predict1ws_vsci, zcol = "vsci", at=seq(0, 90, 15), cex = "vsci", alpha.regions = .8, legend = TRUE,layer.name = 'Prediction Sites True VSCI', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "vsci"))) + mapview(vahusb_poly, zcol="subbasin", burst = TRUE)
-
-#+ mapview(rfbc$edges) + mapview(huc12, zcol = "NAME", burst = TRUE)
-vsci_true
-
-sync1 <- sync(vsci_obs, vsci_true, ncol=1)
-# mapshot2(sync1, file = sync1)
-
-vsci_pred <- mapview(aug_a5predict1ws_vsci, zcol = "vsci_pred", at=seq(0, 90, 15), cex = "vsci_pred", alpha.regions = .8, legend = TRUE,layer.name = 'Predictands VSCI', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "vsci_pred")))
-#+ mapview(rfbc$edges) + mapview(huc12, zcol = "NAME", burst = TRUE)
-vsci_pred
-
-# synced maps1
-sync2 <- sync(vsci_true, vsci_pred, ncol =1)
-
-vsci_predse <- mapview(aug_a5predict1ws_vsci, zcol = ".se.fit",  cex = ".se.fit", alpha.regions = .8, legend = TRUE,layer.name = 'Predictands VSCI SE', popup = popupTable(aug_a5predict1ws_vsci, zcol = c("station_id_2", "st_type", "vsci", "vsci_pred", ".se.fit")))
-
-vsci_predse
-# synced maps2
-sync3 <- sync(vsci_pred, vsci_predse, ncol=1)
-
-
-```
-
-## NMC tmap: Prediction Maps
-This code came from vdeq.RMD under James ProbMon Sites NMC/SFS. I want to modify to show observed vsci vs predictand true vsci, then predictand true vsci vs predictand vsci, and then predictand vsci vs predictand standard error. Best just to make makes separately then align them in Powerpoint. The tmap_arrange function seems to mess up the bubble sizes.
-```{r jprobmon}
-# edges <- st_read("E:/R_vdeq_sci/Working/Data/neptune_analysis/ssn_objects/James041724.ssn/edges.shp")
-
-
-# do lines first then sites to see if it looks better probably need to put down largest extent first. I think if I make the bounding box larger then text on legend and scale bar will become larger.
-
-?tmaptools::palette_explorer(5) 
-tmaptools::palette_explorer() 
-viridis::viridis(7)
-
-legend_title = "Subbasin"
-tm_shape(vahusb_poly) + tm_polygons("subbasin") +
-  tm_layout(asp=0,
-  legend.width = 2, legend.text.size = 1.5, legend.title.size = 3.0,
-  frame = FALSE,
-  legend.position = c("right", "TOP"),
-  title.position = c('right', 'TOP')
-) + tm_scale_bar(position = c("center", "BOTTOM", text.size = 1.0)) + tm_compass(position = c("left", "top")) +
-  tm_legend(legend.outside=T,  legend.outside.position="top",legend.hist.height = 1.0, legend.hist.width = 1.0, legend.hist.size = 1.5)
-
-# trying to make subasins legends only so can put in Powerpoint
-sb_legend <- tm_shape(vahusb_poly) + tm_polygons("subbasin") +
-  tm_layout(legend.only = TRUE)
-tmap_save(sb_legend, "figures_nmc_2025/sb_legend.jpeg", width = 2, height = 2, dpi = 150)
-
-
-tm_shape(edges) + tm_lines(
-  col = "blue") + tm_shape(preds_bind1) + tm_bubbles(
-  col = ("resid"))
-
-# Observed sites
-### trying legend.show = F for polygons
-
-j_map_vsci_obs <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show = F) +
-  tm_shape(DFobs3a) + 
-  tm_bubbles(
-  size = "vsci",
-  legend.size.show = FALSE,
-  col = "vsci",
-  legend.col.is.portrait = FALSE,
-  style = "fixed",
-  palette = "viridis",
-  title.col = "VSCI at Observed Sites 2001-2018 (n = 199)",
-  breaks = seq(0, 90, by = 15),
-  sizes.legend=seq(0, 90, by=15),
-  legend.hist = FALSE,
-) + tm_layout(asp=0,
-  legend.width = 2, legend.text.size = 1.5, legend.title.size = 3.0,
-  frame = FALSE,
-  legend.position = c("center", "TOP"),
-  title.position = c('center', 'TOP')
-) + tm_scale_bar(position = c("center", "BOTTOM", text.size = 1.0)) + tm_compass(position = c("left", "top")) +
-  tm_legend(legend.outside=T, legend.outside.position="top",legend.hist.height = 1.0, legend.hist.width = 1.0, legend.hist.size = 1.5)
-
-tmap_save(j_map_vsci_obs, "figures_nmc_2025/j_map_vsci_obs_v1_20250212.jpeg", width = 7, height = 3.5, dpi = 150)
-
-# map for true vsci predictands
-### trying legend.show = F for polygons
-j_map_vsci_true <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show = F) +
-  tm_shape(aug_a5predict1ws_vsci) + 
-  tm_bubbles(
-  size = "vsci",
-  legend.size.show = FALSE,
-  col = "vsci",
-  legend.col.is.portrait = FALSE,
-  style = "fixed",
-  palette = "viridis",
-  title.col = "True VSCI at Prediction Sites 2019-2022 (n = 48)",
-  breaks = seq(0, 90, by = 15),
-  sizes.legend=seq(0, 90, by=15),
-  legend.hist = FALSE,
-) + tm_layout(asp=0,
-  legend.width = 2, legend.text.size = 1.5, legend.title.size = 3.0,
-  frame = FALSE,
-  legend.position = c("center", "TOP"),
-  title.position = c('center', 'TOP')
-) + tm_scale_bar(position = c("center", "BOTTOM", text.size = 1.0)) + tm_compass(position = c("left", "top")) +
-  tm_legend(legend.outside=T, legend.outside.position="top",legend.hist.height = 1.0, legend.hist.width = 1.0, legend.hist.size = 1.5)
-
-tmap_save(j_map_vsci_true, "figures_nmc_2025/j_map_vsci_true_v1_20250212.jpeg", width = 7, height = 3.5, dpi = 150)
-
-
-# map for vsci predictands
-j_map_vsci_predicted <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show = F) +
-  tm_shape(aug_a5predict1ws_vsci) + 
-  tm_bubbles(
-  size = "vsci_pred",
-  legend.size.show = FALSE,
-  col = "vsci_pred",
-  legend.col.is.portrait = FALSE,
-  style = "fixed",
-  palette = "viridis",
-  title.col = "Predictand VSCI at Prediction Sites 2019-2022 (n = 48)",
-  breaks = seq(0, 90, by = 15),
-  sizes.legend=seq(0, 90, by=15),
-  legend.hist = FALSE,
-) + tm_layout(asp=0,
-  legend.width = 2, legend.text.size = 1.5, legend.title.size = 3.0,
-  frame = FALSE,
-  legend.position = c("center", "TOP"),
-  title.position = c('center', 'TOP')
-) + tm_scale_bar(position = c("center", "BOTTOM", text.size = 1.0)) + tm_compass(position = c("left", "top")) +
-  tm_legend(legend.outside=T, legend.outside.position="top",legend.hist.height = 1.0, legend.hist.width = 1.0, legend.hist.size = 1.5)
-
-tmap_save(j_map_vsci_predicted, "figures_nmc_2025/j_map_vsci_predictedv1_20250213.jpeg", width = 7, height = 3.5, dpi = 150)
-
-# map for predictand se
-j_map_vsci_predse <- tm_shape(vahusb_poly) + tm_polygons("subbasin", legend.show = F) +
-  tm_shape(aug_a5predict1ws_vsci) + 
-  tm_bubbles(
-  size = ".se.fit",
-  legend.size.show = FALSE,
-  col = ".se.fit",
-  legend.col.is.portrait = FALSE,
-  style = "cont",
-  palette = "viridis",
-  title.col = "Standard Error of Predictand VSCI at Prediction Sites 2019-2022 (n = 48)",
-  legend.hist = FALSE,
-) + tm_layout(asp=0,
-  legend.width = 2, legend.text.size = 1.5, legend.title.size = 3.0,
-  frame = FALSE,
-  legend.position = c("center", "TOP"),
-  title.position = c('center', 'TOP')
-) + tm_scale_bar(position = c("center", "BOTTOM", text.size = 1.0)) + tm_compass(position = c("left", "top")) +
-  tm_legend(legend.outside=T, legend.outside.position="top",legend.hist.height = 1.0, legend.hist.width = 1.0, legend.hist.size = 1.5)
-
-tmap_save(j_map_vsci_predse, "figures_nmc_2025/j_map_vsci_predse_v1_20250213.jpeg", width = 7, height = 3.5, dpi = 150)
-
-
-
-# j_map_obs_true <- tmap_arrange(j_map_vsci_obs, j_map_vsci_true, ncol =1)
-# tmap_save(j_map_obs_true, "figures_nmc_2025/j_map_obs_true_v1_20250211.png", width = 6, height = 3, dpi = 150)
-
-# dimensions used that looked good in sfs 2024 powerpoin
-# png(file="figures_sfs/esv2.png",width=6,height=3,units="in",res=150)
-
-# RStudio exported map
-
-# original width =10, height =6
-# https://stackoverflow.com/questions/60892033/how-do-you-position-the-title-and-legend-in-tmap
-
-j_map_preds_19_20 <- tm_shape(edges) + tm_lines(
-  col = "blue") + tm_shape(preds_cov_19_20) + tm_bubbles(
-  size = ".se.fit",
-  legend.size.show = FALSE,
-  col = "vsci_pred",
-  legend.col.is.portrait = FALSE,
-  style = "fixed",
-  palette = "viridis",
-  title.col = "Predicted VSCI 2019-2020 (n = 22)",
-  breaks = seq(0, 90, by = 15),
-  sizes.legend=seq(0, 90, by=15),
-  legend.hist = FALSE,
-) + tm_layout(asp=0,
-  legend.width = 2, legend.text.size = 1.5, legend.title.size = 3.0,
-  frame = FALSE,
-  legend.position = c("center", "TOP"),
-  title.position = c('center', 'TOP')
-) + tm_scale_bar(position = c("center", "BOTTOM", text.size = 1.0)) + tm_compass(position = c("left", "top")) +
-  tm_legend(legend.outside=T, legend.outside.position="top",legend.hist.height = 1.0, legend.hist.width = 1.0, legend.hist.size = 1.5)
-
-tmap_save(j_map_preds_19_20, "E:/R_vdeq_sci/Working/Data/neptune_analysis/scripts_by_basin/figures_sfs/j_map_preds_19_20.jpeg", width = 7, height = 3.5, dpi = 150)
-
-```
-
-
-
-# Preds for ST_rand model reml
-Using reml estimate as testing predictions.
-```{r st_rand1_hypothesis}
-
-ssn_wswq_rand1_st_reml <- ssn_lm(
-  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km + st_type,
-  ssn.object = j_ssn3,
-  tailup_type = "none",
-  taildown_type = "exponential",
-  euclid_type = "exponential",
-  nugget_type = "nugget",
-  estmethod = "reml",
-  additive = "afv_area",
-  partition_factor = ~ju,
-  random = ~ (1 | station_id)
-)
-
-summary(ssn_wswq_rand1_st_reml)
-varcomp(ssn_wswq_rand1_st_reml) # now space varcomp small
-loocv(ssn_wswq_rand1_st_reml)
-
-# augment returns an sf object
-# note level set to 0.90
-aug_st5predict1ws_vsci <- augment(ssn_wswq_rand1_st_reml, newdata = "Preds_2019_2022", se_fit = TRUE, interval = c("prediction"), level = 0.90)
-# class(aug_a5predict1ws_vsci)
-# names(aug_a5predict1ws_vsci)
-aug_st5predict1ws_vsci$vsci_pred <- round(aug_st5predict1ws_vsci$.fitted,1)
-aug_st5predict1ws_vsci$vsci_lwr <- round(aug_st5predict1ws_vsci$.lower,1)
-aug_st5predict1ws_vsci$vsci_upr <- round(aug_st5predict1ws_vsci$.upper,1)
-head(aug_st5predict1ws_vsci$.se.fit)
-# Pineiro 2008 put observed on y and predict on x
-# label specific points
-# https://stackoverflow.com/questions/15624656/label-points-in-geom-point
-
-select(aug_st5predict1ws_vsci, station_id_2, st_type, vsci, vsci_pred, .se.fit) %>% arrange(.se.fit) %>% print(n =48)
-
-cor(aug_st5predict1ws_vsci$vsci_pred,aug_st5predict1ws_vsci$vsci, method = "pearson")
-
-#2019-2022 a5reml correlation with partition factor of ju and distance covariate is 0.57
-
-as.data.frame(aug_st5predict1ws_vsci)|>
-  dplyr::select(vsci_pred,vsci)|>
-  correlate()
-
-```
-
-
 # TLH Fitted interval preds
 On 01/10/2025 merged Travis' branch to make this as a ggplotly plot
 Based on 12/24/2024 email this graph of preds is using standard error of model so that gives straight prediction interval lines
@@ -2152,8 +1831,6 @@ rm(fitted_vals, resid_SD, spat, spat.Pred.pct, spat.Pred.median, ty, tx, ox, op0
 # #legend
 # legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
 ```
-
-
 
 # TLH Fitted interval preds (quasi-LOOCV method)
 On 01/10/2025 merged Travis'branch to make this as a ggplotly plot
@@ -2242,74 +1919,72 @@ rm(fitted_vals, resid_Se, spat, spat.Pred.pct, spat.Pred.median, ty, tx, ox, op0
 
 ```
 
-# Ribbon Prediction Interval
-This is producing a 90% prediction interval because that was the level set when augmented predictions were made. Is the spatial prediction percentiles using qnorm from TLH and JC code more accurate?
-```{r ribbon_pred_interval}
-# ribbon prediction interval based on + or - 1.96*.se.fit
-# ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_ribbon(aes(ymin = vsci_pred - (1.96*.se.fit), ymax = vsci_pred + (1.96*.se.fit)), fill = "grey", alpha = .8) + geom_line(aes( y = vsci_pred)) + labs(x = "VSCI Predicted 2019-2022", y = "VSCI Observed 2019-2022", title = "SSN Withheld Obs vs Pred a5 reml n=48")
+# ESDA Not Lead Anywhere
+Torgegrams DO, TN and Partitioning
+In the coefficent plot from Script 05, the flip-flop in instream stressor, being dissolved oxygen at Watershed and Watershed-Riparian, and then total nitrogen for Catchment and Catchment-Riparian suggests that different stressors have their effects on stream condition index at different spatial extents. I thought of following that up in two ways. First, see if semivariograms and Torgegrams of dissolved oxygen and total nitrogen show different ranges, the distance at which observations are independent. My hypothesis is that dissolved oxygen will have a larger range than total nitrogen. Second, I want to see if I update the watershed model to include all 3 instream stressors does that beat the current watershed model having only dissolved oxygen.
 
-# ribbon using lower and upper SSN2 prediction intervals
-# seems to give same results as 1.96*.se.fit above
-ribbon_pi1 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, label = station_id_2)) + geom_point() + geom_abline() + geom_ribbon(aes(ymin = vsci_lwr, ymax = vsci_upr), fill = "grey", alpha = .8) + geom_line(aes( y = vsci_pred)) + labs(x = "VSCI Predicted 2019-2022", y = "VSCI Observed 2019-2022", title = "SSN Withheld Obs vs Pred a5 reml n=48 interval 0.90, mgm method")
-
-print(ribbon_pi1)
-ggplotly(ribbon_pi1)
-
-ribbon_pi2 <- ggplot(aug_a5predict1ws_vsci, aes(x = vsci_pred, y = vsci, shape = st_type, label = station_id_2)) +
-  geom_point(aes(size = .se.fit)) + 
-  geom_abline() + 
-  geom_ribbon(aes(ymin = vsci_lwr, ymax = vsci_upr), fill = "grey", alpha = .4) +
-  geom_line(aes( y = vsci_pred)) + 
-  labs(x = "VSCI Predicted 2019-2022", y = "VSCI Observed 2019-2022", title = "SSN Withheld Obs vs Pred a5 reml n=48 interval 0.90, mgm method")
-
-print(ribbon_pi2)
-
-# number of points outside 90% prediction limits (opl)
-# opl_stations1 <- filter(aug_a5predict1ws_vsci, vsci < (vsci_pred - (1.96*.se.fit)) | vsci > (vsci_pred + (1.96*.se.fit)))
-
-opl_stations2 <- filter(aug_a5predict1ws_vsci, vsci < vsci_lwr | vsci > vsci_upr)
-
-class(opl_stations2)
-mapview(opl_stations2)
-opl_stations2
-# given comment "Target and Sampled (no fish or PHAB in 2019?) Dry,no staff", should this site 2-DCK003.94_2019 been sampled?
+On 05/03/2024, not seeing that much spatial structure in DO or Log(TN). On 07/12/2024 still need to test if 3 instream stressors in a model outperforms just DO in the model. Try subsetting ssn objectby ju factor and then making separate Torgegrams.
+```{r do_tn_toregrams}
+# 
+# class(j_ssn3)
+# ztg <- SSN2::Torgegram(vscivcpmi ~ 1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
+# # SSN2::plot.Torgegram(ztg)
+# torg <- ztg[["euclid"]]
+# names(torg)
+# class(torg)
+# ggplot(torg, aes(x=dist, y=gamma,size=np)) + geom_point()
+# 
+# summary(j_ssn3$obs$ju)
+# glimpse(j_ssn3$obs$ju)
+# 
+# #ju yes has 71 obs and no has 128 obs
+# # esv_separate <- map(c(yes, no), ~ SSN2::Torgegram(vscivcpmi ~ 1, j_ssn3 |> filter(ju == .x)))
+# # 
+# # esv_separate
+# # 
+# # # plot(esv_separate[[1]]) not helpful
+# # 
+# # esv_ju_yes <- esv_separate[[1]] 
+# # esv_ju_no <- esv_separate[[2]]
+# # 
+# # names(esv_ju_yes)
+# # 
+# # esv1 <- ggplot(esv_ju_yes, aes(x=dist, y=gamma, size=np)) + geom_point() + labs(x = "Euclidean Distance (m)", y = "Semivariance", title = "JU yes") + scale_x_continuous(labels=comma)
+# # 
+# # esv2 <- ggplot(esv_ju_no, aes(x=dist, y=gamma, size=np)) + geom_point() + labs(x = "Euclidean Distance (m)", y = "Semivariance", title = "JU no") + scale_x_continuous(labels=comma)
+# # 
+# 
+# 
+# 
+# ztg <- SSN2::Torgegram(l_tn ~1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
+# plot(ztg, main = "Torgegram Log(TN)")
+# plot(ztg, type = "flowcon", main = "Torgegram Log(TN)")
+# plot(ztg, type = "flowuncon", main = "Torgegram Log(TN)")
+# plot(ztg, type = "euclid", main = "Torgegram Log(TN)")
+# plot(ztg, separate = TRUE, main = "Torgegram Log(TN)")
+# 
+# flowcon <- ztg[["flowcon"]]
+# ggplot(flowcon, aes(x=dist, y=gamma)) + geom_point()
+# flowcon$dist_type <- "flow_conn"
+# 
+# flowuncon <- ztg[["flowuncon"]]
+# names(flowuncon)
+# class(flowuncon)
+# ggplot(flowuncon, aes(x=dist, y=gamma)) + geom_point()
+# flowuncon$dist_type <- "flow_unconn"
+# 
+# euclid <- ztg[["euclid"]]
+# names(euclid)
+# class(euclid)
+# ggplot(euclid, aes(x=dist, y=gamma)) + geom_point()
+# euclid$dist_type <- "euclid"
+# 
+# torg <- bind_rows(flowuncon,euclid)
+# ggplot(torg, aes(x=dist, y=gamma, colour = dist_type)) + geom_point()
+# 
+# # test if Torgegram would work using similar code below
+# # esv_separate <- map(c(2001, 2006), ~ esv(log_Zn ~ log_dist2road, moss |> filter(year == .x)))
+# 
 
 ```
-
-#Exploring residuals and counts at trend vs status
-
-```{r}
-
-## adding in some additional looks at .se.fit vs station type and number of samples.
-
-small_preds = aug_a5predict1ws_vsci%>% select(station_id,st_type,vsci,vsci_pred,.se.fit,.fitted,.residuals)
-
-p = ggplot(small_preds, aes(x = .se.fit, y = .residuals,color = st_type))+
-  geom_point(aes(label = station_id))
-ggplotly(p,hoverinfo = "text")
-
-#small_preds n
-small_preds_n = small_preds%>% group_by(station_id,st_type)%>% summarise(n = n())
-
-## loocv
-aug_a5obs1ws_vsci$se.fit <- loocv(a5ssn_wswq_reml1,se.fit = T)[[2]]
-
-# small obs
-small_obs = aug_a5obs1ws_vsci %>% select(station_id,st_type,vsci,.fitted,.resid,se.fit)
-
-p3 = ggplot(small_obs, aes(x = se.fit, y = .resid,color = st_type))+
-  geom_point(aes(label = station_id))
-ggplotly(p3,hoverinfo = "text")
-
-# is the .se.fit basically just based on number of samples?
-small_obs_n = small_obs%>% select(station_id,st_type)%>%
-  group_by(station_id,st_type)%>%
-  summarise(n = n())
-
-# so looking at these is appears we maybe have slightly tighter residuals at the trend stations but that would require some more specific distribtuional tests. However the main takeaway is that while the sample size at a point is likely impacting that se.fit value it is not the only driving factor as there are mure se.fit values than there are uniqu sample sizes. 
-
-```
-
-
-
 
