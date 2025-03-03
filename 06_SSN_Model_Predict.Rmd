@@ -1255,7 +1255,7 @@ opl_stations2
 ```
 
 # Exploring residuals and counts at trend vs status
-While trend stations have smaller .se.fit than status stations, it appears this may simply be a function of more samples at trend stations than single-visit status stations.
+While trend stations have smaller .se.fit than status stations, it appears this may simply be a function of more observations at trend stations than single-visit status stations with just 1 observation.
 ```{r}
 
 ## adding in some additional looks at .se.fit vs station type and number of samples.
