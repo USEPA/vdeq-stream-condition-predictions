@@ -621,24 +621,6 @@ loocv(ssn_wswq_rand1)
 
 models_rand1 <- glances(ssn0_wswq_mlr, ssn_wswq_reml1, ssn_wswq_rand1)
 print(models_rand1)
-# ssn_wswq_rand2 <- ssn_lm(
-#   formula = y2 ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
-#   ssn.object = j_ssn3,
-#   tailup_type = "none",
-#   taildown_type = "exponential",
-#   euclid_type = "gaussian",
-#   nugget_type = "nugget",
-#   estmethod = "reml",
-#   additive = "afv_area",
-#   random = ~ (1 | st_type)
-# )
-# 
-# summary(ssn_wswq_rand2)
-# varcomp(ssn_wswq_rand2)
-# loocv(ssn_wswq_rand2)
-# 
-# models_rand2 <- glances(ssn0_wswq_mlr, ssn_wswq_reml1, ssn_wswq_rand1)
-
 
 ```
 
@@ -919,24 +901,6 @@ summary(catrpwq_mlry2)
 check_model(catrpwq_mlry2)
 # if you wish to view avPlots uncomment below. But this hangs if you attempt to run the whole script as one block
 # avPlots(catrpwq_mlry2)
-
-# No categorical predictors selected so comment out code
-# SSN0 nugget model
-# st_id_tren lets join_by work
-# X4 <- DFobsz|>
-#   dplyr::select(st_id_tren, vahusb_JM, vahusb_JR, vahusb_JA, vahusb_JL, pct_wet_cr_f_low, pct_wet_cr_f_high, tp_f_medium, tp_f_high)
-
-# X can only contain numeric or factor
-# X4 <- X4 %>% mutate_at(c('vahusb_JM', 'vahusb_JR', 'eco_region_Piedmont', 'vahusb_JA', 'pct_wet_cr_f_low', 'pct_wet_cr_f_high', 'tp_f_medium', 'tp_f_high'), as.numeric)
-
-# put dummy covariates in an SF object
-# DFobs3a <- full_join(DFobs2a, X4, by = join_by(st_id_tren))
-# names(DFobs3a)
-# put transformed covariates in an SF object
-# DFobs2a <- full_join(DFobs2, DFobsz2, by = join_by(st_id_tren))
-
-# put SF object into SSN
-# j_ssn3 <-  SSN2::ssn_put_data(DFobs3a,j_ssn3)
 
 # SSN0 Catchment
 ssn0_catrpwq_mlr <- ssn_lm(
