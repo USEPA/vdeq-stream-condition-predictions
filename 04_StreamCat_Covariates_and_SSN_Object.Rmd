@@ -210,14 +210,16 @@ rm(z, z1, z1_nn, station_nn, dists, dists_knn1 ,vahusb_so)
 
 ## 2.00 Explore WWTP Data
 
-Having the COMID/FeatureID for each of the obs site and prediction points is what allows us to work with StreamCat Covariates.
-StreamCat covariates have a COMID/FeatureID associated with them, with those identifiers coming from the reaches in NHDPlusV2.
+Having the COMID/FeatureID for each of the obs site and prediction points is what allows us to work with StreamCat Covariates. A spatial join, done either in ArcGIS Pro or R, of the obs and prediction points to the NSI segments is what allowed the COMID/FeatureID of the NSI segments to be transferred to the obs and prediction point. 
+
+The StreamCat covariates have a COMID/FeatureID associated with them, with those identifiers coming from the reaches in NHDPlusV2. NHDPlusv2 was the originating dataset for the NSI.
 
 A typical StreamCat workflow is to bring a csv file for a specific variable for all of the catchments in the state.
 The left join of the DFobs from the SSN to the csv using `r by = join_by(FeatureID == COMID))`
 
 returns only the observations satisfying that match.
-Evaluating if wastewater treatment plant (wwtp) data from StreamCat should be considered as a predictor.
+
+This code chunk brings the Streamcat wastewater treatment plant (wwtp) data and evaluates it as a potential covariate.
 
 ```{r wwtp}
 wwtp_ds1 <- read.csv("data/WWTP_VA.csv") %>% 
@@ -397,7 +399,6 @@ rm(statsgo_set2)
 ## 2.04 Explore Waterbodies Data
 
 Ellen D'Amico calculated waterbody variables.
-Have Travis evaluate coding to evaluate an interaction between presence/absence of waterbody and distance (km) to nearest upstream waterbody.
 
 ```{r waterbodies}
 wb_ds1 <- read.csv("data/ObservationPoints_DistancesUpstream_100424.csv") %>% clean_names(.)
@@ -461,8 +462,6 @@ rm(wb_ds1, wb_ds2, wb_metadata, StationIDs_UniqLocIDs)
 # 
 # DFobs_wb2$wbc_nrstupwb <- (DFobs_wb2$wbc*DFobs_wb2$DistNearestUpWb_km)
 # 
-# DFobs_wb2$wbc_nrstupwb == DFobs_wb2$DistNearestUpWb_km
-# # Does the equality above mean I could skip having to test main effect A (wbc), main effect B (DistNearestUpWb_km) and the A x B interaction (wbc_nrstupwb)? Could I just test a single covariate of DistNearestUpWb_km where 0 is absence of upstream waterbodies and values > 0 are km to nearest upstream waterbody?
 # 
 # as.data.frame(DFobs_wb2) %>%
 #   group_by(wbc) %>%
@@ -879,7 +878,7 @@ summary(as.factor(DFobs$tp_f))
 # ggplot(DFobs, aes(x=tp_f, y = vscivcpmi)) + geom_boxplot()
 ```
 
-## 3.40 Transform Onsite and Area Covariates
+## 3.40 Onsite, Watershed and Catchment Area Covariates
 
 Turb and no3 had NA entries.
 Emma Jones, VDEQ, sent email with csv file, FinalFieldAnalyte_MissingJamesSites.csv, that had analyte entries for stations 2AMLC000.84 and 2-WLS023.10.
@@ -971,7 +970,7 @@ DFobs2$l_cat_area_r <- log(DFobs2$cat_area_r)
 # 
 # ggplot(DFobs2, aes(x=turb, y = as.factor(year))) + geom_boxplot()
 # 
-# #64.  Tidyverse five number summary
+# Tidyverse five number summary
 # tothab_by_year <- DFobs2 %>%
 #   group_by(year) %>%
 #   summarize(min = fivenum(tothab)[1],
