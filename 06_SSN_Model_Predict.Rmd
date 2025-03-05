@@ -1254,63 +1254,6 @@ opl_stations2
 
 ```
 
-# Exploring residuals and counts at trend vs status
-While trend stations have smaller .se.fit than status stations, it appears this may simply be a function of more observations at trend stations than single-visit status stations with just 1 observation.
-```{r}
-
-## adding in some additional looks at .se.fit vs station type and number of samples.
-
-# using preds data (n=48)
-# create residuals in the new prediction frame as they don't provide from the prediction augment call
-aug_d_predict1ws_vsci$.residuals <- aug_d_predict1ws_vsci$vsci-aug_d_predict1ws_vsci$.fitted
-
-
-small_preds = aug_d_predict1ws_vsci%>% select(station_id_2,st_type,vsci,vsci_pred,.se.fit,.fitted,.residuals)
-
-p = ggplot(small_preds, aes(x = .se.fit, y = .residuals,color = st_type))+
-  geom_point(aes(label = station_id_2)) +
-  labs(title = "Predictands .se.fit and .residual")
-ggplotly(p,hoverinfo = "text")
-
-filter(small_preds, st_type == "trend") %>% 
-  select(station_id_2,st_type, .se.fit) %>% 
-  arrange(station_id_2) %>% 
-  print(n = Inf)
-
-#small_preds n
-small_preds_n = small_preds%>% group_by(station_id_2,st_type)%>% summarise(n = n())
-
-# Using obs data (n=199)
-## loocv
-# already run in a chunk above aug_d_wswq_reml1 <- augment(d_ssn_wswq_reml1, drop = FALSE) to get .residual
-
-# use loocv to get se.fit out of n = 199 obs
-
-aug_d_wswq_reml1$se.fit <- loocv(d_ssn_wswq_reml1,se.fit = T)[[2]]
-names(aug_d_wswq_reml1)
-
-# small obs
-small_obs = aug_d_wswq_reml1 %>% select(station_id_2,st_type,vsci,.fitted,.resid,se.fit)
-
-p3 = ggplot(small_obs, aes(x = se.fit, y = .resid,color = st_type))+
-  geom_point(aes(label = station_id_2)) +
-  labs(title = "Observed loocv .se.fit and .residuals")
-ggplotly(p3,hoverinfo = "text")
-
-# is the .se.fit basically just based on number of samples?
-small_obs_n = small_obs%>% select(station_id_2,st_type, se.fit)%>%
-  group_by(station_id_2,st_type)%>%
-  summarise(n = n()) 
-
-filter(small_obs, st_type == "trend") %>% 
-  select(station_id_2,st_type, se.fit) %>% 
-  arrange(station_id_2) %>% 
-  print(n = Inf)
-
-# so looking at these is appears we maybe have slightly tighter residuals at the trend stations but that would require some more specific distributional tests. However the main takeaway is that while the sample size at a point is likely impacting that se.fit value it is not the only driving factor as there are more se.fit values than there are unique sample sizes. 
-
-```
-
 # Figures for Presentations
 ## SFS 2024 Meeting Torgegram
 ```{r sfs_torgegram}
@@ -1498,7 +1441,7 @@ tmap_save(j_map_vsci_predse, "figures_nmc_2025/j_map_vsci_predse_v1_20250225.jpe
 
 ```
 
-# TLH Code
+# Neptune Code from TLH
 Code from Neptune statistician, Travis Linscome-Hatfield, base R plot code to make predictions versus observed. That base R code was replaced with ggplot2 code using geo_ribbon to make prediction intervals for that plot.
 # TLH fitted to obs interval plot
 On 12/23/2024 commenting this code out b/c this is not the model I need for fitted interval obs plot.
@@ -1913,72 +1856,60 @@ rm(fitted_vals, resid_Se, spat, spat.Pred.pct, spat.Pred.median, ty, tx, ox, op0
 
 ```
 
-# ESDA Not Lead Anywhere
-Torgegrams DO, TN and Partitioning
-In the coefficent plot from Script 05, the flip-flop in instream stressor, being dissolved oxygen at Watershed and Watershed-Riparian, and then total nitrogen for Catchment and Catchment-Riparian suggests that different stressors have their effects on stream condition index at different spatial extents. I thought of following that up in two ways. First, see if semivariograms and Torgegrams of dissolved oxygen and total nitrogen show different ranges, the distance at which observations are independent. My hypothesis is that dissolved oxygen will have a larger range than total nitrogen. Second, I want to see if I update the watershed model to include all 3 instream stressors does that beat the current watershed model having only dissolved oxygen.
+# TLH Exploring residuals and counts at trend vs status
+While trend stations have smaller .se.fit than status stations, it appears this may simply be a function of more observations at trend stations than single-visit status stations with just 1 observation.
+```{r}
 
-On 05/03/2024, not seeing that much spatial structure in DO or Log(TN). On 07/12/2024 still need to test if 3 instream stressors in a model outperforms just DO in the model. Try subsetting ssn objectby ju factor and then making separate Torgegrams.
-```{r do_tn_toregrams}
-# 
-# class(j_ssn3)
-# ztg <- SSN2::Torgegram(vscivcpmi ~ 1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
-# # SSN2::plot.Torgegram(ztg)
-# torg <- ztg[["euclid"]]
-# names(torg)
-# class(torg)
-# ggplot(torg, aes(x=dist, y=gamma,size=np)) + geom_point()
-# 
-# summary(j_ssn3$obs$ju)
-# glimpse(j_ssn3$obs$ju)
-# 
-# #ju yes has 71 obs and no has 128 obs
-# # esv_separate <- map(c(yes, no), ~ SSN2::Torgegram(vscivcpmi ~ 1, j_ssn3 |> filter(ju == .x)))
-# # 
-# # esv_separate
-# # 
-# # # plot(esv_separate[[1]]) not helpful
-# # 
-# # esv_ju_yes <- esv_separate[[1]] 
-# # esv_ju_no <- esv_separate[[2]]
-# # 
-# # names(esv_ju_yes)
-# # 
-# # esv1 <- ggplot(esv_ju_yes, aes(x=dist, y=gamma, size=np)) + geom_point() + labs(x = "Euclidean Distance (m)", y = "Semivariance", title = "JU yes") + scale_x_continuous(labels=comma)
-# # 
-# # esv2 <- ggplot(esv_ju_no, aes(x=dist, y=gamma, size=np)) + geom_point() + labs(x = "Euclidean Distance (m)", y = "Semivariance", title = "JU no") + scale_x_continuous(labels=comma)
-# # 
-# 
-# 
-# 
-# ztg <- SSN2::Torgegram(l_tn ~1, j_ssn3, type = c("flowcon", "flowuncon", "euclid"))
-# plot(ztg, main = "Torgegram Log(TN)")
-# plot(ztg, type = "flowcon", main = "Torgegram Log(TN)")
-# plot(ztg, type = "flowuncon", main = "Torgegram Log(TN)")
-# plot(ztg, type = "euclid", main = "Torgegram Log(TN)")
-# plot(ztg, separate = TRUE, main = "Torgegram Log(TN)")
-# 
-# flowcon <- ztg[["flowcon"]]
-# ggplot(flowcon, aes(x=dist, y=gamma)) + geom_point()
-# flowcon$dist_type <- "flow_conn"
-# 
-# flowuncon <- ztg[["flowuncon"]]
-# names(flowuncon)
-# class(flowuncon)
-# ggplot(flowuncon, aes(x=dist, y=gamma)) + geom_point()
-# flowuncon$dist_type <- "flow_unconn"
-# 
-# euclid <- ztg[["euclid"]]
-# names(euclid)
-# class(euclid)
-# ggplot(euclid, aes(x=dist, y=gamma)) + geom_point()
-# euclid$dist_type <- "euclid"
-# 
-# torg <- bind_rows(flowuncon,euclid)
-# ggplot(torg, aes(x=dist, y=gamma, colour = dist_type)) + geom_point()
-# 
-# # test if Torgegram would work using similar code below
-# # esv_separate <- map(c(2001, 2006), ~ esv(log_Zn ~ log_dist2road, moss |> filter(year == .x)))
-# 
+## adding in some additional looks at .se.fit vs station type and number of samples.
+
+# using preds data (n=48)
+# create residuals in the new prediction frame as they don't provide from the prediction augment call
+aug_d_predict1ws_vsci$.residuals <- aug_d_predict1ws_vsci$vsci-aug_d_predict1ws_vsci$.fitted
+
+
+small_preds = aug_d_predict1ws_vsci%>% select(station_id_2,st_type,vsci,vsci_pred,.se.fit,.fitted,.residuals)
+
+p = ggplot(small_preds, aes(x = .se.fit, y = .residuals,color = st_type))+
+  geom_point(aes(label = station_id_2)) +
+  labs(title = "Predictands .se.fit and .residual")
+ggplotly(p,hoverinfo = "text")
+
+filter(small_preds, st_type == "trend") %>% 
+  select(station_id_2,st_type, .se.fit) %>% 
+  arrange(station_id_2) %>% 
+  print(n = Inf)
+
+#small_preds n
+small_preds_n = small_preds%>% group_by(station_id_2,st_type)%>% summarise(n = n())
+
+# Using obs data (n=199)
+## loocv
+# already run in a chunk above aug_d_wswq_reml1 <- augment(d_ssn_wswq_reml1, drop = FALSE) to get .residual
+
+# use loocv to get se.fit out of n = 199 obs
+
+aug_d_wswq_reml1$se.fit <- loocv(d_ssn_wswq_reml1,se.fit = T)[[2]]
+names(aug_d_wswq_reml1)
+
+# small obs
+small_obs = aug_d_wswq_reml1 %>% select(station_id_2,st_type,vsci,.fitted,.resid,se.fit)
+
+p3 = ggplot(small_obs, aes(x = se.fit, y = .resid,color = st_type))+
+  geom_point(aes(label = station_id_2)) +
+  labs(title = "Observed loocv .se.fit and .residuals")
+ggplotly(p3,hoverinfo = "text")
+
+# is the .se.fit basically just based on number of samples?
+small_obs_n = small_obs%>% select(station_id_2,st_type, se.fit)%>%
+  group_by(station_id_2,st_type)%>%
+  summarise(n = n()) 
+
+filter(small_obs, st_type == "trend") %>% 
+  select(station_id_2,st_type, se.fit) %>% 
+  arrange(station_id_2) %>% 
+  print(n = Inf)
+
+# so looking at these is appears we maybe have slightly tighter residuals at the trend stations but that would require some more specific distributional tests. However the main takeaway is that while the sample size at a point is likely impacting that se.fit value it is not the only driving factor as there are more se.fit values than there are unique sample sizes. 
 
 ```
 
