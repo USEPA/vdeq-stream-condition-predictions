@@ -208,7 +208,7 @@ rm(z, z1, z1_nn, station_nn, dists, dists_knn1 ,vahusb_so)
 
 # 2.0 Add New StreamCat Covariate
 
-## 2.00 Explore WWTP Data
+## 2.10 Explore WWTP Data
 
 Having the COMID/FeatureID for each of the obs site and prediction points is what allows us to work with StreamCat Covariates. A spatial join, done either in ArcGIS Pro or R, of the obs and prediction points to the NSI segments is what allowed the COMID/FeatureID of the NSI segments to be transferred to the obs and prediction point. 
 
@@ -300,7 +300,7 @@ rm(wwtp_ds1)
 
 ```
 
-## 2.01 Explore STATSGO_Set1 Variables
+## 2.20 Explore STATSGO_Set1 Variables
 
 Based on Schmid et al. 2011 and Hill et al. 2017, consider SandWs as a possible covariate.
 Four observations at \~ 55% or greater really stand out and are all from JL.
@@ -341,7 +341,7 @@ Based on EDA decided not include ws_sand as covariate.
 # rm(zDFobs)
 ```
 
-## 2.03 Explore STATSGO_Set2 Variables
+## 2.30 Explore STATSGO_Set2 Variables
 Mean seasonal water table depth (cm) of soils within within a wateshed is abbreviated as wt_dep_ws.
 wt_dep_ws values decrease going from west to east.
 JU, JM, and JR all have about same median, and much lower medians in JR and JL.
@@ -396,7 +396,7 @@ rm(statsgo_set2)
 
 ```
 
-## 2.04 Explore Waterbodies Data
+## 2.40 Explore Waterbodies Data
 
 Ellen D'Amico calculated waterbody variables.
 
@@ -656,19 +656,8 @@ trend <- dplyr::filter(DFobs, st_type == "trend")
 rm(trend)
 ```
 
-## 3.3.1 SFS Meeting Trend Stations
 
-```{r sfs_trend_stations}
-# EDA Plot
-# trend_stations <- ggplot(trend, aes(x=year_f, y = vscivcpmi)) + geom_point() + facet_wrap(vars(vahusb_nam, station_id), nrow = 2, ncol=4) +labs(x = "Survey Year", y = "VSCI")
-# 
-# png(file="figures_sfs_2024/trend_stations.png",width=12,height=3,units="in",res=150)
-# trend_stations
-# dev.off()
-
-```
-
-## 3.3.2 Factors: Wetlands, Impervious Surface, Grass & TP
+## 3.40 Factors: Wetlands, Impervious Surface, Grass & TP
 
 On January 26, 2024, Jason Hill at VDEQ sent an email describing total phosphorus (tp) concentrations that impacted VSCI based on a relative risk analysis.
 At 0.02 mg/L tp and less see little impact, at 0.05 mg/L and above start seeing some impacts, and at 0.1 mg/L and above more likely to have impacts.
@@ -878,7 +867,7 @@ summary(as.factor(DFobs$tp_f))
 # ggplot(DFobs, aes(x=tp_f, y = vscivcpmi)) + geom_boxplot()
 ```
 
-## 3.40 Onsite, Watershed and Catchment Area Covariates
+## 3.50 Onsite, Watershed and Catchment Area Covariates
 
 Turb and no3 had NA entries.
 Emma Jones, VDEQ, sent email with csv file, FinalFieldAnalyte_MissingJamesSites.csv, that had analyte entries for stations 2AMLC000.84 and 2-WLS023.10.
@@ -1010,7 +999,7 @@ DFobs2$l_cat_area_r <- log(DFobs2$cat_area_r)
 
 ```
 
-## 3.41 New Variables into SSN
+## 3.60 New Variables into SSN
 All the variable manipulations have been done on DFobs. We now need to put those changes into the SSN object using the SSN2::ssn_put_data function.
 ```{r put DFobs2 into SSN}
 names(DFobs2)
@@ -1024,22 +1013,6 @@ j_ssn3 <- j_ssn2
 
 ```
 
-## 3.42 SFS Log_tn and tothab Plots
-Scatter plots used in SFS 2024 talk.
-```{r sfs_logtn_plot}
-# scat_tn1 <- ggplot(DFobs2, aes(x=l_tn, y=vsci)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + labs(x="Total Nitrogen (mg/L, logged)", y = "VSCI")
-# 
-# png(file="figures_sfs/scat_tn1.png",width=6,height=3,units="in",res=150)
-# scat_tn1
-# dev.off()
-# 
-# scat_tothab1 <- ggplot(DFobs2, aes(x=tothab, y=vsci)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + labs(x="Total Habitat", y = "VSCI")
-# 
-# png(file="figures_sfs_2024/scat_tothab1.png",width=6,height=3,units="in",res=150)
-# scat_tothab1
-# dev.off()
-
-```
 
 # 4.0 Empirical Logit Transformation
 
@@ -1144,29 +1117,29 @@ for(var in emplog_vars){
 
 ```
 
-## 4.20 Logit of Impervious Cover
+## 4.20 Logit of Impervious Cover Example
+When proportions, or percentages, for a covariate are squished down to a small range of values towards either 0 or 1, then an empirical logit transformation
+can "stretch out" those value. That stretching can possibly make a better fit between the response variable and the covariate. Contrast the summary statistics between
+watershed percentage forest cover and watershed impervious surface percentage. Given the wide range of values for watershed percentage forest cover, the scatter plots
+of vsci on the untransformed and empirical logit transformation show roughly the same relationship. However, with a much smaller range of values of watershed impervious cover, the scatter plots of vsci on the untransformed and transformed are markedly different.
 
-On 04/30/2024 summaries of empirical logit of impervious cover show that minimum for impervious cover of catchment is greater than minima for watershed, watershed-riparian, and catchment-riparian.
-I think the minimum non-zero proportions of 0.01 versus 0.02 is causing the different transformation values.
-But, I can't get "hand" calculator versions to work.
-Also see that impervious cover values of 0 and the second smallest value under each of the 4 geographies is assigned the empirical logit transformation.
-Does result below have something to do with second smallest value for pct_imp_w, pct_imp_rp, and pct_imp_rp_c is 0.01, but for pct_imp_c it is 0.02?
-
-Look at 2024 PowerPoint in presentations folder, and see VSCI and Impervious Cover: 4 Geographies, slide 11, and note that minimum values of impervious cover for Catchment differs from other 3 geographies.
 
 ```{r emplogit_of_impevious}
-names(DFobsz)
-summary(DFobsz$pct_imp_w_emplog)
-summary(DFobsz$pct_imp_rp_w_emplog)
-summary(DFobsz$pct_imp_c_emplog)
-summary(DFobsz$pct_imp_rp_c_emplog)
 
-str(DFobsz$pct_imp_w_emplog)
-str(DFobsz$pct_imp_rp_w_emplog)
-str(DFobsz$pct_imp_c_emplog)
-str(DFobsz$pct_imp_rp_c_emplog)
+zlogit <- dplyr::select(DFobsz, c(station_id_2, vsci,pct_imp_w, pct_imp_w_emplog,pct_for_w, pct_for_w_emplog))
 
-zlogit <- dplyr::select(DFobsz, c(station_id_2, vsci,pct_imp_w, pct_imp_w_emplog,pct_imp_rp_w, pct_imp_rp_w_emplog, pct_imp_c, pct_imp_c_emplog, pct_imp_rp_c, pct_imp_rp_c_emplog))
+summary(zlogit$pct_for_w)
+summary(zlogit$pct_imp_w)
+
+# comparison of impervious cover and empirical logit of watershed forest cover
+#non-transformed
+ggplot(data = zlogit,
+       aes(x =pct_for_w, y = vsci))+
+  geom_point()
+# transformed
+ggplot(data = zlogit,
+       aes(x =pct_for_w_emplog, y = vsci))+
+  geom_point()
 
 # comparison of impervious cover and empirical logit of impervious cover
 #non-transformed
@@ -1177,41 +1150,8 @@ ggplot(data = zlogit,
 ggplot(data = zlogit,
        aes(x =pct_imp_w_emplog, y = vsci))+
   geom_point()
-# car::logit transform
-zlogit$car_logit = car::logit(p = zlogit$pct_imp_w,
-                              adjust = .00025)
 
-#car::logit transform
-ggplot(data = zlogit,
-       aes(x =car_logit, y = vsci))+
-  geom_point()
-
-
-######## alternate discussion for pct_w
-zlogit2 <- dplyr::select(DFobsz, c(station_id_2, vsci,pct_for_w,pct_for_w_emplog))
-
-# comparison of impervious cover and empirical logit of impervious cover
-#non-transformed
-ggplot(data = zlogit2,
-       aes(x =pct_for_w, y = vsci))+
-  geom_point()
-# transformed
-ggplot(data = zlogit2,
-       aes(x =pct_for_w_emplog, y = vsci))+
-  geom_point()
-# car::logit transform
-zlogit2$car_logit = car::logit(p = zlogit2$pct_for_w,
-                              adjust = .025)
-
-#car::logit transform
-ggplot(data = zlogit2,
-       aes(x =car_logit, y = vsci))+
-  geom_point()
-
-
-
-
-
+rm(zlogit)
 
 ```
 
@@ -1267,19 +1207,7 @@ j_ssn3 <-  SSN2::ssn_put_data(DFobs2a,j_ssn3)
 
 ```
 
-## 5.50 SFS 2024 StreamCat Plots
-
-```{r sfs_streamcat}
-# scat_cat2 <- ggplot(DFobs2a, aes(x = pct_imp_c_emplog, y = vsci, colour = vahusb)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + labs(x="Catchment Impervious (empirical logit)", y = "VSCI") + expand_limits(x=-10) + scale_colour_discrete(name="Subbasin")
-# 
-# scat_cat2
-# png(file="figures_sfs_2024/scat_cat2.png",width=4,height=3,units="in",res=150)
-#   scat_cat2
-# dev.off()
-
-```
-
-#6.0 ESDA Across Different Polygons Using vahusb as those 5 polygons are comprised of huc8s.
+#5.0 ESDA Across Different Polygons Using vahusb as those 5 polygons are comprised of huc8s.
 Commented out EDA code below
 ```{r esda_polygons}
 
@@ -1309,7 +1237,7 @@ Commented out EDA code below
 # mapview(DFobs2)
 ```
 
-## 7.0 Instream/Onsite Correlations
+## 6.0 Instream/Onsite Correlations
 
 Commented out EDA code below.
 
@@ -1355,9 +1283,53 @@ Commented out EDA code below.
 # ggpairs(DFobs8, columns = c(2:8))
 ```
 
-# 8.0 Script 03 SSN Output
+# 7.0 Script 03 SSN Output
 The ssn object with new covariates and transformed covariates is saved so it can be load into Script 04.
 ```{r script03_ssn_output}
 save(j_ssn3, file = "outputs/j_ssn3.RData")
+```
+
+# Figures for Presentations
+
+## SFS 2024 Meeting Trend Stations
+
+```{r sfs_trend_stations}
+# EDA Plot
+# trend_stations <- ggplot(trend, aes(x=year_f, y = vscivcpmi)) + geom_point() + facet_wrap(vars(vahusb_nam, station_id), nrow = 2, ncol=4) +labs(x = "Survey Year", y = "VSCI")
+# 
+# png(file="figures_sfs_2024/trend_stations.png",width=12,height=3,units="in",res=150)
+# trend_stations
+# dev.off()
+
+```
+
+## SFS 2024 Meeting Log_tn and tothab Plots
+
+```{r sfs_logtn_plot}
+# scat_tn1 <- ggplot(DFobs2, aes(x=l_tn, y=vsci)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + labs(x="Total Nitrogen (mg/L, logged)", y = "VSCI")
+# 
+# png(file="figures_sfs_2024/scat_tn1.png",width=6,height=3,units="in",res=150)
+# scat_tn1
+# dev.off()
+# 
+# scat_tothab1 <- ggplot(DFobs2, aes(x=tothab, y=vsci)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + labs(x="Total Habitat", y = "VSCI")
+# 
+# png(file="figures_sfs_2024/scat_tothab1.png",width=6,height=3,units="in",res=150)
+# scat_tothab1
+# dev.off()
+
+```
+
+
+## SFS 2024 StreamCat Plots
+
+```{r sfs_streamcat}
+# scat_cat2 <- ggplot(DFobs2a, aes(x = pct_imp_c_emplog, y = vsci, colour = vahusb)) + geom_point() + geom_smooth(method = "lm", se = FALSE) + labs(x="Catchment Impervious (empirical logit)", y = "VSCI") + expand_limits(x=-10) + scale_colour_discrete(name="Subbasin")
+# 
+# scat_cat2
+# png(file="figures_sfs_2024/scat_cat2.png",width=4,height=3,units="in",res=150)
+#   scat_cat2
+# dev.off()
+
 ```
 
