@@ -28,7 +28,7 @@ The purpose of this script is to model the relationship between VSCI and covaria
 * Test for random effects of trend stations versus status stations. Trends stations are sampled repeated, with station_id_2 being the identifier that distinguishes trend from status stations. Status stations are only sampled one time.
 * Compare SSN models across the 4 geographies using ML estimation method as the models have different covariates.
 
-Portions of this analysis are summarized in the Presentation folder, specifically 20204_sfc_philadelphia_bioassessment_session_mcmanus.pdf. That presentation provides an overview of the detailed analysis presented below.
+Portions of this analysis are summarized in the Presentation folder, specifically 2024_sfc_philadelphia_bioassessment_session_mcmanus.pdf. That presentation provides an overview of the detailed analysis presented below.
 
 Log Keeping log below for now when reach final version will delete.
 11/21/2024 Only retained modeling chunks. Loading SSN that was produced in script 03.
@@ -267,118 +267,6 @@ names(DFobs2)
 
 
 
-# 2.1T Dummy Coding of Factors-Travis
-Travis Linscome-Hatfield at Neptune provide the code chunk below to see if changing the reference group altered the analysis results and conclusions. This evaluation was motivated by the observation that the default reference group for the Virginia hydrologic unit subbasins was JU, the upper James.
-Dummy coding for ecoregions, Virginia hydrologic unit subbasins, wetlands, impervious surfaces, and total phosphorus.
-```{r dummy_code-Travis}
-
-names(DFobsz_alternate_dummy)
-# the 3 commented lines below simply allow for variable definition for quick funciton adjustment.
-dat = DFobsz_alternate_dummy
-alt_dat = DFobsz_alternate_dummy
-variable = "eco_region"
-category_break = function(dat,alt_dat,variable,base1=NULL,base2=NULL){
-  
-  #pull the column we wish to dummy code
-  var_r <- dplyr::select(dat, all_of(variable))
-  # get the value with the highest number of instances
-  var_b <- as.data.frame(table(var_r))
-  var_b <- var_b[order(-var_b$Freq),]
-  # if base cases aren't already defined
-  if(is.null(base1)){
-    # pick base case
-    base1 = as.character(var_b[1,1])
-  }
-  
-  # if base2 isn't defined 
-  if(is.null(base2)){
-    if(base1 == as.character(var_b[1,1])){
-      base2 = as.character(var_b[2,1])
-    }else{
-      base2 = as.character(var_b[1,1])
-    }
-  }
-
-  
-  # dummying the variable
-  var_d <- (data.frame(dummy(var_r)))
-  # identify which column is the base case
-  # turning column names into something that can be directly matched with the base case
-  col_short = colnames(var_d)
-  col_short = gsub(variable,"",col_short)
-  col_short = gsub("_","",col_short)
-  col_short = gsub("\\."," ",col_short)
-  base1_col_id = which(base1 == col_short)
-  base2_col_id = which(base2 == col_short)
-
-  
-  # remove the base case from var_d
-  var_d1 = var_d[,-base1_col_id]
-  var_d2 = var_d[,-base2_col_id]
-  # binding into apropriate datasets
-  dat = cbind(dat,var_d1)
-  alt_dat = cbind(alt_dat,var_d2)
-  
-  out_list = list("Variable"=variable,
-                  "base1"=base1,
-                  "base2"=base2,
-                  "dat"=dat,
-                  "alt_dat"=alt_dat)
-  return(out_list)
-  
-}
-
-# dummy data for eco_region
-df_dum_eco = category_break(dat= DFobsz_alternate_dummy,
-                            alt_dat=DFobsz_alternate_dummy,
-                            "eco_region")
-# dummy data for vahusb
-df_dum_vahusb = category_break(df_dum_eco$dat,
-                               df_dum_eco$alt_dat,
-                               "vahusb")
-# dummy data for wetland (pct_wet_w_f)
-levels(DFobsz_alternate_dummy$pct_wet_w_f)
-df_dum_wet = category_break(dat = df_dum_vahusb$dat,
-                            alt_dat = df_dum_vahusb$alt_dat,
-                            variable = "pct_wet_w_f",
-                            base1 = "none")
-# dummy data for watershed-ripeaian wetland (pct_wet_wr_f)
-levels(DFobsz_alternate_dummy$pct_wet_wr_f)
-df_dum_wet_wr = category_break(df_dum_wet$dat,
-                               df_dum_wet$alt_dat,
-                               "pct_wet_wr_f",
-                               base1 = "none")
-# dummy data for catchment wetland levels (pct_wet_c_f)
-levels(DFobsz_alternate_dummy$pct_wet_c_f)
-df_dum_wet_c = category_break(df_dum_wet_wr$dat,
-                              df_dum_wet_wr$alt_dat,
-                              "pct_wet_c_f",
-                              base1 = "none")
-# dummy data for catchment-riparian wetland levels (pct_wet_cr_f)
-levels(DFobsz_alternate_dummy$pct_wet_cr_f)
-df_dum_wet_cr = category_break(df_dum_wet_c$dat,
-                               df_dum_wet_c$alt_dat,
-                               "pct_wet_cr_f",
-                               base1 = "none")
-
-# dummy code for catchment-riparian impervious surfaces levels (pct_imp_rp_c_f)
-levels(DFobsz_alternate_dummy$pct_imp_rp_c_f)
-df_dum_imp_rp = category_break(df_dum_wet_cr$dat,
-                               df_dum_wet_cr$alt_dat,
-                               "pct_imp_rp_c_f",
-                               base1 = "none")
-
-# dummy code for total phosphorus levels (tp_f)
-levels(DFobsz_alternate_dummy$tp_f)
-df_dum_tp = category_break(df_dum_imp_rp$dat,
-                           df_dum_imp_rp$alt_dat,
-                           "tp_f",
-                           base1 = "low")
-
-dat_dummy = df_dum_tp$dat
-alt_dat_dummy = df_dum_tp$alt_dat
-
-```
 
 
 # 3.0 SSN Ws, WsRp, Cat, & CatRp Models
@@ -455,51 +343,6 @@ loocv(ssn0_wswq_mlr)
 ```
 
 
-### 4.1T Bestglm and SSN0 Nugget Model-Travis
-On 01/23/2025 commented out TLH code as it showed obtained same model as chunk above.
-
-The code below evaluates if a different reference group was chosen would a qualitatively different model result from the best glm selection. For example, if the reference watershed used was vahusb_JM instead of vahusb_JU.
-
-```{r ws_bestglm-Travis}
-
-#double checking our base cases for variables we're selecting for the bestglm
-df_dum_vahusb$base1
-df_dum_vahusb$base2
-df_dum_tp$base1
-df_dum_tp$base2
-# initial selection
-WsWq <- dat_dummy|>
-  dplyr::select(precip_mm, tmean, pct_imp_w_emplog, pct_for_w_emplog, pct_hay_w_emplog, pct_grs_w_emplog, elev_ws, do, p_h, tothab, l_spc, l_tds, l_turb, l_tn, vahusb_JU, vahusb_JR, vahusb_JA, vahusb_JL, bin_wet_w, tp_f_medium, tp_f_high)
-str(WsWq)
-# X can only contain numeric or factor
-WsWq<- apply(WsWq, 2, as.numeric)
-
-WsWqy<-cbind.data.frame(WsWq,y=DFobsz$vsci)
-ASRcum_wswq1.best<-bestglm(WsWqy,IC = "AIC", nvmax =4, TopModels=15)
-
-# See what terms are in best models
-ASRcum_wswq1.best$BestModels
-ASRcum_wswq1.best$Subsets
-summary(ASRcum_wswq1.best$BestModel)
-
-wswq_mlry2 <- lm(vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL, data = DFobsz)
-summary(wswq_mlry2)
-check_model(wswq_mlry2)
-# if you wish to view avPlots uncomment below. But this hangs if you attempt to run the whole script as one block
-#avPlots(wswq_mlry2)
-
-## testing alternate base case to see if any issues arise
-WsWq2 <- alt_dat_dummy|>
-  dplyr::select(precip_mm, tmean, pct_imp_w_emplog, pct_for_w_emplog, pct_hay_w_emplog, pct_grs_w_emplog, elev_ws, do, p_h, tothab, l_spc, l_tds, l_turb, l_tn, vahusb_JM, vahusb_JR, vahusb_JA, vahusb_JL, bin_wet_w, tp_f_low, tp_f_high)
-
-WsWq2<- apply(WsWq2, 2, as.numeric)
-
-WsWqy2<-cbind.data.frame(WsWq2,y=DFobsz$vsci)
-ASRcum_wswq2.best<-bestglm(WsWqy2,IC = "AIC", nvmax =4, TopModels=15)
-summary(ASRcum_wswq1.best$BestModel)
-
-# Perfect we get the same model we had before, no issues there.
-```
 
 
 ### 4.2 SSN0 Nugget vs SSN1
@@ -858,13 +701,6 @@ aug_ssn_catwq_reml1 <- augment(ssn_catwq_reml1, drop = FALSE)
 class(aug_ssn_catwq_reml1)
 mapview(aug_ssn_catwq_reml1)
 
-ggplot(aug_ssn_catwq_reml1, aes(x = pct_imp_c_emplog, y = .fitted)) + geom_point() + geom_smooth(method = "lm")
-
-ggplot(aug_ssn_catwq_reml1, aes(x = elev_cat, y = .fitted)) + geom_point() + geom_smooth(method = "lm")
-
-ggplot(aug_ssn_catwq_reml1, aes(x = tothab, y = .fitted)) + geom_point() + geom_smooth(method = "lm")
-
-ggplot(aug_ssn_catwq_reml1, aes(x = l_tn, y = .fitted)) + geom_point() + geom_smooth(method = "lm")
 ```
 
 ### 6.3 Random Effects: Cat-Wq
@@ -983,14 +819,6 @@ aug_ssn_catrpwq_reml1 <- augment(ssn_catrpwq_reml1, drop = FALSE)
 
 # mapview(aug_ssn_catrpwq_reml1)
 
-# not graphs are that helpful
-ggplot(aug_ssn_catrpwq_reml1, aes(x = pct_imp_rp_c_emplog, y = .fitted)) + geom_point() + geom_smooth(method = "lm")
-
-ggplot(aug_ssn_catrpwq_reml1, aes(x = elev_cat, y = .fitted)) + geom_point() + geom_smooth(method = "lm")
-
-ggplot(aug_ssn_catrpwq_reml1, aes(x = tothab, y = .fitted)) + geom_point() + geom_smooth(method = "lm")
-
-ggplot(aug_ssn_catrpwq_reml1, aes(x = l_tn, y = .fitted)) + geom_point() + geom_smooth(method = "lm")
 ```
 
 ### 7.3 Random Effects: CatRp-Wq
@@ -1017,7 +845,7 @@ models_rand4 <- glances(ssn0_catrpwq_mlr, ssn_catrpwq_reml1, ssn_catrpwq_rand1)
 print(models_rand4)
 ```
 
-# 8.0 Compare SSN Models with ML
+# 8.0 Compare Four Geography SSN Models with ML
 This to compare different SSN models from the 4 geographies. Given that the models have different covariates then the estimation method needs to be maximum likelihood or ML for AICc comparisons. See An Introduction to Spatial Stream Network Modeling in R using SSN2 for a description of when REML vs ML is used. That discussion is the paragraph just above section 4.1.1 Model Summaries. Note to evaluate the four models in predictive performance the loocv function is used and comparisons of RMSPE and cor2 are made.
 
 The watershed model, ssn_wswq_ml1, fits the data better and predicts better than the 3 other models. We will now use the watershed model for predictions in script 06.
@@ -1078,47 +906,166 @@ loocv(ssn_catrpwq_ml1)
 
 ```
 
-# 9.0 ST_rand Model
-On 01/21/2025 in modeling 48 preds in script 06 station type, st_type status or trend, showed differences in predictions and standard errors.Now investigating if using st_type as covariate produced a better fitting SSN model. Previously, I had only considered station_id as a random effect and in that role it did not improve ssn_wswq_reml1 model. As covariate, st_type, does not improve SSN model. SSN_wswq_ml1 has AICc of 1414 and with st_type covariate, SSN_wswq_ml1_st has AICc of 1417. Final model comparison will include station_id as random effect and st_type as covariate. That final, complicated model, ssn_wswq_rand1_st, has the lowest AICc of 1406, but it's model performance stats, RMSPE and cor2, are slightly worst. See how this complicated model performs on 48 prediction points.
-```{r st_type covariate}
+# Neptune Code from TLH
+This code is included for thoroughness, but does not need to be run unless needed.
 
-ssn_wswq_ml1_st <- ssn_lm(
-  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + st_type,
-  ssn.object = j_ssn3,
-  tailup_type = "none",
-  taildown_type = "exponential",
-  euclid_type = "exponential",
-  nugget_type = "nugget",
-  estmethod = "ml",
-  additive = "afv_area"
-)
+In addition to reviewing R code, Neptune statistician Travis Linscome-Hatfield provided code chunks that evaluated 1) assigning a different reference group, rather than the default, and 2) did having a different reference group result in a different model being selected by the bestglm function. Running these two chunks resulted in the same model being selected based on the default group of JU.
 
-summary(ssn_wswq_ml1_st)
-varcomp(ssn_wswq_ml1_st)
-loocv(ssn_wswq_ml1_st)
+## TLH Chunk 1 Dummy Coding of Factors-Travis
+Travis Linscome-Hatfield at Neptune provide the code chunk below to see if changing the reference group altered the analysis results and conclusions. This evaluation was motivated by the observation that the default reference group for the Virginia hydrologic unit subbasins was JU, the upper James.
+Dummy coding for ecoregions, Virginia hydrologic unit subbasins, wetlands, impervious surfaces, and total phosphorus.
+```{r dummy_code-Travis}
 
-glances(ssn_wswq_ml1, ssn_wswq_ml1_st)
+names(DFobsz_alternate_dummy)
+# the 3 commented lines below simply allow for variable definition for quick funciton adjustment.
+dat = DFobsz_alternate_dummy
+alt_dat = DFobsz_alternate_dummy
+variable = "eco_region"
+category_break = function(dat,alt_dat,variable,base1=NULL,base2=NULL){
+  
+  #pull the column we wish to dummy code
+  var_r <- dplyr::select(dat, all_of(variable))
+  # get the value with the highest number of instances
+  var_b <- as.data.frame(table(var_r))
+  var_b <- var_b[order(-var_b$Freq),]
+  # if base cases aren't already defined
+  if(is.null(base1)){
+    # pick base case
+    base1 = as.character(var_b[1,1])
+  }
+  
+  # if base2 isn't defined 
+  if(is.null(base2)){
+    if(base1 == as.character(var_b[1,1])){
+      base2 = as.character(var_b[2,1])
+    }else{
+      base2 = as.character(var_b[1,1])
+    }
+  }
 
-ssn_wswq_rand1_st <- ssn_lm(
-  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + st_type,
-  ssn.object = j_ssn3,
-  tailup_type = "none",
-  taildown_type = "exponential",
-  euclid_type = "exponential",
-  nugget_type = "nugget",
-  estmethod = "reml",
-  additive = "afv_area",
-  random = ~ (1 | station_id)
-)
+  
+  # dummying the variable
+  var_d <- (data.frame(dummy(var_r)))
+  # identify which column is the base case
+  # turning column names into something that can be directly matched with the base case
+  col_short = colnames(var_d)
+  col_short = gsub(variable,"",col_short)
+  col_short = gsub("_","",col_short)
+  col_short = gsub("\\."," ",col_short)
+  base1_col_id = which(base1 == col_short)
+  base2_col_id = which(base2 == col_short)
 
-summary(ssn_wswq_rand1_st)
-varcomp(ssn_wswq_rand1_st)
-loocv(ssn_wswq_rand1_st)
+  
+  # remove the base case from var_d
+  var_d1 = var_d[,-base1_col_id]
+  var_d2 = var_d[,-base2_col_id]
+  # binding into apropriate datasets
+  dat = cbind(dat,var_d1)
+  alt_dat = cbind(alt_dat,var_d2)
+  
+  out_list = list("Variable"=variable,
+                  "base1"=base1,
+                  "base2"=base2,
+                  "dat"=dat,
+                  "alt_dat"=alt_dat)
+  return(out_list)
+  
+}
 
-glances(ssn_wswq_ml1, ssn_wswq_ml1_st,ssn_wswq_rand1_st)
+# dummy data for eco_region
+df_dum_eco = category_break(dat= DFobsz_alternate_dummy,
+                            alt_dat=DFobsz_alternate_dummy,
+                            "eco_region")
+# dummy data for vahusb
+df_dum_vahusb = category_break(df_dum_eco$dat,
+                               df_dum_eco$alt_dat,
+                               "vahusb")
+# dummy data for wetland (pct_wet_w_f)
+levels(DFobsz_alternate_dummy$pct_wet_w_f)
+df_dum_wet = category_break(dat = df_dum_vahusb$dat,
+                            alt_dat = df_dum_vahusb$alt_dat,
+                            variable = "pct_wet_w_f",
+                            base1 = "none")
+# dummy data for watershed-ripeaian wetland (pct_wet_wr_f)
+levels(DFobsz_alternate_dummy$pct_wet_wr_f)
+df_dum_wet_wr = category_break(df_dum_wet$dat,
+                               df_dum_wet$alt_dat,
+                               "pct_wet_wr_f",
+                               base1 = "none")
+# dummy data for catchment wetland levels (pct_wet_c_f)
+levels(DFobsz_alternate_dummy$pct_wet_c_f)
+df_dum_wet_c = category_break(df_dum_wet_wr$dat,
+                              df_dum_wet_wr$alt_dat,
+                              "pct_wet_c_f",
+                              base1 = "none")
+# dummy data for catchment-riparian wetland levels (pct_wet_cr_f)
+levels(DFobsz_alternate_dummy$pct_wet_cr_f)
+df_dum_wet_cr = category_break(df_dum_wet_c$dat,
+                               df_dum_wet_c$alt_dat,
+                               "pct_wet_cr_f",
+                               base1 = "none")
 
-#to run script continuously from top to bottom comment out plot statement below as requires repeated hitting of enter key, which skips script lines in doing so
-# plot(ssn_wswq_rand1_st, which = c(1:6))
+# dummy code for catchment-riparian impervious surfaces levels (pct_imp_rp_c_f)
+levels(DFobsz_alternate_dummy$pct_imp_rp_c_f)
+df_dum_imp_rp = category_break(df_dum_wet_cr$dat,
+                               df_dum_wet_cr$alt_dat,
+                               "pct_imp_rp_c_f",
+                               base1 = "none")
+
+# dummy code for total phosphorus levels (tp_f)
+levels(DFobsz_alternate_dummy$tp_f)
+df_dum_tp = category_break(df_dum_imp_rp$dat,
+                           df_dum_imp_rp$alt_dat,
+                           "tp_f",
+                           base1 = "low")
+
+dat_dummy = df_dum_tp$dat
+alt_dat_dummy = df_dum_tp$alt_dat
 
 ```
 
+## TLH Chunk 2 Bestglm and SSN0 Nugget Model-Travis
+On 01/23/2025 commented out TLH code as it showed obtained same model as chunk above.
+
+The code below evaluates if a different reference group was chosen would a qualitatively different model result from the best glm selection. For example, if the reference watershed used was vahusb_JM instead of vahusb_JU.
+
+```{r ws_bestglm-Travis}
+
+#double checking our base cases for variables we're selecting for the bestglm
+df_dum_vahusb$base1
+df_dum_vahusb$base2
+df_dum_tp$base1
+df_dum_tp$base2
+# initial selection
+WsWq <- dat_dummy|>
+  dplyr::select(precip_mm, tmean, pct_imp_w_emplog, pct_for_w_emplog, pct_hay_w_emplog, pct_grs_w_emplog, elev_ws, do, p_h, tothab, l_spc, l_tds, l_turb, l_tn, vahusb_JU, vahusb_JR, vahusb_JA, vahusb_JL, bin_wet_w, tp_f_medium, tp_f_high)
+str(WsWq)
+# X can only contain numeric or factor
+WsWq<- apply(WsWq, 2, as.numeric)
+
+WsWqy<-cbind.data.frame(WsWq,y=DFobsz$vsci)
+ASRcum_wswq1.best<-bestglm(WsWqy,IC = "AIC", nvmax =4, TopModels=15)
+
+# See what terms are in best models
+ASRcum_wswq1.best$BestModels
+ASRcum_wswq1.best$Subsets
+summary(ASRcum_wswq1.best$BestModel)
+
+wswq_mlry2 <- lm(vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL, data = DFobsz)
+summary(wswq_mlry2)
+check_model(wswq_mlry2)
+# if you wish to view avPlots uncomment below. But this hangs if you attempt to run the whole script as one block
+#avPlots(wswq_mlry2)
+
+## testing alternate base case to see if any issues arise
+WsWq2 <- alt_dat_dummy|>
+  dplyr::select(precip_mm, tmean, pct_imp_w_emplog, pct_for_w_emplog, pct_hay_w_emplog, pct_grs_w_emplog, elev_ws, do, p_h, tothab, l_spc, l_tds, l_turb, l_tn, vahusb_JM, vahusb_JR, vahusb_JA, vahusb_JL, bin_wet_w, tp_f_low, tp_f_high)
+
+WsWq2<- apply(WsWq2, 2, as.numeric)
+
+WsWqy2<-cbind.data.frame(WsWq2,y=DFobsz$vsci)
+ASRcum_wswq2.best<-bestglm(WsWqy2,IC = "AIC", nvmax =4, TopModels=15)
+summary(ASRcum_wswq1.best$BestModel)
+
+# Perfect we get the same model we had before, no issues there.
+```
