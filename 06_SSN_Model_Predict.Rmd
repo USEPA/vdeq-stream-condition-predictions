@@ -1090,6 +1090,8 @@ spat_loocv2 <- bind_cols(station_id_2, spat_loocv1)
 # 90% loocv fitted limits b/c z-statistics 1.645 used
 ggplot(spat_loocv2, aes(x = cv_predict, y = vsci)) + geom_point() + geom_abline() + geom_ribbon(aes(ymin = cv_predict - (1.645*se.fit), ymax = cv_predict + (1.645*se.fit)), fill = "grey", alpha = .8) + geom_line(aes( y = cv_predict)) + labs(x = "VSCI LOOCV Fitted 2001-2018", y = "VSCI Observed 2001-2018", title = "SSN LOOCV Obs vs Fitted d_ssn_wswq_reml1 n=199")
 
+cor(spat_loocv2$cv_pred,spat_loocv2$vsci, method = "pearson")
+
 # number of points outside 90% loocv fitted limits (ofl) 
 ofl_stations1 <- filter(spat_loocv2, vsci < (cv_predict - (1.645*se.fit)) | vsci > (cv_predict + (1.645*se.fit)))
 ofl_stations1 %>% print(n = Inf)
