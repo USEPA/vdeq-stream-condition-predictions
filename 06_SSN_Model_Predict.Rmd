@@ -1065,7 +1065,52 @@ tidy(d_ssn_wswq_reml1)
 
 ```
 
-## 7.5 Mapview Standardized Residuals
+## 7.5 Ribbon LOOCV Fitted Interval
+This diagnostic plot takes the 199 fitted values from the leave-one-out cross validation of d_ssn_wswq_reml1, plots them on the x-axis and the199  observed vsci values on the y-axis and so indicates the correlation between these two values. Because the loocv function returns the standard error of the fit, se.fit, we can calculated a 90% fitted interval by specifying the z-statistics  of 1.645 in the geom_ribbon argument of the ggplot function. This diagnostic plot offers 3 "gut checks" on our model:  1) do we see a linear relationship between fitted and observed? 2) How many points fall outside the fitted interval? If it is a lot of points then that suggests the model is not fitting the data well. 3) Do the points falling outside the fitted interval cluster around certain values? Such a clustering might indicate that the model is not fitting well.
+
+```{r ribbon_loocv_fitted_interval}
+cv_resids = loocv(d_ssn_wswq_reml1,
+                  cv_predict = T,
+                  se.fit = T)
+
+
+spat_loocv1 <- cbind(cv_resids$cv_predict, cv_resids$se.fit, DFobs3a$vsci)
+colnames(spat_loocv1) <- c("cv_predict", "se.fit", "vsci")
+
+spat_loocv1 <- as.data.frame(spat_loocv1)
+head(spat_loocv1)
+
+spat_loocv1$cv_predict <- round(spat_loocv1$cv_predict,1)
+
+station_id_2 <-dplyr::select(DFobs3a,station_id_2)
+
+# put sf object first so sticky geometry retained
+spat_loocv2 <- bind_cols(station_id_2, spat_loocv1)
+
+# 90% loocv fitted limits b/c z-statistics 1.645 used
+ggplot(spat_loocv2, aes(x = cv_predict, y = vsci)) + geom_point() + geom_abline() + geom_ribbon(aes(ymin = cv_predict - (1.645*se.fit), ymax = cv_predict + (1.645*se.fit)), fill = "grey", alpha = .8) + geom_line(aes( y = cv_predict)) + labs(x = "VSCI LOOCV Fitted 2001-2018", y = "VSCI Observed 2001-2018", title = "SSN LOOCV Obs vs Fitted d_ssn_wswq_reml1 n=199")
+
+# number of points outside 90% loocv fitted limits (ofl) 
+ofl_stations1 <- filter(spat_loocv2, vsci < (cv_predict - (1.645*se.fit)) | vsci > (cv_predict + (1.645*se.fit)))
+ofl_stations1 %>% print(n = Inf)
+
+mapview(ofl_stations1)
+
+edges <- st_read("ssn_object/James_071024_pluspreds.ssn/edges.shp")
+
+# now see 2 trend stations on Tye River
+# when zoom in
+# https://stackoverflow.com/questions/36469379/multiple-markers-on-same-coordinate
+st_jitter(ofl_stations1, factor = 0.001) %>% 
+  mapview(., col.regions = "red") + mapview(edges)
+
+
+
+```
+
+## 7.6 Mapview Standardized Residuals
+The scatter plot above gave a statistical characterization of observed and fitted values. The map below of standardized residuals can give a spatial characterization. Are extreme values of the standardized residuals spread throughout the spatial domain, or is there a geographic clustering of extreme standardized residuals? A clustering might indicate a locality that other covariates should be considered.
+
 ```{r mapview aug_d_wswq_reml1}
 aug_d_wswq_reml1 <- augment(d_ssn_wswq_reml1, drop = FALSE)
 summary(aug_d_wswq_reml1$.std.resid)
