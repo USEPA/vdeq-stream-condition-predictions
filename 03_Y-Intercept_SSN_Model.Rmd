@@ -265,5 +265,5 @@ View(models_yintercept)
 
 loocv(tu_td_eu_exp)
 
-write.csv(models_yintercept, file="outputs/models_yintercept.csv",sep=",",row.names=F)
+write.csv(models_yintercept, file="outputs/models_yintercept.csv",row.names=F)
 ```

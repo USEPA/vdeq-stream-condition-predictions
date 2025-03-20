@@ -67,7 +67,7 @@ coords <- data.frame(longitude  = hab_1$Long, latitude = hab_1$Lat)
 head(coords)
 
 # See Marc Weber workshop above about Coordinate Reference Systems (CRS)
-hab_sf1 <- st_as_sf(hab_1, coords = c("Long", "Lat"), crs =4269) %>% st_transform(5070)
+hab_sf1 <- st_as_sf(hab_1, coords = c("Long", "Lat"), crs = 4269) %>% st_transform(5070)
 class(hab_sf1)
 
 # read in shapefile
@@ -83,7 +83,7 @@ mapview(hab_sf1) + mapview(bigbend_seagrass)
 ```
 
 ## Writing sf Objects to Shapefiles and Geopackage Geodatabase
-A sf object can be written out as an ESRI shapefile. If you have several sf objects, such as points for sites and polygons of seagrass areas, you can keep them together by writing them out as a geopackage geodatabase. The output from this code will appear under File Explorer where your working directory is located and will include a shapefile and geopackage that we wrote to that location.
+A sf object can be written out as an ESRI shapefile. If you have several sf objects, such as points for sites and polygons of seagrass areas, you can keep them together by writing them out as a geopackage. The output from this code will appear under File Explorer where your working directory is located and will include a shapefile and geopackage that we wrote to that location.
 Note that geopackage is the default spatial format for QGIS. The R package SSNbler <https://cran.r-project.org/package=SSNbler> can be used with QGIS, or ArcGIS Pro, to build a spatial stream network (SSN) object.
 ```{r geopackage, eval=FALSE}
 
@@ -110,7 +110,7 @@ st_layers("bbsg_v1_2024_05_06.gpkg")
 ```
 
 ## Import SSN Object & Extract Data Frame
-We will now start using the James SSN. It easier to explore the data frame of an SSN object by extracting it via the `ssn_get_data` command. Note below that DFobs is both an sf object and a data frame so we can readily use it to make an interactive map.
+We will now start using the James SSN. It easier to explore the data frame of an SSN object by extracting it via the `ssn_get_data` command. Note below that `DFobs` is both an sf object and a data frame so we can readily use it to make an interactive map.
 ```{r ssn_import_extract}
 
 j_ssn1a <- SSN2::ssn_import("ssn_object/James_071024_pluspreds.ssn", predpts = "sites")
@@ -129,7 +129,7 @@ mapview(DFobs, zcol = "vscivcpmi", cex = "vscivcpmi", alpha.regions = .8, legend
 
 ## Distance Summary
 As we will be looking at spatial variation in vsci, or semivariance, as a function of distance it is important to get a distance summary of the stations.
-We use st_distance function to create pairwise distance matrix among all the sites. Then, because a Euclidean distance matrix is symmetrical, we extract half of that matrix and convert it to a vector then get the summary of the distances, min, Q1, median, mean, Q3, and max. Knowing max distance is important the `variogram` function uses that distance to set default cutoff. That cutoff is the spatial separation distance up to which a pair of points are included in semivariance estimates.  The default is the length of the diagonal of bounding box spanning the data, which is ~ approximately the max distance.  Our default cutoff will be 299,805/3 = 99,935 meters or ~ 100 km. 
+We use st_distance function to create pairwise distance matrix among all the sites. Then, because a Euclidean distance matrix is symmetrical, we extract half of that matrix and convert it to a vector then get the summary of the distances, min, Q1, median, mean, Q3, and max. Knowing max distance is important because the `variogram` function uses that distance to set default cutoff. That cutoff is the spatial separation distance up to which a pair of points are included in semivariance estimates.  The default is the length of the diagonal of bounding box spanning the data, which is ~ approximately the max distance.  Our default cutoff will be 299,805/3 = 99,935 meters or ~ 100 km. 
 
 ```{r distance}
 distmat_obs <- st_distance(DFobs, DFobs,by_element = FALSE)
@@ -157,7 +157,7 @@ ggplot(DFobs, aes(log(vscivcpmi))) + geom_histogram()
 summary(DFobs$vscivcpmi)
 ```
 
-In this semivariogram cloud, we see that points that are nearer each other on the left-hand part of the x-axis have small semivariances and as we move right to points further apart the semivariances increase. 
+In the following semivariogram cloud, we see that points that are nearer each other on the left-hand part of the x-axis have small semivariances and as we move right to points further apart the semivariances increase. 
 
 We can view the the semivariance cloud as a data frame so we can sort on gamma, the semivariance, to find our maximum gamma, 1303.6 occurs at a pair of sites about 60 km apart. But, what are the two stations having that maximum gamma, where are those sites and what are their vsci values?
 ```{r semivar_cloud}
@@ -165,7 +165,7 @@ We can view the the semivariance cloud as a data frame so we can sort on gamma, 
 z_sci_cloud =  variogram(vscivcpmi ~ 1, DFobs, cloud = TRUE)
 class(z_sci_cloud)
 plot(z_sci_cloud) # default plot from gstat
-# quite of smear of points
+# quite a smear of points
 z1_cloud <- as.data.frame(z_sci_cloud)
 names(z1_cloud)
 View(z1_cloud)
