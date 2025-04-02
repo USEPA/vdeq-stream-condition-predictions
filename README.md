@@ -25,12 +25,11 @@ This repository is broken principally into 6 scripts. These scripts are numbered
 
 ## Data 
 
-This repository currently relies upon an SSN object generated for the James River Watershed in Virginia. This objecty is James_071024_pluspreds.ssn in the ssn_object/ folder. 
-Additionally multile datasets are available in the data/ folder and are pulled in various locations throughout the 6 main scripts. 
+This repository currently relies upon an SSN object generated for the James River Watershed in Virginia. This object is James_071024_pluspreds.ssn in the ssn_object/ folder. 
+Additionally multiple datasets are available in the data/ folder and are pulled in various locations throughout the 6 main scripts. 
 
 ## Packages
-There are a relatively large number of packages required to run each of the 6 scripts, and are all called out at the beginning of their respecitive scripts. Additionally a sessionInfo() call output has been added to each script to provide the user with a list of
-all the package versions that were utilized in the creation of the script.
+There are a relatively large number of packages required to run each of the 6 scripts, and are all called out at the beginning of their respectitive scripts. Additionally a sessionInfo() call output has been added to each script to provide the user with a list of all the package versions that were utilized in the creation of the script.
 
 ## Commented Code
 In some of the scripts there are sections of code that are commented out. These sections are not necessary for the completion of the script, but are included for the user to explore and understand some of the additional EDA that was conducted in the process of creating this example.
