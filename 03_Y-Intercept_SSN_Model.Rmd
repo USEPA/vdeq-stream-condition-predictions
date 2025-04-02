@@ -63,7 +63,7 @@ tu_exp <- ssn_lm(
   ssn.object = j_ssn1a,
   tailup_type = "exponential",
   taildown_type = "none",
-  euclid_type = "none",
+  euclid_type = "gaussian",
   additive = "afv_area"
 )
 summary(tu_exp)
@@ -144,7 +144,7 @@ tu_exp_td_exp <- ssn_lm(
   ssn.object = j_ssn1a,
   tailup_type = "exponential",
   taildown_type = "exponential",
-  euclid_type = "none",
+  euclid_type = "gaussian",
   additive = "afv_area"
 )
 summary(tu_exp_td_exp)

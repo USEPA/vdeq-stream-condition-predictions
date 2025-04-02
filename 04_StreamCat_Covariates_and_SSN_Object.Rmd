@@ -107,35 +107,8 @@ library(readxl)
 library(GGally)
 
 # the libraries below were used in development. Some could be used for commented out EDA code. 
-# library(ggplot2)
-# library(gridExtra)
-# library(car)
-# library(bestglm)
-# library(sf)
-# library(dplyr)
-# library(gpairs)
-# library(moments)
-# library(fitdistrplus)
-# library(openxlsx)
-# library(kableExtra)
-# library(scales)
-# library(gstat) # for semivariogram cloud
-# library(lattice) # for random
-# library(tmap)
 library(mapview)
-# library(leaflet)
 library(leafpop) # for popups in mapview
-# library(leafsync) # to sync obs and prediction maps
-# library(units)
-# library(spmodel)
-# library(purrr)
-# library(SSN2)
-# library(dummy)
-# library(performance)
-# library(see)
-# library(effects)
-# library(ggeffects)
-# library(plotly)
 
 sessionInfo()
 
@@ -238,8 +211,8 @@ DFobs <- DFobs %>%
 DFobs$wwtp <- factor(DFobs$wwtp, levels = c("yes","no"))
 summary(DFobs$wwtp)
 
-# EDA code commented out###
-###
+# ---EDA code commented out---- Comment back in to see additional EDA options that were explored ### 
+
 # initially created zDFobs for EDA
 # zDFobs <- left_join(DFobs, wwtp_ds1, by = join_by(feature_id == comid))
 # 
@@ -309,7 +282,7 @@ JU shows positive slope to VSCI, 3 other subbasins show negative slope, and JL i
 Based on EDA decided not include ws_sand as covariate.
 
 ```{r statsgo_set1}
-# EDA code Commented out###
+# EDA code Commented out--- Comment back in to see additional EDA options that were explored###
 ###
 # statsgo_set1 <- read.csv("data/STATSGO_Set1_VA.csv") %>% clean_names(.)
 # 
@@ -364,7 +337,7 @@ DFobs <- left_join(DFobs, statsgo_set2, by = join_by(feature_id == comid))
 names(DFobs)
 
 rm(statsgo_set2)
-# EDA code Commented out###
+# EDA code Commented out--- Comment back in to see additional EDA options that were explored###
 ###
 # zzDFobs = DFobs
 # mapview(zzDFobs, zcol = "rck_dep_ws", cex = "rcd_dep_ws", alpha.regions = .8, legend = TRUE, layer.name = 'Mean Depth to Bedrock (cm)', popup = popupTable(zzDFobs, zcol = c("rck_dep_ws", "station_id", "vahusb", "year")))
@@ -440,7 +413,7 @@ names(DFobs)
 
 rm(wb_ds1, wb_ds2, wb_metadata, StationIDs_UniqLocIDs)
 
-# EDA code Commented out###
+# EDA code Commented out--- Comment back in to see additional EDA options that were explored###
 ###
 # retain wv_ds2 from above if you wish to run this EDA
 # DFobs_wb <- left_join(DFobs, wb_ds2, by = join_by(station_id))
@@ -900,7 +873,7 @@ DFobs2$l_ws_area_r <- log(DFobs2$ws_area_r)
 DFobs2$l_cat_area <- log(DFobs2$cat_area)
 DFobs2$l_cat_area_r <- log(DFobs2$cat_area_r)
 
-# commented out summary stats and EDA code below
+# EDA code commented out --- Comment back in to see additional EDA options that were explored ##
 # summary(DFobs2$pct_for_w)
 # summary(DFobs2$pct_for_wr)
 # summary(DFobs2$pct_for_c)
