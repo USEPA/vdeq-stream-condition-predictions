@@ -144,7 +144,7 @@ DFobs <- SSN2::ssn_get_data(j_ssn1a) %>% clean_names(.)
 
 ```
 
-Steps are 1) select station_id from DFobs with geometry, 3) use unique.data.frame to get unique stations, and then 4) use st_nn
+Steps are 1) select station_id from DFobs with geometry, 3) use unique.data.frame to get unique stations, and then 4) use st_nn. Like the five-number distance summary done in script 1, this summarization of distance to a stations first closest neighbor is done to get a getting understanding of Euclidean distances.
 ```{r dist_knn1}
 # See binding distances to join result from
 # https://michaeldorman.github.io/nngeo/articles/intro.html
@@ -164,7 +164,7 @@ dists = sapply(z1_nn[[2]], "[", 1)
 # go to 2nd of two list and grab second entry by row, which is knn1 distance
 dists_knn1 = sapply(z1_nn[[2]], "[", 2)
 head(dists_knn1)
-summary(dists_knn1)
+summary(dists_knn1) # with units in meters.
 # Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
 # 0.161  2014.809  4765.854  5034.192  7320.395 16006.036 
 
@@ -371,7 +371,7 @@ rm(statsgo_set2)
 
 ## 2.40 Explore Waterbodies Data
 
-Ellen D'Amico calculated waterbody variables.
+Ellen D'Amico calculated waterbody variables. Ellen D'Amico is a GIS analyst, originally with Pegasus Technical Services, Inc. and now with GDIT as part of the EPA National Geospatial Support Team (NGST).
 
 ```{r waterbodies}
 wb_ds1 <- read.csv("data/ObservationPoints_DistancesUpstream_100424.csv") %>% clean_names(.)
@@ -559,7 +559,7 @@ rm(tothab_ds1, tothab_ds2, dr_na, tothab_ds3, jr_na, tothab_ds4)
 ```
 
 ## 3.25 PRISM data
-Get better metadata description of the variables.
+The PRISM data was obtained from  <https://prism.oregonstate.edu/recent/>.
 Correlations of PRISM climate data.
 
 ```{r prism}
@@ -991,7 +991,7 @@ j_ssn3 <- j_ssn2
 
 ## 4.10 Empirical Logit
 
-This code came from Travis Linscome-Hatfield at Neptune. Applying empirical logit only to obs.
+This code came from Travis Linscome-Hatfield, statistician at Neptune. Applying empirical logit only to obs.
 
 Another transformation explored is the empirical logit for the covariates "pct_for_W", "pct_imp_w", "pct_crop_w", "pct_hay_w", "pct_grs_w", etc. The empirical logit code needs to be applied to a data frame without any geometry attached. This means using with st_set_geometry(DFobs2, NULL) to make that data frame. After empirical logit transformation is done, then join data frame to sf object and put the sf object into the SSN.
 
