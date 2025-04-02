@@ -66,7 +66,7 @@ glimpse(hab_1)
 coords <- data.frame(longitude  = hab_1$Long, latitude = hab_1$Lat)
 head(coords)
 
-# See Marc Weber workshop above about Coordinate Reference Systems (CRS)
+# See Marc Weber workshop below about Coordinate Reference Systems (CRS)
 # Note: EPSG 5070 has been superseded by 5072, which may be more applicable in the future
 hab_sf1 <- st_as_sf(hab_1, coords = c("Long", "Lat"), crs =4269) %>% st_transform(5070)
 class(hab_sf1)
@@ -114,7 +114,7 @@ st_layers("bbsg_v1_2024_05_06.gpkg")
 ```
 
 ## Import SSN Object & Extract Data Frame
-We will now start using the James SSN. It easier to explore the data frame of an SSN object by extracting it via the `ssn_get_data` command. Note below that DFobs is both an sf object and a data frame so we can readily use it to make an interactive map.
+We will now start using the James SSN. It easier to explore the data frame of an SSN object by extracting it via the `ssn_get_data` command. Note below that DFobs is both an sf object and a data frame so we can readily use it to make an interactive map. The variable vscivcpmi stands for the Virginia Stream Condition Index and Virginia Coastal Plain Macroinvertebrate Index. That variable is also referred to by the shortened name of vsci.
 ```{r ssn_import_extract}
 
 j_ssn1a <- SSN2::ssn_import("ssn_object/James_071024_pluspreds.ssn", predpts = "sites")
