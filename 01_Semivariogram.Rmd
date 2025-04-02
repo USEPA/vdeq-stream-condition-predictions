@@ -67,6 +67,7 @@ coords <- data.frame(longitude  = hab_1$Long, latitude = hab_1$Lat)
 head(coords)
 
 # See Marc Weber workshop above about Coordinate Reference Systems (CRS)
+# Note: EPSG 5070 has been superseded by 5072, which may be more applicable in the future
 hab_sf1 <- st_as_sf(hab_1, coords = c("Long", "Lat"), crs =4269) %>% st_transform(5070)
 class(hab_sf1)
 
@@ -79,7 +80,10 @@ st_crs(hab_sf1) == st_crs(bigbend_seagrass)
 bigbend_seagrass <- bigbend_seagrass %>% st_transform(5070)
 st_crs(hab_sf1) == st_crs(bigbend_seagrass)
 
-mapview(hab_sf1) + mapview(bigbend_seagrass)
+
+suppressWarnings(mapview(hab_sf1) + mapview(bigbend_seagrass)) 
+
+
 ```
 
 ## Writing sf Objects to Shapefiles and Geopackage Geodatabase
@@ -88,15 +92,15 @@ Note that geopackage is the default spatial format for QGIS. The R package SSNbl
 ```{r geopackage, eval=FALSE}
 
 # Writing a single shapefile to the working directory
-st_write(hab_sf1,
+suppressWarnings(st_write(hab_sf1,
 dsn = "hab1.shp",
 driver = "ESRI Shapefile",
-append = FALSE)
+append = FALSE))
 
-# This will put the sf layer into the geodatabase
+# This will put the sf layer into the geopackage
 st_write(hab_sf1, dsn = file.path(getwd(), "bbsg_v1_2024_05_06.gpkg"), layer = "habitat", driver = "GPKG", quiet = FALSE)
 
-# We can check on what layers are in the geodatabase.
+# We can check on what layers are in the geopackage.
 st_layers("bbsg_v1_2024_05_06.gpkg") 
  
 # Now we can put in the polygons.
@@ -122,6 +126,7 @@ class(DFobs)
 mapview(DFobs)
 names(DFobs)
 DFobs <- clean_names(DFobs)
+# note that clean_names can sometimes introduce undesired artifacts in names. Review them
 names(DFobs)
 # now including specified pop-ups
 mapview(DFobs, zcol = "vscivcpmi", cex = "vscivcpmi", alpha.regions = .8, legend = TRUE, popup = popupTable(DFobs, zcol = c("station_id_2", "vscivcpmi")))
