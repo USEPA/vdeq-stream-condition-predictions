@@ -12,7 +12,7 @@ The purpose of this script is to compare 15 spatial autocovariances for a y-inte
 
 This approach is saying "space is so important, I am going to model the residual spatial autocorrelation without any covariates". Based on the y-intercept only SSN model, I will compare the forms, Euclidean, Tail Up, and Tail Down, and shapes of the autocovariances. See SSN2 vignette section 4.1.1 Model Summaries about different ways to compare SSN models.
 
-
+Spatial stream network models typically rely on two families of autocovariance functions: the tail-up and tail-down models. Both autocovariance functions leverage flow-unconnected and flow-connected distances to represent flow-based relationships. Tail-up autocovariance functions capture passive downstream transport (e.g, sediment), whereas tail-down autocovariance functions capture upstream transport (e.g., fish swimming upstream). We can also include the more traditional Euclidean autocovariance functions that are based on straight-line distance, useful for captuing dependence in processes separate from the steam network (e.g., air temperature).
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(SSN2)
