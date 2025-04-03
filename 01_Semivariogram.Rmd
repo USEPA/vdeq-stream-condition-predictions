@@ -134,7 +134,7 @@ mapview(DFobs, zcol = "vscivcpmi", cex = "vscivcpmi", alpha.regions = .8, legend
 
 ## Distance Summary
 As we will be looking at spatial variation in vsci, or semivariance, as a function of distance it is important to get a distance summary of the stations.
-We use st_distance function to create pairwise distance matrix among all the sites. Then, because a Euclidean distance matrix is symmetrical, we extract half of that matrix and convert it to a vector then get the summary of the distances, min, Q1, median, mean, Q3, and max. Knowing max distance is important the `variogram` function uses that distance to set default cutoff. That cutoff is the spatial separation distance up to which a pair of points are included in semivariance estimates.  The default is the length of the diagonal of bounding box spanning the data, which is ~ approximately the max distance.  Our default cutoff will be 299,805/3 = 99,935 meters or ~ 100 km. 
+We use st_distance function to create pairwise distance matrix among all the sites. Then, because a Euclidean distance matrix is symmetrical, we extract half, that is the upper or lower triangle, of the distance matrix and convert it to a vector then get the summary of the distances, min, Q1, median, mean, Q3, and max. Knowing max distance is important the `variogram` function uses that distance to set default cutoff. That cutoff is the spatial separation distance up to which a pair of points are included in semivariance estimates.  The default is the length of the diagonal of bounding box spanning the data, which is ~ approximately the max distance.  Our default cutoff will be 299,805/3 = 99,935 meters or ~ 100 km. 
 
 ```{r distance}
 distmat_obs <- st_distance(DFobs, DFobs,by_element = FALSE)
@@ -148,7 +148,7 @@ round(summary(rdistmat1_obs[rdistmat1_obs!=0]))
 ```
 
 ## Clouds and Semivariograms
-We will start with a semivariogram cloud to examine spatial variation in vsci.  Specifically, just as we had calculated all pairwise distances between sites, we will calculate all pairwise semivariances in vsci, and plot those semivariances as a function of their distances.
+We will start with a semivariogram cloud to examine spatial variation in vsci.  Specifically, just as we had calculated all pairwise distances between sites, we will calculate all pairwise semivariances in vsci, and plot those semivariances, or gamma, on the y-axis as a function of their distances, which is on the x-axis.
 
 A semivariogram cloud presents a smear of points, but by binning those points into distance classes and by binning the semivariances of those points through the width argument we can make a semivariogram plot.  With the semivariogram plot we are asking:  do stations near each other have similar vsci scores?  Is the semivariance, gamma, small at smaller distances and does it increase with larger distances? 
 We want data to be unimodal and approximately symmetric for a semivariogram cloud and plot so we do some data exploration.
@@ -156,13 +156,16 @@ We want data to be unimodal and approximately symmetric for a semivariogram clou
 
 ggplot(DFobs, aes(vscivcpmi)) + geom_histogram()
 # histogram of vscivcpmi
+```
 
-# log transformation not help so stick with original data
+We try a log transformation, but it does not offer a marked improvement so we will use the original variable as the response variable.
+```{r log_vsci_histogram}
+
 ggplot(DFobs, aes(log(vscivcpmi))) + geom_histogram()
 summary(DFobs$vscivcpmi)
 ```
 
-In this semivariogram cloud, we see that points that are nearer each other on the left-hand part of the x-axis have small semivariances and as we move right to points further apart the semivariances increase. 
+In this semivariogram cloud below, we see that points that are nearer each other on the left-hand part of the x-axis have small semivariances and as we move right to points further apart the semivariances increase. 
 
 We can view the the semivariance cloud as a data frame so we can sort on gamma, the semivariance, to find our maximum gamma, 1303.6 occurs at a pair of sites about 60 km apart. But, what are the two stations having that maximum gamma, where are those sites and what are their vsci values?
 ```{r semivar_cloud}
@@ -184,7 +187,7 @@ view(DFobs)
 ```
 
 ## Hand Calculate Gamma
-Based on the row numbers of the data frames, we find the vsci values for the two stations that produced the maximum gamma.
+Based on the row numbers of the data frames, we find the vsci values for the two stations that produced the maximum gamma. The commented out code below shows how that gamma calculation is made.
 ```{r calculate_gamma}
 
 # 27 and 99 are the the row numbers in the data frame DFobs so we can get get the vsci measurements and hand calculate gamma in z1.
@@ -198,7 +201,7 @@ Based on the row numbers of the data frames, we find the vsci values for the two
 
 To deal with the smear of data from the cloud, we are going to bin the data by a size class, or lag, so we can calculate the average distance in that bin and its corresponding average gamma, or semivariance. Now that we are working with averages, you understand why we want our data to be unimodal and symmetric.
 
-Note the smaller scale now on the y-axis. How are these 15 points, and their semivariances and distances, related to the cloud we saw earlier? When we view the semivariance plot data frame, z_sci_sv1, we can see the number of pairs of points and their average distance and average gamma corresponding to the plot.
+Note the smaller scale now on the y-axis plot below. How are these 15 points, and their semivariances and distances, related to the cloud we saw earlier? When we view the semivariance plot data frame, z_sci_sv1, we can see the number of pairs of points and their average distance and average gamma corresponding to the plot.
 ```{r semivariogram_plot}
 # Semivariogram Plot
 # accept the defaults
