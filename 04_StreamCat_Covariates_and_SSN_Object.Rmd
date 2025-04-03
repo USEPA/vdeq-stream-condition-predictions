@@ -19,82 +19,9 @@ editor_options:
 
 ## Outline
 
-We now turn our attention to the covariates, or predictor variables, we want to use to model and predict VSCI.
-The SSN object we are using was built using the STARS Toolbox in ArcGIS.
+We now turn our attention to the covariates, or predictor variables, we want to use to model and predict VSCI. The SSN object we are using was built using the STARS Toolbox in ArcGIS.
 Now the building of an SSN object can be done in R using <https://cran.r-project.org/package=SSNbler>.
 This script shows how additional covariates from EPA's Stream Catchment dataset, or StreamCat, can be incorporated in the SSN object.
-
-Log Keeping log below for now when reach final version will delete.
-Text above the log I plan to keep to provide background for users.
-
-11/19/2024 have code running end to end.
-
-On 10/15/2024 added waterbody data for Travis to evaluate on github.
-
-On 09/19/2024 Ellen provided update waterbody datasets as csv files.
-
-09/11/2024 Ellen and I worked out how to get NHD waterbody associated with 199 monitoring observations.
-
-08/28/2024 explored STATSGO_Set1 and STATSGO_Set2 variables from StreamCat.
-Also, brought in waterbodies data created by Ellen D'Amico from Pegasus.
-Ellen used comid from edges, but I am not sure they all match to the featureid of the points.
-
-On 08/15/2024 added data, figures_sfs, and ssn_object folders and trying to run code pointing to those folders.
-
-On 08/14/2024 pushing to github repository.
-
-On 07/31/2024 bringing in WWTP_VA.vcs to do a left merge with DFobs so I can compare stations with WWTPs to stations without WWTPs in the VSCI response.
-
-On 07/11/2024 bring the new ssn into R.
-On 07/10/2024 downloaded James_071024.ssn that had PRISM climate data, including normals and deviations from normals.
-
-On 05/14/2024 running code to get SSN output for SSN models for the 4 geographies and because 05/08/2024 updated R, RTools, and RStudio.
-
-I am going to bring in two SSNs, the 040424 version and the latest 041924 version.
-I will take the PRISM climate variables out of 041924 and put into 040424.
-Downloaded James_041924.ssn_NEWEST.zip and it is stored in James_041924.ssn with file modified on 04/22/2024 at 7:34am.
-Ellen removed netid and pid columns and reran through SSN compilation.
-Bestglm still gave error
-
-On 04/19/2024 imported James041924.ssn, still could not get bestglm to run.
-
-On 04/17/2024 imported James041724.ssn that now include annual maximum temperature, annual average temperature, and annual average precipitation.
-Also, I will simplify coding of wetlands to be absence/presence across all 4 geographies: watershed, watershed-riparian, catchment, and catchment-riparian.
-For grass cover at catchment and catchment-riparian I will also use binary code for absence/presence.
-
-On 04/16/2024 imported James041924.ssn, which now has PRISM climate data from StreamCat.
-
-This code will only use vsci as the response variable.
-Also, I will examine if impervious surface, forest, hay, and grass at 0 values show dramatically different vsci y-intercept, when x = 0, compared to vsci y-intercepts when x \> 0.
-
-On 04/09/2024, I had a call with Mike Dumelle, and he suggested 1) use untransformed response variable, 2) include binary absence/presence along with continuous landscape percentages, and 3) try including year.
-
-On 04/04/2024 now using James040424.ssn as Ellen D'Amico from Pegasus updated Preds_2021_2022 points.
-I entered WQ data as described in section 1.10 Missing Water Chemistry Data below.
-
-On 01/09/2023 read in Pegasus' SSN object from 01/09/2024, which has additional StreamCat variables.
-I am interested in the shrub and wetland metrics.
-In previous SSN, Note that VDEQ switched fonts between Wadeable_ProbMon_2001-2018_Final_Final.xlsx and Wadeable_ProbMon_2001-2020.xlsx.
-I used janitor package to put all variable names in lowercase.
-
-On 12/26/2023 read in Pegasus' SSN object from 11/16/2023, which as fields of COMID, AreaSqkM, TotDASqKM, h2oAreaKm2, and rcaAreaKM2.
-Using this new SSN object means I re-entered missing water chemistry data for two stations in ArcGIS.
-
-Now using SSN2 from CRAN on 11/16/2023.
-
-Note on SSNs I receive from Pegasus, I have to hand enter some of the water chemistry values for stations 2-WLS023.10 and 2AMLC000.84.
-This is because Emma Jones at VDEQ sent FinalFieldAnalytes_MissingJamesSites.csv by email on 09/29/2023.
-That csv file has water chemistry entries for those two stations, which in the original data file were NAs.
-I edit those entries in ArcGIS before I do import into R.
-Once the SSN is in R I can't export back to ArcGIS.
-
-On 11/09/2023 unzipped.
-James.ssn_110923 and saved to James.ssn.
-This James.ssn_11092023 has additonal covariates produced by Ellen D'Amico, GIS analyst with Pegasus.
-The James.ssn_102323 had stream order added to edges.
-On 11/08/2023 unzipped James.ssn_102323 into ssn_objects folder and renamed it as James.ssn so I would not need to change R code.
-Can I use SSN2 package for some of ESDA of James River?
-Yes.
 
 # Load Libraries
 
