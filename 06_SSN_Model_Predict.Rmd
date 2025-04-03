@@ -28,47 +28,6 @@ Three modifications were made to the SSN WS-WQ model, ssn_wswq_reml1, from scrip
 
 With those modification evaluated, then the final model, which included the partition factor and the nearest distance to upstream waterbody covariate, was evaluated by comparing observed vsci to predicted vsci, first, for the 199 observations from 2001-2018 using leave-one-out-cross-validation (loocv). The second evaluation used the 48 predictions sites from 2019-2022 with their observed vsci compared to the predicted vsci from the SSN model. Both of those evaluations were done with graphs of the observed values on the y-axis and predicted values on the x-axis.
 
-Log Keeping log below for now when reach final version will delete.
-
-01/24/2025 coded for status and trend station types so to evaluate ST_rand model
-
-12/23/2024 Travis walked me through merging his interval_pred_upd branch with main repository on GitHub. Once that was done I pulled that from main repository to my local repository.
-
-
-12/16/2024 trying to run distance hypothesis using binomial, numerically coded waterbody upstream, 0 is absent and 1 is present, and distance upstream to nearest waterbody as continuous covariate. 
-
-11/25/2024 using James_071024_pluspreds as ssn object as has all 48 prediction points in one shapefile. And bringing additional covariates. Needing to assign 0's to preds_2019_2022 that initially had dist_nearest_up_wb_km set to NA for 31 of 48 prediction points.
-
-11/19/2024 trying to run TLH code chunk for prediction interval graph
-
-On 10/24/2024, went through the code with Travis and now runs without errors all chunks above Status vs Trend Predictions chunk. Pushed to repository.
-
-Trying again on 08/14/2024 to push this code up to github repository.
-On 08/13/2024, pushed to github. Trying push again as I don't see this code
-on github. 
-
-On 07/12/2024 need to make sure that james_071024.ssn, with PRISM data, gives same prediction output as previous ssn object. It does.
-
-On 07/02/2024 R version 4.4.1 was installed.
-On 07/01/2024 added code to include partition factor assignment to preds.
-
-On 06/28/2024 added code to run a parition factor model.
-
-On 06/17/2024 running code to get predictions for 2019-2020 that I put into a geopackage so I map and plot se vs prediction in QGIS.
-
-On 05/14/2024 running code as updated R, RTools, and RStudio on 05/08/2024.
-
-On 04/19/2024 also specify spatial autocovariance of tail down exponential and Euclidean exponential. Also, run MLR of mixed geography using impervious cover of all 4 geographies (to identify high collinearity), elevation at watershed, DO, tothab, and l_tn, and Lower James subbasin. Does that combination of variables better fit and outperform watershed-only model?
-
-On 04/18/2024 now using vsci as response variable not y2.
-
-On 04/17/2024 now using James041724.ssn as it has climate PRISM data out of StreamCat of precip_mm, Tmean, and Tmax.
-
-On 04/09/2024 Mike Dumelle recommended:  1) use untransformed vsci, 2) include absence/presence binary land cover with percent land cover, and 3) include year.
-
-On 04/04/2024 now using James040424.ssn as Ellen D'Amico from Pegasus updated Preds_2021_2022 points.
-
-On 03/27/2024, Using code from step1_james_eda_v1.Rmd, but now specifying preds1 to bring in 22 points from 2019-2020 VDEQ monitoring and preds2 to bring in 26 points from 2021-2022 VDEQ monitoring using current SSN from James.ssn_032224.zip.
 # Libraries
 ```{r setup,message=FALSE, warning=FALSE, collapse=TRUE}
 
