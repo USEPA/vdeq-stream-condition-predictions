@@ -1,7 +1,7 @@
 ---
 title: "Semivariogram Clouds and Plots"
-author: "Michael McManus, US EPA/ORD"
-date: "01/08/2025"
+author: "Michael G. McManus, US EPA/ORD, and Travis Linscome-Hatfield, Neptune and Company"
+date: "04/03/2025"
 output:
   html_document: default
   pdf_document: default
