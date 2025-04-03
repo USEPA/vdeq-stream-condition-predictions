@@ -1,6 +1,6 @@
 ---
 title: "James SSN Predictions"
-author: "Michael McManus, US EPA/ORD, and Travis Linscome-Hatfield, Neptune and Company"
+author: "Michael G. McManus, US EPA/ORD, and Travis Linscome-Hatfield, Neptune and Company"
 date: "04/03/2025"
 output:
   html_document:
