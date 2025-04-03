@@ -1,7 +1,7 @@
 ---
 title: "R_vdeq_toregram"
-author: "Michael McManus, US EPA/ORD"
-date: "12/03/2024"
+author: "Michael G. McManus, US EPA/ORD, and Travis Linscome-Hatifield, Neptune and Company"
+date: "04/03/2025"
 output:
   html_document: default
   pdf_document: default
