@@ -24,7 +24,7 @@ The purpose of this script is to model the relationship between VSCI and covaria
 * Run the SSN1 with covariates and spatial autocovariances. Note the spatial autocovariances are identified by running script 03_Y_Intercept_SSN_Model.
 * Compare SSN0 to SSN1 to see if modeling spatial autocorrelation of residuals improved model fit and model prediction
 * Plot loocv observed and predicted
-* Map residuals
+* Map standardized residuals
 * Test for random effects of trend stations versus status stations. Trends stations are sampled repeated, with station_id_2 being the identifier that distinguishes trend from status stations. Status stations are only sampled one time.
 * Compare SSN models across the 4 geographies using ML estimation method as the models have different covariates.
 
@@ -265,12 +265,8 @@ names(DFobs2)
 
 ```
 
-
-
-
-
 # 3.0 SSN Ws, WsRp, Cat, & CatRp Models
-I need Neptune to vet code below across all 4 geographies. Before run check_model function have Plots tab fully expanded vertically. The check_model functions provides sisual check of various model assumptions. The added variable plots, also called partial regression plots, are made using the avPlots function and give a visualization of the slope estimates.
+Before run check_model function below have Plots tab fully expanded vertically. The check_model functions provides visual check of various model assumptions. The added variable plots, also called partial regression plots, are made using the avPlots function from the car R package and give a visualization of the slope estimates.
 
 The candidate pool of 21 covariates came from these categories:  1) climate 2) landcover, 3) instream measurements, and 4) geophysical or hydrologic units.
 
@@ -278,11 +274,9 @@ The maximum number of covariates to be retained during bestglm selection was set
 
 # 4.0 Ws-Wq
 Analysis done at watershed extent.
-### 4.1 Bestglm and SSN0 Nugget Model
-On 07/12/2024 I will simply keep precip_mm and tmean in the candidate pool for all 4 geographies. No change to original selected covariates after I replaced precip_mm with d_precip_m and tmean with d_t_mean, which are deviations from 30-year normals for precip and temperature.
-On 04/22/2024 changed WsWq so that precip_mm and tmean are now included, but they were not selected by bestglm. The previous wetland factor with multiple levels was replaced with a binary absence/presence variable. 
-The X1 matrix below includes that dummy factors with the station_id_2 enables the join the dummy factor to an sf object and then to the SSN. 
 
+### 4.1 Bestglm and SSN0 Nugget Model
+The X1 matrix below includes the dummy factors with the station_id_2 enables the join the dummy factor to an sf object and then to the SSN. 
 
 ```{r ws_bestglm}
 
@@ -342,15 +336,10 @@ loocv(ssn0_wswq_mlr)
 # plot(ssn0_wswq_mlr, which = c(1:6))
 ```
 
-
-
-
 ### 4.2 SSN0 Nugget vs SSN1
-This chunk compares nugget model, typical nonspatial MLR or SSN0, to the SSN1 model that specifies the spatial autocovariances that were identified in script 03_Y-Intercept_SSN_Model. The comparison is made using model fit diagnostics, AICc, and leave-one-out-cross-validation (LOOCV) metrics of the root mean squared prediction error (RMSPE) and the squared correlation between the observed value and its leave-one-out prediction (cor2).
+This chunk compares the nugget model, typical nonspatial MLR or SSN0, to the SSN1 model that specifies the spatial autocovariances that were identified in script 03_Y-Intercept_SSN_Model. The comparison is made using model fit diagnostics, AICc, and leave-one-out-cross-validation (LOOCV) metrics of the root mean squared prediction error (RMSPE) and the squared correlation between the observed value and its leave-one-out prediction (cor2).
 
-Is Torgegram on flow-unconnected standardized residuals telling me that still some structured spatial autocorrelation left?
-
-On 04/16/2024, re-ran R_vdeq_tutdeu_comparison.Rmd and models_yintercept AICc statistic and loocv(tdExp_eu_exp) RMSPE and cor2 showed that tail down exponential and Euclidean exponential was the best of the 15 spatial autocovariance models compared. For some reason I had been specifying tail down exponential and Euclidean Gaussian. I corrected so both TD and EU are exponential. The R_vdeq_tutdeu_comparison.Rmd file is at E:\R_vdeq_sci.
+The models_yintercept.csv is from script 03 is in the outputs folder.
 ```{r nugget_vs_spatial_ws}
 ssn_wswq_reml1 <- ssn_lm(
   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
@@ -372,53 +361,13 @@ loocv(ssn_wswq_reml1)
 models_ssn0_ssn1ws <- glances(ssn0_wswq_mlr, ssn_wswq_reml1)
 print(models_ssn0_ssn1ws)
 
-# check with Travis if code below can be dropped. Not sure it is showing me much
-aug_ssn_wswq_reml1 <- augment(ssn_wswq_reml1, drop = FALSE)
-class(aug_ssn_wswq_reml1)
-mapview(aug_ssn_wswq_reml1)
-
-ggplot(aug_ssn_wswq_reml1, aes(x = pct_imp_w_emplog, y = .fitted, colour = vahusb)) + geom_point() + geom_smooth(method = "lm")
-
-ggplot(aug_ssn_wswq_reml1, aes(x = vahusb, y = .fitted)) + geom_boxplot()
-
-names(aug_ssn_wswq_reml1)
-
-resid_ssn1 <- as.data.frame(aug_ssn_wswq_reml1)|>
-   dplyr::select(station_id_2, .fitted, .resid, .std.resid)
-
-class(resid_ssn1)
-names(resid_ssn1)
-# put dummy covariates in an SF object
-DFobs4 <- full_join(DFobs3a, resid_ssn1, by = join_by(station_id_2))
-names(DFobs4)
-
-# put SF object into SSN
-j_ssn4 <-  SSN2::ssn_put_data(DFobs4,j_ssn3)
-
-ztg <- SSN2::Torgegram(.std.resid ~ 1, j_ssn4, type = c("flowuncon", "euclid"))
-
-plot(ztg, main = "Torgegram Standardized Residuals")
-class(ztg)
-names(ztg)
-ztg[["flowuncon"]]
-ztg[["euclid"]]
-# summary(ztg$flowcon)
-summary(ztg$flowuncon)
-summary(ztg$euclid)
-plot(ztg)
-# plot(ztg, type = "flowcon", main="Residuals")
-plot(ztg, type = "flowuncon", main = "Torgegram Standardized Residuals")
-plot(ztg, type = "euclid", main = "Torgegram Standardized Residuals")
-class(ztg)
-# plot(ztg, separate = TRUE, main = "TotHab")
-
 
 ```
 
 
-
 ## Synced map of Obs, Fitted, Standardized Residuals
-Other than showing syncing can be done, why are these maps helpful?
+In a spatial model (which includes spatial stream network models), residuals are spatially autocorrelated, so it is more helpful to apply typical model diagnostics to the standardized residuals, which have been decorrelated. The map below of standardized residuals can give a spatial characterization. Are extreme values of the standardized residuals spread throughout the spatial domain, or is there a geographic clustering of extreme standardized residuals? A clustering might indicate a locality that other covariates should be considered.
+
 ```{r synced_maps}
 # 
 # mapview(aug_ssn_wswq_reml1, zcol = ".std.resid", cex = ".std.resid", alpha.regions = .8, legend = TRUE, layer.name = 'Standardized Residuals', popup = popupTable(aug_ssn_wswq_reml1, zcol = c("vsci", ".fitted", ".resid", ".std.resid")))
@@ -438,10 +387,7 @@ Other than showing syncing can be done, why are these maps helpful?
 ```
 
 ### 4.3 Random Effects
-The ssn_wswq_reml1 has the smallest AICc, but largest difference in AICc is only 2.4.
-
-I want Neptune to check this code.
-I believe the the random effect for station_id is coded correctly as it recognizes that there are 8 stations with repeated 4 to 5 observations whereas all the other stations have single observation. The st_type, for study type, I believe is not coded correctly as it only recognizes two groups, status or trend, stations so that code is commented out. Based on AICc and cor2, ssn_wswq_reml1 is still a better model. 
+The random effect for station_id is coded so the model recognizes that there are 8 stations with repeated 4 to 5 observations whereas all the other stations have single observation. Based on AICc and cor2, ssn_wswq_reml1 is still a better model. 
 ```{r random_effect_station_id}
 ssn_wswq_rand1 <- ssn_lm(
   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
@@ -464,33 +410,14 @@ loocv(ssn_wswq_rand1)
 
 models_rand1 <- glances(ssn0_wswq_mlr, ssn_wswq_reml1, ssn_wswq_rand1)
 print(models_rand1)
-# ssn_wswq_rand2 <- ssn_lm(
-#   formula = y2 ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
-#   ssn.object = j_ssn3,
-#   tailup_type = "none",
-#   taildown_type = "exponential",
-#   euclid_type = "gaussian",
-#   nugget_type = "nugget",
-#   estmethod = "reml",
-#   additive = "afv_area",
-#   random = ~ (1 | st_type)
-# )
-# 
-# summary(ssn_wswq_rand2)
-# varcomp(ssn_wswq_rand2)
-# loocv(ssn_wswq_rand2)
-# 
-# models_rand2 <- glances(ssn0_wswq_mlr, ssn_wswq_reml1, ssn_wswq_rand1)
-
 
 ```
 
 # 5.0 WsRp-Wq
 Analysis done at Watershed-Riparian extent.
+
 ### 5.1 Bestglm and SSN0 Nugget Model
-On 04/22/2024 changes WsWq so that precip_mm and tmean are now included. The previous wetland factor with multiple levels was replaced with a binary absence/presence variable. 
-On 04/17/2024 caught typo in WsRpWQ as "pct_hay_w_emplog" listed and corrected to "pct_hay_wr_emplog".
-On 04/16/2024 running models on vsci, and pct_imp_rp_w_emplog, elev_ws, do, and tothab selected.
+
 ```{r wsriparian_bestglm}
 WsRpWq <- DFobsz|>
   dplyr::select(precip_mm, tmean, pct_imp_rp_w_emplog, pct_for_wr_emplog, pct_hay_wr_emplog, pct_grs_wr_emplog, elev_ws, do, p_h, tothab, l_spc, l_tds, l_turb, l_tn,  vahusb_JM, vahusb_JR, vahusb_JA, vahusb_JL, bin_wet_wr, tp_f_medium, tp_f_high)
@@ -569,12 +496,6 @@ loocv(ssn_wsrpwq_reml1)
 models_ssn0_ssn1wsrp <- glances(ssn0_wsrpwq_mlr, ssn_wsrpwq_reml1)
 print(models_ssn0_ssn1wsrp)
 
-# does augmenting help?
-aug_ssn_wsrpwq_reml1 <- augment(ssn_wsrpwq_reml1, drop = FALSE)
-class(aug_ssn_wsrpwq_reml1)
-mapview(aug_ssn_wsrpwq_reml1)
-
-
 ```
 
 
@@ -605,7 +526,7 @@ print(models_rand2)
 ```
 
 ### ssn_wsrpwq_reml1 Mapview residuals 
-Is map of observed, fitted, orstandardized residuals, helpful?
+Standardized residuals can be helpful as described previously.
 
 ```{r maps_ssn_wsrpwq_reml1}
 mapview(aug_ssn_wsrpwq_reml1, zcol = ".std.resid",  alpha.regions = .8, legend = TRUE, layer.name = 'Standardized Residuals', popup = popupTable(aug_ssn_wsrpwq_reml1, zcol = c("vsci", ".fitted", ".resid", ".std.resid")))
@@ -613,9 +534,7 @@ mapview(aug_ssn_wsrpwq_reml1, zcol = ".std.resid",  alpha.regions = .8, legend =
 
 # 6.0 Cat-Wq
 Analysis done at Catchment extent.
-### 6.1 Bestglm and SSN0 Nugget Model
-On 04/22/2024 changes CatWq so that precip_mm and tmean are now included. The previous wetland factor with multiple levels was replaced with a binary absence/presence variable as was grass cover. VSCI values at pct_grs_c_emplog at 0 encompasses range of VSCI values at pct_grs_c_emplog > 0. 
-On 04/16/2024 running model on vsci and specifying exponential for tail down and Euclidean.
+
 ```{r cat_bestglm}
 CatWq <- DFobsz|>
   dplyr::select(precip_mm, tmean, pct_imp_c_emplog, pct_for_c_emplog, pct_hay_c_emplog, bin_grs_c, elev_cat, do, p_h, tothab, l_spc, l_tds, l_turb, l_tn, vahusb_JM, vahusb_JR, vahusb_JA, vahusb_JL, bin_wet_c,  tp_f_medium, tp_f_high)
@@ -699,7 +618,7 @@ print(models_ssn0_ssn1cat)
 
 aug_ssn_catwq_reml1 <- augment(ssn_catwq_reml1, drop = FALSE)
 class(aug_ssn_catwq_reml1)
-mapview(aug_ssn_catwq_reml1)
+mapview(aug_ssn_catwq_reml1$.std.resid)
 
 ```
 
@@ -730,8 +649,9 @@ print(models_rand3)
 
 # 7.0 CatRp-Wq
 Analysis done at Catchment-Riparian extent.
-On 04/22/2024 changes CatRpWq so that precip_mm and tmean are now included. The previous wetland factor with multiple levels was replaced with a binary absence/presence variable as was grass cover.
-With this smallest geography (by extent and configuration), I have to shift some land cover from continuous to categorical. Grass at this geography has a median value of 0 so I made an absence/presence variable for grass cover so a form of that covariate is in the model.
+
+With this smallest geography (by extent and configuration), I have to shift some land cover from continuous to categorical. The previous wetland factor with multiple levels was replaced with a binary absence/presence variable (bin_wet_cr) as was grass cover. Grass at this geography has a median value of 0 so I made an absence/presence variable for grass cover (bin_grs_cr) so a form of that covariate is in the candidate pool of covariates.
+
 ### 7.1 Bestglm and SSN0 Nugget Model
 ```{r catriparian_bestglm}
 CatRpWq <- DFobsz|>
@@ -817,7 +737,7 @@ print(models_ssn0_ssn1catrp)
 
 aug_ssn_catrpwq_reml1 <- augment(ssn_catrpwq_reml1, drop = FALSE)
 
-# mapview(aug_ssn_catrpwq_reml1)
+# mapview(aug_ssn_catrpwq_reml1$.std.resid)
 
 ```
 
@@ -907,7 +827,7 @@ loocv(ssn_catrpwq_ml1)
 ```
 
 # Neptune Code from TLH
-This code is included for thoroughness, but does not need to be run unless needed.
+This code is included for thoroughness, but does not need to be run unless user wants to see output.
 
 In addition to reviewing R code, Neptune statistician Travis Linscome-Hatfield provided code chunks that evaluated 1) assigning a different reference group, rather than the default, and 2) did having a different reference group result in a different model being selected by the bestglm function. Running these two chunks resulted in the same model being selected based on the default group of JU.
 
@@ -1025,7 +945,6 @@ alt_dat_dummy = df_dum_tp$alt_dat
 ```
 
 ## TLH Chunk 2 Bestglm and SSN0 Nugget Model-Travis
-On 01/23/2025 commented out TLH code as it showed obtained same model as chunk above.
 
 The code below evaluates if a different reference group was chosen would a qualitatively different model result from the best glm selection. For example, if the reference watershed used was vahusb_JM instead of vahusb_JU.
 
