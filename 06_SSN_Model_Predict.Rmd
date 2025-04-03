@@ -1,7 +1,7 @@
 ---
 title: "James SSN Predictions"
 author: "Michael McManus, Travis Linscome-Hatfield"
-date: "12/03/2024"
+date: "04/03/2025"
 output:
   html_document:
     fig_caption: yes
@@ -19,14 +19,14 @@ editor_options:
 # Outline
 Start with a clean environment. This script like all the scripts runs as a stand-alone so that means there is some redundancy in having to modify and transform covariates.
 
-The purpose of this script is to make sure both obs and preds have the same covariates. This is required so that the SSN model built from the obs can then applied to make predictions at the preds. The 48 preds where withheld from from the SSN model building to provide an independent data set for measuring the predictive performance of the SSN model. The 48 preds were collected from spatially balanced probabilistic surveys done from 2019-2022.
+The purpose of this script is to make sure both obs and preds have the same covariates. This is required so that the SSN model built from the obs can then applied to make predictions at the preds. The 48 preds were withheld from from the SSN model building to provide an independent data set for measuring the predictive performance of the SSN model. The 48 preds were collected from spatially balanced probabilistic surveys done from 2019-2022.
 
 Three modifications were made to the SSN WS-WQ model, ssn_wswq_reml1, from script 05 in attempts to get a better predictive model. Those modifications included:
-1) Added a partition factor statement to the model based on parallel coordinate plot in script 05 and a boxplot of evelvation made in this script (see NMC Elevation Boxplots by Subbasins)
+1) Added a partition factor statement to the model based on parallel coordinate plot in script 05 and a boxplot of elevation made in this script (see NMC Elevation Boxplots by Subbasins under the Figures for Presentations section)
 2) Based on the literature, tested 3 additional covariates to try and get a better fitting and predictive model,
 3) Tested the hypothesis that monitoring sites having upstream waterbodies furthest away would have higher VSCI.
 
-With those modification evaluated, then the final model, which included the partition factor and the nearest distance to upstream waterbody covariate, was evaluated by comparing observed vsci to predicted vsci, first, for the 199 observations from 2001-2018 using leave-one-out-cross-validation (loocv). The second evaluation used the 48 predictions sites from 2019-2022 with their observed vsci compared to the predicted vsci from the SSN model. Both of those evaluations were done graphs of the observed values on the y-axis and predicted values on the x-axis.
+With those modification evaluated, then the final model, which included the partition factor and the nearest distance to upstream waterbody covariate, was evaluated by comparing observed vsci to predicted vsci, first, for the 199 observations from 2001-2018 using leave-one-out-cross-validation (loocv). The second evaluation used the 48 predictions sites from 2019-2022 with their observed vsci compared to the predicted vsci from the SSN model. Both of those evaluations were done with graphs of the observed values on the y-axis and predicted values on the x-axis.
 
 Log Keeping log below for now when reach final version will delete.
 
@@ -111,7 +111,7 @@ knitr::opts_chunk$set(message=FALSE, warning=FALSE,collapse = T)
 ```
 
 # 1.0 Load SSN Observations and Preds
-Notice this import explicitly brings in the prediction points. The SSN object always contained obs and preds, but until now we never called out the preds. Both the obs and preds to have the same covariates.
+Notice this import explicitly brings in the prediction points. The SSN object always contained obs and preds, but until now we never called out the preds. Both the obs and preds need to have the same covariates.
 ```{r ssn_obs_preds}
 # now bringing predpts 2019-2022 combined
 # current ssn
@@ -137,8 +137,6 @@ Note that both obs and preds need to be in the SSN object that is modeled. This 
 	3. Include additional covariates of wastewater treatment plant, depth to bedrock, upstream waterbody as categorical absent or present, and continuous covariate of distance to nearest upstream waterbody.
 	4. Empirical logit transformations for impervious and forest
 	5. Dummy code transformation of factors for vahusb.
-
-On 03/04/2029, realized I needed to add in imputing of 2 observed sites for total habitat scores. I need tot_hab for catchment and catchment-riparian in the mixed geographies SSN analysis. Saw this when I made scatter plot of covariates.
 
 # 2.1 Total Habitat (RBP) score
 Bring Total Habitat Score (TotHab) in from Wadeable_ProbMon_2001-2018_Final_Final.xslx spreadsheet so it can be joined to DFobs and then j_ssn1a. These 2 stations:  2-JKS070.97 and 2-DDY000.75_2017 do not have tothab as Emma confirmed in her 11/24/2023 email. Both sites are in Central Appalachian Ridges and Valleys. Both have high VSCI scores of 73.8 and 84.5 (the latter is max VSCI), respectively. I will impute their tothab scores. For trend station 2-DDY000.75_2017, I will average the scores of 172.5, 173.5, and 178 from 2011, 2013, and 2015, respectively. For  2-JKS070.97 on 3rd order, I averaged nearby sites 2-JKS076.16, has tothab of 162.0 on 3rd order, is upstream of 2-JKS070.97, about 16 km apart. Also used Back Creek site, 2-BCC001.90 (has tothab of 189.0 on 2nd order),  that flows parallel to Jackson River, where the 2 sites are, and Back Creek site is near confluence to Jackson River.  2-BCC001.90 is about 9 stream km from 2-JKS070.97. Added new variable tothab.
@@ -190,13 +188,7 @@ rm(tothab_ds1, tothab_ds2, dr_na, tothab_ds3, jr_na, tothab_ds4)
 ```
 
 # 2.2 Transform Obs Covariates
-On 01/24/2025 added code for st_type, status or trend station type.
 
-On 12/16/2024 added binomial wbc, wbc_bin, coded as numeric 0 or 1 similar to Dumelle et al. 2023 coding in National Lake assessment conductivity paper.
- 
-On 11/25/2024 added WWTP, STATSGo_Set2, and waterbody covariates.
-0n 06/28/20204 added for ju - yes and ju - no to test if partitioning on ju helpful first by looking at separate torgegrams and then in modeling.
-On 04/10/2024 added code for a binary presence covariate for impervious cover at watershed extent.
 ```{r transform_obs}
 # use code to evaluate vsci by year for trend sites if a random effect for trend stations is needed
 DFobs <- DFobs %>%
@@ -453,13 +445,8 @@ j_ssn3 <-  SSN2::ssn_put_data(DFobs3a,j_ssn3)
 ```
 
 # 2.2 Transform Pred Covariates
-On 01/24/2025 added code for st_type, status or trend station type.
 
-On 12/16/2024 added binomial wbc, wbc_bin, coded as numeric 0 or 1 similar to Dumelle et al. 2023 coding in National Lake assessment conductivity paper.
-
-On 11/25/2024 have to assign 0's for 31 of 48 preds that had distances of NA and additional covariates.
-
-Create station type, noting that 34 preds are status stations. Have 7 trends stations with 2 measurements for a total of 14 observatons. Compare summaries of obs to preds to see if distributions overlap or if a pred value might be outside of the range of obs. The latter situation might identify a potential extrapolation or outlier.
+Create station type, st_stype, noting that 34 preds are status stations with a single observation. Have 7 trends stations with 2 measurements for a total of 14 observations. Compare summaries of obs to preds to see if distributions overlap or if a pred value might be outside of the range of obs. The latter situation might identify a potential extrapolation or outlier.
 ```{r transform_preds_stationtype}
 # did this assignment so would not have to change all the object names below
 preds3 <- preds1
@@ -770,14 +757,14 @@ str(j_ssn3$preds$Preds_2019_2022$afv_area)
 ```
 
 # 3.0 Create Distance Matrix
+
 When using a new SSN object, such as James_071024_pluspreds.ssn have to create distance matrices. Ran first set of code and now see a distance matrix folder in where the SSN object is stored at:
 ssn_object/James_071024_pluspreds.ssn and see sub folders for obs and Preds_2019_2022 subfolder.
-Already run so commented out.
+Already ran this code so it is commented out.
 ```{r distance_matrix}
 
 # Distance matrix for obs and first set of prediction points from 2019-2022
 # SSN2::ssn_create_distmat(j_ssn3, predpts = "Preds_2019_2022", overwrite = TRUE)
-
 
 ```
 
@@ -787,8 +774,7 @@ Already run so commented out.
 This is the SSN Ws-Wq model that was evaluated in script 05. Here is it run again and augmented with diagnostic and fitted values. The parallel coordinate plot of the augmented data frame was grouped by the 5 vahusb. The clustering of the JU variables in that plot is what suggested using the partition factor. See also, the NMC Elevation Boxplots under Figures for Presentation. See the description of partition factor under section 4.1.3 Advanced Features in An Introduction to Spatial Stream Network Modeling in R using SSN2.
 
 The ssn_wswq is the base model, and subsequent models derived from the base model will be preceded by prefix and underscore to identify the essential purpose or hypothesis of the new model.
-On 04/19/2024 kept tail down exponential and changed Euclidean to exponential based on models_yintercept.csv table.
-On 04/10/2023 evaluated model using vsci, untransformed, and added imp_w_pres, a binary presence indicator of impervious cover. This was approach was used by Dumelle et al. 2023 in their spatial modeling of NLA conductivity.
+
 ```{r wswq_ssn_obs_fitted}
 ssn_wswq_reml1 <- ssn_lm(
   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL,
@@ -811,7 +797,9 @@ tidy(ssn_wswq_reml1)
 ```
 
 ## 4.1 Mapview Standardized Residuals
-Here the augment function is applied the SSN model, and this creates an sf object that has the following diagnostics variables: .fitted for fitted values; .resid for response residuals; .hat for leverage, .cooks for Cook's distance, .std.resid for standaredized residuals, and .se.fit for standard error of the fitted values.
+Here the augment function is applied the SSN model, and this creates an sf object that has the following diagnostics variables: .fitted for fitted values; .resid for response residuals; .hat for leverage, .cooks for Cook's distance, .std.resid for standaredized residuals, and .se.fit for standard error of the fitted values. 
+
+In a spatial model (which includes spatial stream network models), residuals are spatially autocorrelated, so it is more helpful to apply typical model diagnostics to the standardized residuals, which have been decorrelated. The map below of standardized residuals can give a spatial characterization. Are extreme values of the standardized residuals spread throughout the spatial domain, or is there a geographic clustering of extreme standardized residuals? A clustering might indicate a locality that other covariates should be considered.
 ```{r mapview_wswq_ssn_residuals}
 aug_ssn_wswq_reml1 <- augment(ssn_wswq_reml1, drop = FALSE)
 class(aug_ssn_wswq_reml1)
@@ -831,40 +819,10 @@ pcpobs
 
 ```
 
-## 4.3 Torgegram of Ws-Wq SSN Model Residuals
-```{r torg_wswq_resids}
-resid_ssn1 <- as.data.frame(aug_ssn_wswq_reml1)|>
-   dplyr::select(station_id_2, .fitted, .resid, .std.resid)
-
-class(resid_ssn1)
-# names(resid_ssn1)
-
-# put selected covariates in an SF object
-DFobs4 <- full_join(DFobs3a, resid_ssn1, by = join_by(station_id_2))
-
-# put SF object into SSN
-j_ssn4 <-  SSN2::ssn_put_data(DFobs4,j_ssn3)
-
-res_tg1 <- SSN2::Torgegram(.std.resid ~ 1, j_ssn4, type = c("flowuncon", "euclid"))
-plot(res_tg1, main = "Torgegram of Standardized Residuals from WS-WQ SSN")
-
-# do View to check the np is reasonably larger, greater than 30
-View(res_tg1$euclid)
-View(res_tg1$flowuncon)
-# Follow three steps below for saving output as RDS and a geopackage geodatabase
-
-# ssn_wswq_fit_reml1 <- dplyr::select(aug_ssn_wswq_reml1, c(station_id, station_id_2, year, vahusb, do, tn, tothab, l_tn, vscivcpmi, pct_imp_c, pct_imp_w, elev_ws, pct_imp_w_emplog, vsci, .fitted, .std.resid))
-
-# saveRDS(ssn_wswq_fit_reml1, file = "outputs/ssn_wswq_fit_reml1.rds")
-
-# st_write(ssn_wswq_fit_reml1, dsn = file.path(getwd(), "ssn_wswq_fit_reml1.gpkg"), layer = "ssn_wswq_fit_reml1", driver = "GPKG", quiet = FALSE, append = FALSE)
-
-```
-
 # 5.0 Partitioned Ws-Wq Model
-Note the nomenclature of this model is p_ssn_wswq_rem1 with the p indicating the paritioning factor.
+Note the nomenclature of this model is p_ssn_wswq_rem1 with the p indicating the partitioning factor.
 
-The p_ssn_wswq model below has the partitioned factor of ju, Upper James versus the 4 lower subbasins. What the partition factor is doing is saying the observations in the Upper James are uncorrelated, or indepdent, from the observations in the lower 4 subbasins. You can think of the partition factor as the "Las Vegas Effect". What happens in Vegas stays in Vegas. Likewise, what spatailly occurs in the Upper James stays in the Upper James.
+The p_ssn_wswq model below has the partitioned factor of ju, Upper James versus the 4 lower subbasins. What the partition factor is doing is saying the observations in the Upper James are uncorrelated, or indepedent, from the observations in the lower 4 subbasins. You can think of the partition factor as the "Las Vegas Effect". What happens in Vegas stays in Vegas. Likewise, what spataily occurs in the Upper James stays in the Upper James.
 ```{r wswq_ssn_partition}
 
 p_ssn_wswq_reml1 <- ssn_lm(
@@ -898,25 +856,7 @@ mapview(aug_p_wswq_reml1, zcol = ".std.resid",  alpha.regions = .8, legend = TRU
 
 ```
 
-## 5.2 Torgegram of p_WsWq SSN Residuals
-```{r torg_wswq_resids}
-p_resid_ssn1 <- as.data.frame(aug_p_wswq_reml1)|>
-   dplyr::select(station_id_2, .fitted, .resid, .std.resid)
-
-# put selected covariates in an SF object
-DFobs5 <- full_join(DFobs3a, p_resid_ssn1, by = join_by(station_id_2))
-
-# put SF object into SSN
-j_ssn5 <-  SSN2::ssn_put_data(DFobs5,j_ssn3)
-
-res_tg2 <- SSN2::Torgegram(.std.resid ~ 1, j_ssn5, type = c("flowuncon", "euclid"))
-plot(res_tg2, main = "Torgegram of Standardized Residuals from Partitioned WS-WQ SSN")
-
-
-```
-
-
-## 5.3 p_WsWq SSN Model:  ML Estimation
+## 5.2 p_WsWq SSN Model:  ML Estimation
 Because we want to compare p_WsWq SSN model fit and predictions to models with different covariates, see additional hypotheses model in section 6.0, we need to  specify estimation method as ml.
 ```{r p_ssn_wswq_ml}
 p_ssn_wswq_ml1 <- ssn_lm(
@@ -969,7 +909,7 @@ loocv(a_ssn_wswq_ml1)
 ```{r mapview_a_ssn_wswq_reml1}
 # inserted r in file name to indicate residuals now included
 a_rssn_wswq_ml1 <- augment(a_ssn_wswq_ml1, drop = FALSE)
-# note on 10/04/2024 fixed mapview so popupTable using correct object, had been pointing to ssn_wswq_reml1
+
 summary(a_rssn_wswq_ml1$.std.resid)
 
 mapview(a_rssn_wswq_ml1, zcol = ".std.resid",  alpha.regions = .8, legend = TRUE, popup = popupTable(a_rssn_wswq_ml1, zcol = c(".std.resid"))) 
@@ -1041,7 +981,7 @@ glances(p_ssn_wswq_ml1,d_ssn_wswq_ml1)
 ```
 
 ## 7.4 d_ssn_wswq_reml1
-The reml estimation method is the one we want to use for obtainging variance composition from the varcomp function and for making predictions.
+The reml estimation method is the one we want to use for obtaining variance composition from the varcomp function and for making predictions.
 ```{r d_ssn_wswq_ml1}
 d_ssn_wswq_reml1 <- ssn_lm(
   formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
@@ -1068,6 +1008,7 @@ tidy(d_ssn_wswq_reml1)
 ## 7.5 Ribbon LOOCV Fitted Interval
 This diagnostic plot takes the 199 fitted values from the leave-one-out cross validation of d_ssn_wswq_reml1, plots them on the x-axis and the199  observed vsci values on the y-axis and so indicates the correlation between these two values. Because the loocv function returns the standard error of the fit, se.fit, we can calculated a 90% fitted interval by specifying the z-statistics  of 1.645 in the geom_ribbon argument of the ggplot function. This diagnostic plot offers 3 "gut checks" on our model:  1) do we see a linear relationship between fitted and observed? 2) How many points fall outside the fitted interval? If it is a lot of points then that suggests the model is not fitting the data well. 3) Do the points falling outside the fitted interval cluster around certain values? Such a clustering might indicate that the model is not fitting well.
 
+The reference to ribbon is because the `geom_ribbon` argument is used to make the plot.
 ```{r ribbon_loocv_fitted_interval}
 cv_resids = loocv(d_ssn_wswq_reml1,
                   cv_predict = T,
@@ -1156,7 +1097,7 @@ glances(d_ssn_wswq_ml1, st_ssn_wswq_rand1)
 # 9.0 NMC Distance Model w/ and w/o Partition Factor
 This compares the distance SSN model from section 7, which has a partition factor, to a distance model with no partition factor. The better model is the distance SSN model with the partition factor. This result was used in the NMC 2025 presentation.
 
-Because the partition factor affects the covariance matrix I am use REML estimation for model comparison. See Details of partition factor in the help of the ssn_lm function.
+Because the partition factor affects the covariance matrix I use REML estimation for model comparison. See Details of partition factor in the help of the ssn_lm function.
 ```{r distance_with_without_partition}
 #np stands for no partition factor
 
@@ -1206,6 +1147,9 @@ ggplot(aug_d_predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape
 
 cor(aug_d_predict1ws_vsci$vsci_pred,aug_d_predict1ws_vsci$vsci, method = "pearson")
 
+# note that squaring the correlation corresponds to cor2 from the loocv function
+cor(aug_d_predict1ws_vsci$vsci_pred,aug_d_predict1ws_vsci$vsci, method = "pearson")^2
+
 as.data.frame(aug_d_predict1ws_vsci)|>
   dplyr::select(vsci_pred,vsci)|>
   correlate()
@@ -1214,7 +1158,7 @@ as.data.frame(aug_d_predict1ws_vsci)|>
 ```
 
 # 11 Interactive Mapping of Predictands
-With spatial data analysis, we are interested in two distributions. One is the statistical distribution, such as the correlation above, and the other is the spatial distribution. For example, are there regions, or subbasin, with outliers?
+With spatial data analysis, we are interested in two distributions. One is the statistical distribution, such as the correlation above, and the other is the spatial distribution. For example, are there regions, or subbasins, with outliers?
 
 ## 11.1 VAHUSB Polygons
 Slight edits to vahusb polygons to make for better maps.
@@ -1321,7 +1265,7 @@ opl_stations2
 ## NMC True VSCI vs Pred VSCI Scatter Plot
 
 ```{r nmc_pred_true_vsci_stationtype}
-# This one is closest
+
 a5preds2019_2022_v3 <- ggplot(aug_d_predict1ws_vsci, aes(x = vsci_pred, y = vsci, size = .se.fit, shape = st_type, color = st_type)) + geom_point() + labs(x = "Predicted VSCI", y = "True VSCI, 2019-2022", title = "SSN Prediction Sites", shape = "Station Type", color = "Station Type") + xlim(35,80) + ylim(35,80) + scale_size_binned(name = "Standard Error") + guides(color = guide_legend(override.aes = list(size = 6))) + theme(legend.text = element_text(size = 12))
 
 png(file="figures_nmc_2025/a5preds2019_2022_v3.png",width=6,height=3,units="in",res=150)
@@ -1349,8 +1293,6 @@ dev.off()
 
 ```
 
-
-
 ## NMC Elevation Boxplots by Subbasin
 ```{r nmc_boxplots}
 RColorBrewer::display.brewer.all()
@@ -1369,7 +1311,6 @@ dev.off()
 ## NMC tmap: Prediction Maps
 
 ```{r jprobmon}
-
 
 legend_title = "Subbasin"
 tm_shape(vahusb_poly) + tm_polygons("subbasin") +
@@ -1489,11 +1430,12 @@ tmap_save(j_map_vsci_predse, "figures_nmc_2025/j_map_vsci_predse_v1_20250225.jpe
 ```
 
 # Neptune Code from TLH
-Code from Neptune statistician, Travis Linscome-Hatfield, base R plot code to make predictions versus observed. That base R code was replaced with ggplot2 code using geo_ribbon to make prediction intervals for that plot.
-# TLH fitted to obs interval plot
-On 12/23/2024 commenting this code out b/c this is not the model I need for fitted interval obs plot.
+This code is included for thoroughness, but does not need to be run unless user wants to see output.
 
-On 12/16/2024 first using a4 reml model and will compare to z5 reml model with distance covariate as that provides a better fit based on smaller AICc value.
+Code from Neptune statistician, Travis Linscome-Hatfield, used base R plot code to make predictions versus observed plots. That base R code was replaced with SSN2 model output and ggplot2 code using geom_ribbon above to make prediction intervals for that plot.
+
+# TLH fitted to obs interval plot
+Commented out as uses base R plotting functions.
 ```{r fitted_interval_obs_plot}
 # z4 model was run above
 
@@ -1573,7 +1515,7 @@ On 12/16/2024 first using a4 reml model and will compare to z5 reml model with d
 ```
 
 # TLH fitted to obs interval plot (LOOCV method)
-On 12/26/2024 commenting this code because this is not the model I need for fitted interval obs plot.
+Commented out as uses base R plotting function. 
 ```{r fitted_interval_plot_loocv}
 # Alrighty, so this method mimics John's method
 # which gives a loocv estimate of fitted value an se.
@@ -1621,8 +1563,8 @@ On 12/26/2024 commenting this code because this is not the model I need for fitt
 
 ```
 # Carson Code Points Outside LOOCV 90% Prediction Limit for n=199 Obs
-Added this code on 12/24/2024 and commented out because this is not the final SSN model.
-This code comes from local_SSN_FINAL_20160126_modelling.html 
+
+This code comes from local_SSN_FINAL_20160126_modelling.html, which was written by John Carson, a statistician now at Neptune.
 ```{r loocv_pts_outside}
 # number of points outside 90% prediction limits
 # os90pl.sp <-(ty < spat.Pred.pct[,"Q05"]) |  (ty > spat.Pred.pct[,"Q95"]) 
@@ -1632,278 +1574,9 @@ This code comes from local_SSN_FINAL_20160126_modelling.html
 # these are the Site IDs of the unusual values
 # DFobsz[which(os90pl.sp),"station_id_2"]
 ```
-# TLH fitted to obs interval plot for a5 model
-01/14/2025 added Travis' code to make prediction of 199 sites vsci versus observed vsci as ggplot using same variance for each obs so get straight 90th percentile lines. 18 Stations fell outside of those lines.
-
-Now that diagnostics checked out make an observed to fitted interval plot on model a5ssn_wswq_reml1 by augmenting to get diagnostics.
-```{r fitted_interval_obs_plot}
-# z4 model was run above
-
-a5ssn_wswq_reml1 <- ssn_lm(
-  formula = vsci ~ pct_imp_w_emplog + elev_ws + do + vahusb_JL + dist_nearest_up_wb_km,
-  ssn.object = j_ssn3,
-  tailup_type = "none",
-  taildown_type = "exponential",
-  euclid_type = "exponential",
-  nugget_type = "nugget",
-  estmethod = "reml",
-  additive = "afv_area",
-  partition_factor = ~ju
-)
-
-tidy(a5ssn_wswq_reml1)
-summary(a5ssn_wswq_reml1)
-varcomp(a5ssn_wswq_reml1)
-loocv(a5ssn_wswq_reml1)
-
-# how do residuals and fitted values below compare to what comes out with augment function?
-
-aug_a5obs1ws_vsci <- augment(a5ssn_wswq_reml1, drop = FALSE)
-
-class(aug_a5obs1ws_vsci)
-names(aug_a5obs1ws_vsci)
-
-head(round(aug_a5obs1ws_vsci$.fitted,1))
-head(round(aug_a5obs1ws_vsci$vsci,1))
-
-
-# get spatial residuals from model
-spatResids<-residuals(a5ssn_wswq_reml1)
-# zspatResids<-residuals(a5ssn_wswq_reml1)
-# head(aug_a5obs1ws_vsci$.resid)
-# the three statements above all return same results
-
-# pull out fitted values and sd of residuals
-fitted_vals = a5ssn_wswq_reml1$fitted$response
-resid_SD = sd(spatResids)
-
-
-# combine to a dataframe note variance same for all obs
-spat<-cbind(fitted_vals,resid_SD^2)
-head(spat)
-
-# spatial prediction percentiles
-(spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
-
-spat.Pred.median = spat.Pred.pct[,4]
-head(spat.Pred.median)
-
-# observed and median of our fitted values from 199 obs
-ty<-aug_a5obs1ws_vsci$vsci
-tx<-round(spat.Pred.median,1)
-
-#percentiles
-ox<-order(tx)
-op05<-spat.Pred.pct[ox,"Q05"]
-op95 <- spat.Pred.pct[ox,"Q95"]
-
-# put all components into data frame for ggplot
-plot_dat = data.frame("vsci_pred" = tx, "vsci" = ty, "pred_5th" = op05, "pred_95th" = op95,"vsci_bound_order"=tx[ox],"station_id"=aug_a5obs1ws_vsci$station_id_2)
-
-
-p = ggplot(data = plot_dat)+
-  geom_point(aes(x = vsci_pred, y = vsci,label = station_id), color = "black")+
-  geom_smooth(aes(x = vsci_pred, y = vsci), method = "loess", se = F, color = "blue")+
-  geom_line(aes(x = vsci_bound_order, y = pred_5th), linetype = "dashed", color = "black")+
-  geom_line(aes(x = vsci_bound_order, y = pred_95th), linetype = "dashed", color = "black")+
-  geom_abline(intercept = 0, slope = 1, color = "red")+
-  labs(x="vsci predicted",
-       y ="vsci observed")
-print(p)
-ggplotly(p)
-
-cor(tx,ty, method = "pearson")
-
-# number of points outside 90% prediction limits
-os90pl.sp <-(ty < spat.Pred.pct[,"Q05"]) |  (ty > spat.Pred.pct[,"Q95"]) 
-summary(os90pl.sp)
-
-# which observations are outside [5%, 95%] prediction limits?
-# these are the Site IDs of the unusual values
-aug_a5obs1ws_vsci[which(os90pl.sp),"station_id_2"]
-
-mapview(aug_a5obs1ws_vsci[which(os90pl.sp),"station_id_2"])
-
-# these object names are used again downstream for preds so remove here
-rm(spatResids,resid_SD,fitted_vals,spat,spat.Pred.pct,spat.Pred.median,ty,tx,ox,op05,op95,p)
-
-# plot using base plot with all components called separately into the plot
-# plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value",ylab="VSCI Observed Value",main="SSN Obs vs. Pred a5 reml n = 199")
-# abline(0,1,col="red")
-# lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
-
-# 5th percentile of predictive distribution
-# lines(tx[ox],op05,lty=2,col='black')
-# 95th percentile of predictive distribution
-# lines(tx[ox],op95,lty=2,col='black')
-#legend
-# legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
-
-```
-
-# TLH Fitted interval preds
-On 01/10/2025 merged Travis' branch to make this as a ggplotly plot
-Based on 12/24/2024 email this graph of preds is using standard error of model so that gives straight prediction interval lines
-On 12/23/2024, merged Travis' code so that predictions from 48 pred sites also used residuals from the 48 predictions to build the fitted interval.
-On 12/19/2025 removed a5ssn_wswq_reml1 and replaced with aug_a5predict1ws_vsci, with that SSN model based on the 48 pred sites.
-I believe this coding is fitting to 199 obs because using a5ssn_wswq_reml1. I think it should be using aug_a5predict1ws_vsci as it has 48 predicted sites from 2019-2022.
-```{r fitted_interval_preds_plot}
-# create residuals in the new prediction frame as they don't provide from the prediction augment call
-aug_a5predict1ws_vsci$.residuals <- aug_a5predict1ws_vsci$vsci-aug_a5predict1ws_vsci$.fitted
-
-# use fitted values and calculate sd of residuals
-fitted_vals = aug_a5predict1ws_vsci$.fitted
-resid_SD = sd(aug_a5predict1ws_vsci$.residuals)
-
-# combine to a dataframe note variance/se is same for all obs
-spat<-cbind(fitted_vals,resid_SD^2)
-head(spat)
-# spatial prediction percentiles
-(spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
-
-spat.Pred.median = spat.Pred.pct[,4]
-
-# observed and median of our prediction intervals
-ty<-round(aug_a5predict1ws_vsci$vsci,1)
-tx<-round(spat.Pred.median,1)
-
-#percentiles
-ox<-order(tx)
-op05<-spat.Pred.pct[ox,"Q05"]
-op95 <- spat.Pred.pct[ox,"Q95"]
-
-# put all components into data frame for ggplot
-plot_dat = data.frame("vsci_pred" = tx, "vsci" = ty, "pred_5th" = op05, "pred_95th" = op95,"vsci_bound_order"=tx[ox],"station_id"=aug_a5predict1ws_vsci$station_id_2)
-
-
-p = ggplot(data = plot_dat)+
-  geom_point(aes(x = vsci_pred, y = vsci,label = station_id), color = "black")+
-  geom_smooth(aes(x = vsci_pred, y = vsci), method = "loess", se = F, color = "blue")+
-  geom_line(aes(x = vsci_bound_order, y = pred_5th), linetype = "dashed", color = "black")+
-  geom_line(aes(x = vsci_bound_order, y = pred_95th), linetype = "dashed", color = "black")+
-  geom_abline(intercept = 0, slope = 1, color = "red")+
-  labs(x="vsci predicted",
-       y ="vsci observed",
-       title = "SSN Withheld Obs vs Pred a5 reml n=48 interval 0.90, tlh method")
-print(p)
-ggplotly(p)
-
-# identify does not work in RStudio
-# identify(tx, ty, labels = station_id_2, plot=TRUE)
-
-# number of points outside 90% prediction limits
-os90pl.sp <-(ty < spat.Pred.pct[,"Q05"]) |  (ty > spat.Pred.pct[,"Q95"]) 
-summary(os90pl.sp)
-
-# which observations are outside [5%, 95%] prediction limits?
-# these are the Site IDs of the unusual values
-aug_a5predict1ws_vsci[which(os90pl.sp),"station_id_2"]
-
-mapview(aug_a5predict1ws_vsci[which(os90pl.sp),"station_id_2"])
-
-rm(fitted_vals, resid_SD, spat, spat.Pred.pct, spat.Pred.median, ty, tx, ox, op05, op95, plot_dat, p, os90pl.sp)
-
-# plot using base plot with all components called separately into the plot
-# plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value 2019-2022",ylab="VSCI Observed Value 2019-2022",main="SSN Withheld Obs vs. Pred a5 Model SE n =48")
-# abline(0,1,col="red")
-# lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
-# 
-# # 5th percentile of predictive distribution
-# lines(tx[ox],op05,lty=2,col='black')
-# # 95th percentile of predictive distribution
-# lines(tx[ox],op95,lty=2,col='black')
-# #legend
-# legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
-```
-
-# TLH Fitted interval preds (quasi-LOOCV method)
-On 01/10/2025 merged Travis'branch to make this as a ggplotly plot
-
-On 12/27/2024, is ribbon prediction interval in chunk 20, Preds for Distance Hypothesis, equivalent to chunk 22, fitted_interval_plot_loocv-preds, below? Doing head(aug_a5predict1ws_vsci$vsci_lwr) and same to vsci_upr show ribbon prediction intervals wider than Q05 and Q95. Consequently, the narrower Q05 and Q95 prediction intervals identify more points outside the intervals.
-
-Based on 12/24/2024 email from Travis this uses standard error of each prediction point so get squiggly lines.
-```{r fitted_interval_plot_loocv-preds}
-# Alrighty, so this method mimics John's method
-# which gives a loocv estimate of fitted value an se.
-# However, as we're looking at new predicted data it doesn't actually refit the model n times so we don't have proper loocv fitted values.
-# This results in the squiggly lines because he's giving that 
-# se at each individual value.
-fitted_vals = aug_a5predict1ws_vsci$.fitted
-resid_Se = aug_a5predict1ws_vsci$.se.fit
-
-# combine to a dataframe and se.fit/variance differs for each observation
-spat<-cbind(fitted_vals,resid_Se^2)
-head(spat)
-
-# spatial prediction percentiles
-# qnorm arguments include
-# p a vector of probabilities
-# mean a vector of means, which are our fitted values
-# sd a vector of standard deviations, the square root of the squared .se.fit
-(spat.Pred.pct<-t(apply(spat,1,function(x) qnorm(c(Q05=0.05,Q10=0.1,Q25=0.25,Median=0.5,Q75=0.75,Q90=0.9,Q95=0.95),x[1],sqrt(x[2])))))
-
-spat.Pred.median = spat.Pred.pct[,4]
-head(spat.Pred.median)
-
-
-# observed and median of our prediction intervals
-ty<-round(aug_a5predict1ws_vsci$vsci,1)
-tx<-round(spat.Pred.median,1) ## these just are the fitted values
-
-#percentiles
-ox<-order(tx)
-op05<-spat.Pred.pct[ox,"Q05"]
-op95 <- spat.Pred.pct[ox,"Q95"]
-
-# put all components into data frame for ggplot
-plot_dat = data.frame("vsci_pred" = tx, "vsci" = ty, "pred_5th" = op05, "pred_95th" = op95,"vsci_bound_order"=tx[ox],"station_id"=aug_a5predict1ws_vsci$station_id_2)
-
-
-p = ggplot(data = plot_dat)+
-  geom_point(aes(x = vsci_pred, y = vsci,label = station_id), color = "black")+
-  geom_smooth(aes(x = vsci_pred, y = vsci), method = "loess", se = F, color = "blue")+
-  geom_line(aes(x = vsci_bound_order, y = pred_5th), linetype = "dashed", color = "black")+
-  geom_line(aes(x = vsci_bound_order, y = pred_95th), linetype = "dashed", color = "black")+
-  geom_abline(intercept = 0, slope = 1, color = "red")+
-  labs(x="vsci predicted",
-       y ="vsci observed",
-       title = "SSN Withheld Obs vs Pred a5 reml n=48 interval 0.90, jhc method")
-
-print(p)
-ggplotly(p)
-
-# Carson Code Points Outside LOOCV 90% Prediction Limit for n=48 Withheld Obs
-# This code comes from local_SSN_FINAL_20160126_modelling.html that was used in the Scown et al. 2017 paper.
-
-# number of points outside 90% prediction limits
-os90pl.sp <-(ty < spat.Pred.pct[,"Q05"]) |  (ty > spat.Pred.pct[,"Q95"]) 
-summary(os90pl.sp)
-
-# which observations are outside [5%, 95%] prediction limits?
-# these are the Site IDs of the unusual values
-aug_a5predict1ws_vsci[which(os90pl.sp),"station_id_2"]
-
-mapview(aug_a5predict1ws_vsci[which(os90pl.sp),"station_id_2"])
-
-rm(fitted_vals, resid_Se, spat, spat.Pred.pct, spat.Pred.median, ty, tx, ox, op05, op95, plot_dat, p, os90pl.sp)
-
-# plot using base plot with all components called in separatel to plot
-# plot(tx,ty,xlim=range(na.omit(tx)),ylim=range(na.omit(ty),na.omit(op95)),xlab="VSCI Predicted Value 2019-2022",ylab="VSCI Observed Value 2019-2022",main="SSN Withheld Obs vs. Pred a5 reml se.fit n =48")
-# abline(0,1,col="red")
-# lines(lowess(na.omit(tx),na.omit(ty)),col='blue')
-# 
-# # 5th percentile of predictive distribution
-# lines(tx[ox],op05,lty=2,col='black')
-# # 95th percentile of predictive distribution
-# lines(tx[ox],op95,lty=2,col='black')
-# #legend
-# legend("topleft",lty=c(1,1,2,2),col=c("red","blue","black","black"),legend=c("y = x","lowess","5% Pred","95% Pred"), x.intersp = 0.7, y.intersp = 0.7)
-
-# cor(tx,ty, method = "pearson")
-
-```
 
 # TLH Exploring residuals and counts at trend vs status
+
 While trend stations have smaller .se.fit than status stations, it appears this may simply be a function of more observations at trend stations than single-visit status stations with just 1 observation.
 ```{r}
 
