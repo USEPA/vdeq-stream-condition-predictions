@@ -112,7 +112,7 @@ rm(z, z1, z1_nn, station_nn, dists, dists_knn1 ,vahusb_so)
 
 Having the COMID/FeatureID for each of the obs site and prediction points is what allows us to work with StreamCat Covariates. A spatial join, done either in ArcGIS Pro or R, of the obs and prediction points to the NSI segments is what allowed the COMID/FeatureID of the NSI segments to be transferred to the obs and prediction point. 
 
-The StreamCat covariates have a COMID/FeatureID associated with them, with those identifiers coming from the reaches in NHDPlusV2. NHDPlusv2 was the originating dataset for the NSI.
+The StreamCat covariates have a COMID/FeatureID associated with them, with those identifiers coming from the reaches in NHDPlusV2. NHDPlusv2 was the originating dataset for the National Stream Internet (NSI) flowlines or edges.
 
 A typical StreamCat workflow is to bring a csv file for a specific variable for all of the catchments in the state.
 The left join of the DFobs from the SSN to the csv using `r by = join_by(FeatureID == COMID))`
@@ -202,7 +202,7 @@ rm(wwtp_ds1)
 
 ## 2.20 Explore STATSGO_Set1 Variables
 
-Based on Schmid et al. 2011 and Hill et al. 2017, consider SandWs as a possible covariate.
+Based on Schmid et al. 2011 and Hill et al. 2017, consider mean percent sand content of soils in a watershed (SandWs) as a possible covariate.
 Four observations at \~ 55% or greater really stand out and are all from JL.
 Median SandWs and IQR for JL much greater than other for subbasins.
 JU shows positive slope to VSCI, 3 other subbasins show negative slope, and JL is flat.
@@ -1017,7 +1017,7 @@ for(var in emplog_vars){
 
 ```
 
-## 4.20 Logit of Impervious Cover Example
+## 4.20 Logit Example of Impervious Cover
 When proportions, or percentages, for a covariate are squished down to a small range of values towards either 0 or 1, then an empirical logit transformation
 can "stretch out" those value. That stretching can possibly make a better fit between the response variable and the covariate. Contrast the summary statistics between
 watershed percentage forest cover and watershed impervious surface percentage. Given the wide range of values for watershed percentage forest cover, the scatter plots
