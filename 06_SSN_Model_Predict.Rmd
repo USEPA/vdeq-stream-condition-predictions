@@ -877,7 +877,7 @@ mapview(a_rssn_wswq_ml1, zcol = ".std.resid",  alpha.regions = .8, legend = TRUE
 ```
 
 # 7.0 Distance Hypothesis for WsWq SSN Model
-Here we use the distance covariate to test the hypothesis that monitoring sites having upstream waterbodies furthest away would have higher VSCI.
+Here we use the distance covariate to test the hypothesis that monitoring sites having upstream waterbodies, such as lakes, reservoirs, and ponds, furthest away would have higher VSCI.
 
 There are 4 parts to this section:  a) exploratory spatial data analysis, b) diagnostics on the non-spatial model, c) ML estimation of d_ssn_wswq_ml1 for comparison to ssn models with other covaries, and d) REML estimation, d_ssn_wswq_reml1 that would be used for prediction. 
 
@@ -1081,7 +1081,7 @@ glances(d_ssn_wswq_reml1, np_ssn_wswq_reml1)
 ```
 
 
-# 10 Predictands from Distance WsWQ SSN Model
+# 10 Predictions from Distance WsWQ SSN Model
 Now we want to d_ssn_wswq_reml1 as the ssn model to get predictions for the independent 48 observations from 2019-2022.
 
 Note we are using the augment function again, but this time is used with ssn_lm, d_ssn_wswq_reml1, plus specifying the new data of the prediction points. After getting the predictions, we 1) examine the 48 predictions, 2) plot them against their observed, or "true" values of vsci and 3) calculate a correlation between the true values and predicted values.
@@ -1256,7 +1256,7 @@ dev.off()
 ```{r nmc_boxplots}
 RColorBrewer::display.brewer.all()
 viridis::viridis(7)
-tmaptools::palette_explorer() # zoomed to this and checked options Print color values to get color codes for Brewer Categorical Set3 so I could specify fill colors to match tmaps
+tmaptools::palette_explorer() # zoomed to this and checked options Print color values to get color codes for Brewer Categorical Set3 so I could specify fill colors to match tmaps. palette_explorer function is from tmaptools from version 3.1-1. Newer versions of that package use a different function.
 
 boxplot_elev_ws <- ggplot(data=DFobs3a, aes(y= elev_ws, x= vahusb)) + geom_boxplot(aes(fill = vahusb), outlier.shape = NA) + geom_jitter() + labs(y = "Watershed Elevation (m)", x = "Subbasins", fill = "Subbasin") + scale_fill_manual(values = c("#8DD3C7", "#FFFFB3", "#BEBADA", "#FB8072", "#80B1D3"))
   
