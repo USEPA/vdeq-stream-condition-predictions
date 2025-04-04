@@ -18,7 +18,7 @@ For each of the scripts, 01_Semivariogram.Rmd through 06_SSN_Model_Predict.Rmd, 
 
 Our exploratory spatial data analysis (ESDA) continues by examining spatial variation now over stream network distances, instead of only Euclidean distance. 
 
-## Libraries and Refernces
+## Libraries
 ```{r libraries}
 library(tidyverse)
 library(gstat) # for semivariograms
@@ -39,7 +39,7 @@ sessionInfo()
 
 ```
 
-## SSN Import & Extract Data Frame
+# 1.0 SSN Import & Extract Data Frame
 
 A spatial stream network object is needed to evaluate semivariance in the response variable as a function of Euclidean and stream network distances, flow-connected and flow-unconnected. 
 
@@ -71,18 +71,18 @@ j_ssn1a <-  SSN2::ssn_put_data(DFobs,j_ssn1a)
 
 ```
 
-## Create Distance Matrix
+# 2.0 Create Distance Matrix
 SSN2 creates a distance folder where distance R objects are stored. Look where the SSN object is located in File Explorer. In our case we are looking for the James_071024_pluspreds.ssn folder and within that is the distance folder. The creation of the distance matrix calculates all three distant types and only needs to be done once as long as the geography of points (observation or sites, and prediction points) and flowlines (edges) have not been altered. The function has already been run so it is commented out. Note that this distance matrix only contains distances for obs. When we go to make predictions with an SSN model we need to make sure and run the create distance function and specify that is also to include distance matrix for the preds.
 ```{r distance_matrix}
 ## Create distance matrices for observed sites
 # SSN2::ssn_create_distmat(j_ssn2, overwrite = TRUE)
 ```
 
-## Torgegram
+# 3.0 Torgegram
 
 We are still interested in answering the question: do sites nearer to each other have smaller semivariances than sites further apart. Now, we are asking that question over Euclidean, flow-unconnected, and flow-connected distances.
 
-### Euclidean Distance
+## 3.1 Euclidean Distance
 We will begin with gamma, or semivariance, plotted as a function of Euclidean distance so this is just a semivariogram plot. Recall that our individual vsci observations for each station are binned over distance giving an average distance and average gamma based on the number of pairs of points used for those averages. The size of the point plotted in the graph corresponds to the number of pairs of points.
 ```{r torg_euclid}
 names(j_ssn1a)
@@ -110,7 +110,7 @@ ggplot(torg_eu, aes(x=dist, y=gamma,size=np)) + geom_point() + ggtitle("VSCI Euc
 rm(ztg)
 ```
 
-### Flow-Unconnected Distance
+## 3.2 Flow-Unconnected Distance
 Stations are flow-unconnected when they are on different branches of the stream network and share a confluence. The calculations of average gamma and average distance remain the same, but are restricted to those pairs of stations that are flow-unconnected.
 
 ```{r torg_flow_unconnect}
@@ -132,7 +132,7 @@ rm(ztg)
 
 ```
 
-### Flow-Connected Distance
+## 3.3 Flow-Connected Distance
 Stations are flow-connected when they have an upstream to downstream relationship. The calculations of average gamma and average distance remain the same, but are restricted to those pairs of stations that are flow-unconnected. Why might the flow-connected Toregram look so wonky? 
 ```{r torg_flow_unconnect}
 ztg <- SSN2::Torgegram(vscivcpmi ~ 1, j_ssn1a, type = c( "flowcon"))
@@ -155,7 +155,7 @@ ggplot(torg_fc, aes(x=dist, y=gamma,size=np)) + geom_point() + ggtitle("VSCI Flo
 rm(ztg)
 ```
 
-### Variation of Torgegram Plotting
+## 3.4 Variation of Torgegram Plotting
 ```{r toregrams-together_separate}
 ztg <- SSN2::Torgegram(vscivcpmi ~ 1, j_ssn1a, type = c( "flowcon", "flowuncon", "euclid"))
 
