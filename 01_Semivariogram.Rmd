@@ -87,7 +87,7 @@ suppressWarnings(mapview(hab_sf1) + mapview(bigbend_seagrass))
 ```
 
 ## 2.0 Writing sf Objects to Shapefiles and Geopackage Geodatabase
-A sf object can be written out as an ESRI shapefile. If you have several sf objects, such as points for sites and polygons of seagrass areas, you can keep them together by writing them out as a geopackage geodatabase. The output from this code will appear under File Explorer where your working directory is located and will include a shapefile and geopackage that we wrote to that location.
+A sf object can be written out as an ESRI shapefile. If you have several sf objects, such as points for sites and polygons of seagrass areas, you can keep them together by writing them out as a geopackage geodatabase. The output from this code will appear under File Explorer where your working directory is located and will include a shapefile and geodatabase that we wrote to that location.
 Note that geopackage is the default spatial format for QGIS. The R package SSNbler <https://cran.r-project.org/package=SSNbler> can be used with QGIS, or ArcGIS Pro, to build a spatial stream network (SSN) object.
 ```{r geopackage, eval=FALSE}
 
@@ -126,7 +126,7 @@ class(DFobs)
 mapview(DFobs)
 names(DFobs)
 DFobs <- clean_names(DFobs)
-# note that clean_names can sometimes introduce undesired artifacts in names. Review them
+# note that clean_names can sometimes introduce undesired artifacts in names as pH becomes p_h so review cleaned names
 names(DFobs)
 # now including specified pop-ups
 mapview(DFobs, zcol = "vscivcpmi", cex = "vscivcpmi", alpha.regions = .8, legend = TRUE, popup = popupTable(DFobs, zcol = c("station_id_2", "vscivcpmi")))
